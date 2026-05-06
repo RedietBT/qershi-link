@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-auth-service
+  namespace: sacco-core
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity-auth
+  template:
+    metadata:
+      labels:
+        app: identity-auth
+    spec:
+      containers:
+        - name: identity-auth
+          # Replace 'your-docker-username' with your actual username later
+          image: identity-auth-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service:5432/qershi-link"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "postgres"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "postgres"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-auth-service
+  namespace: sacco-core
+spec:
+  selector:
+    app: identity-auth
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
