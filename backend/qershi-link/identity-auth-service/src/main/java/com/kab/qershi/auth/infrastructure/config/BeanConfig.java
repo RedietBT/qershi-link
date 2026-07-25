@@ -10,8 +10,7 @@ import com.kab.qershi.auth.domain.ports.inbound.SaccoOnboardingUseCase;
 import com.kab.qershi.auth.domain.ports.outbound.*;
 import com.kab.qershi.auth.domain.service.IdentityDomainService;
 import com.kab.qershi.auth.domain.service.RbacDomainService;
-import com.kab.qershi.auth.infrastructure.adapters.AfroMessageAdapter;
-import com.kab.qershi.auth.infrastructure.security.JwtTokenProvider; // Import this
+import com.kab.qershi.auth.infrastructure.security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -60,24 +59,12 @@ public class BeanConfig {
         );
     }
 
-    // 🛠️ ADDED: Injection for your Super Admin registration
     @Bean
     public SuperAdminService superAdminService(
             UserRepositoryPort userRepositoryPort,
             PasswordEncoder passwordEncoder,
             MessagingPort messagingPort) {
         return new SuperAdminService(userRepositoryPort, passwordEncoder, messagingPort);
-    }
-
-    // Note: Ensure your JwtTokenProvider is also managed as a bean
-    @Bean
-    public JwtTokenProvider jwtTokenProvider() {
-        return new JwtTokenProvider();
-    }
-
-    @Bean
-    public MessagingPort messagingPort() {
-        return new AfroMessageAdapter();
     }
 
     @Bean

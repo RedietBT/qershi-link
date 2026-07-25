@@ -61,20 +61,25 @@ public class AuthenticationService implements AuthenticationUseCase {
         Sacco parentSacco = saccoRepositoryPort.findById(user.getSaccoId())
                 .orElseThrow(() -> new IllegalStateException("SACCO registry entry missing."));
 
-        List<String> userPermissions = user.getLocalRoles().stream()
-                .flatMap(role -> role.getPermissions().stream())
-                .map(Permission::toAuthority)
-                .distinct()
-                .toList();
+        // 1. Load permissions directly from DB — the authoritative source
+        //    (user.getLocalRoles() is a domain object that is never populated from the entity mapper)
+        List<String> permissions = userRepositoryPort.findPermissions(
+                user.getUserId(), user.getSaccoId());
 
-        String token = jwtTokenProvider.createToken(user.getMsisdn(), user.getSaccoId().toString(), userPermissions);
+        // 2. Build JWT authorities: global role (ROLE_ prefixed) + tenant permissions
+        List<String> jwtAuthorities = new java.util.ArrayList<>();
+        jwtAuthorities.add("ROLE_" + user.getGlobalRole().name()); // e.g. "ROLE_SUPER_ADMIN"
+        jwtAuthorities.addAll(permissions);
 
+        String token = jwtTokenProvider.createToken(user.getMsisdn(), user.getSaccoId().toString(), jwtAuthorities);
+
+        // 3. Response context: global role name is its own field — permissions passed separately
         UserContext context = new UserContext(
                 user.getUserId(),
                 user.getSaccoId(),
                 parentSacco.getSchemaName(),
                 user.getGlobalRole().name(),
-                userPermissions
+                permissions
         );
 
         return new LoginResult(token, "Bearer", 3600L, context);

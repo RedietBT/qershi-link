@@ -1,6 +1,8 @@
 package com.kab.qershi.auth.infrastructure.grpc;
 
 import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import java.util.UUID;
 
@@ -13,6 +15,8 @@ import java.util.UUID;
  */
 @Component
 public class ProfileServiceClient {
+
+    private static final Logger log = LoggerFactory.getLogger(ProfileServiceClient.class);
 
     // 🛠️ FIXED: Changed outer class reference to ProfileServiceGrpcGrpc to match the protobuf compiler output
     @GrpcClient("profile-service")
@@ -33,7 +37,7 @@ public class ProfileServiceClient {
             ResourceDeleteResponse response = profileServiceStub.cascadeDeleteProfile(request);
             return response.getIsSuccess();
         } catch (Exception ex) {
-            // Log environmental transport failures safely here
+            log.warn("Profile service gRPC cascade deletion unhandled or unreachable for user {}: {}", userId, ex.getMessage());
             return false;
         }
     }

@@ -25,7 +25,7 @@ public interface SpringDataUserRepository extends JpaRepository<UserEntity, UUID
     @Query(value = "INSERT INTO master_schema.user_roles (user_id, role_id, sacco_id) VALUES (:userId, :roleId, :saccoId)", nativeQuery = true)
     void insertUserRole(@Param("userId") UUID userId, @Param("roleId") UUID roleId, @Param("saccoId") UUID saccoId);
 
-    @Query(value = "SELECT DISTINCT p.action || '_' || p.resource " +
+    @Query(value = "SELECT DISTINCT p.resource || '_' || p.action " +
             "FROM master_schema.permissions p " +
             "JOIN master_schema.role_permissions rp ON p.permission_id = rp.permission_id " +
             "JOIN master_schema.user_roles ur ON rp.role_id = ur.role_id " +

@@ -9,6 +9,7 @@ import com.kab.qershi.auth.infrastructure.persistence.UserEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -58,6 +59,13 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     public Optional<User> findByMsisdn(String msisdn) {
         return repository.findByMsisdn(msisdn)
                 .map(this::mapToDomain);
+    }
+
+    @Override
+    public List<String> findPermissions(UUID userId, UUID saccoId) {
+        // Delegates to the native query that joins user_roles → role_permissions → permissions
+        // and returns the authority strings in RESOURCE_ACTION format (e.g. MEMBER_CREATE)
+        return repository.findAuthoritiesByUserIdAndSaccoId(userId, saccoId);
     }
 
     // --- Data Mappers ---

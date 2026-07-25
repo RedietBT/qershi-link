@@ -57,7 +57,8 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".user_roles (" +
                 "user_id UUID NOT NULL, " +
                 "role_id UUID NOT NULL, " +
-                "PRIMARY KEY (user_id, role_id), " +
+                "sacco_id UUID NOT NULL, " +
+                "PRIMARY KEY (user_id, role_id, sacco_id), " +
                 "FOREIGN KEY (role_id) REFERENCES " + schemaName + ".roles(role_id) ON DELETE CASCADE" +
                 ")");
 
@@ -70,7 +71,8 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "('CASH',          'DEPOSIT',      'Authority to process over-the-counter cash deposits.'), " +
                 "('SAVINGS',       'WITHDRAW',     'Authority to process savings withdrawal requests.'), " +
                 "('REPORT',        'VIEW_ALL',     'Authority to run and view overall SACCO financial reports.'), " +
-                "('SACCO',         'ATTACH',       'Authority to link external core modules or sub-entities.') " +
+                "('SACCO',         'ATTACH',       'Authority to link external core modules or sub-entities.'), " +
+                "('USER',          'VIEW_ALL',     'Authority to list and view all user security accounts.') " +
                 "ON CONFLICT (resource, action) DO NOTHING");
 
         jdbcTemplate.execute("INSERT INTO " + schemaName + ".roles (role_id, role_name, is_system_defined) VALUES " +

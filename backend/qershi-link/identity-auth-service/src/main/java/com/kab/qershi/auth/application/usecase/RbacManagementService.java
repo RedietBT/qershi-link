@@ -3,15 +3,15 @@ package com.kab.qershi.auth.application.usecase;
 import com.kab.qershi.auth.domain.model.Role;
 import com.kab.qershi.auth.domain.ports.inbound.RbacManagementUseCase;
 import com.kab.qershi.auth.domain.ports.outbound.RoleRepositoryPort;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
-@RequiredArgsConstructor
 public class RbacManagementService implements RbacManagementUseCase {
 
     private final RoleRepositoryPort roleRepositoryPort;
+
+    public RbacManagementService(RoleRepositoryPort roleRepositoryPort) {
+        this.roleRepositoryPort = roleRepositoryPort;
+    }
 
     @Override
     @Transactional

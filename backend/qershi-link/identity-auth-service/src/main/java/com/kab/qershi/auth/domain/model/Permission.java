@@ -19,10 +19,10 @@ public class Permission {
 
     /**
      * Combines resource and action into a standard Spring Security authority string.
-     * e.g., "MEMBER:CREATE"
+     * e.g., "MEMBER_CREATE"
      */
     public String toAuthority() {
-        return this.resource + ":" + this.action;
+        return this.resource + "_" + this.action;
     }
 
     public UUID getPermissionId() { return permissionId; }

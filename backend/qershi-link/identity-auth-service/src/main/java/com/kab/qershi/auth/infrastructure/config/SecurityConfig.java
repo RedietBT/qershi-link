@@ -40,7 +40,8 @@ public class SecurityConfig {
                         // 2. Permit core authentication entry points
                         .requestMatchers(
                                 "/api/v1/auth/login",
-                                "/api/v1/auth/register-super-admin"
+                                "/api/v1/auth/register-super-admin",
+                                "/api/v1/sacco/onboard"
                         ).permitAll()
                         // 3. Permit password change (User is authenticated via partial JWT)
                         .requestMatchers("/api/v1/auth/change-password").authenticated()

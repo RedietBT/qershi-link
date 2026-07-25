@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -36,6 +37,14 @@ public class UserController {
     public UserController(SpringDataUserRepository userRepository, ProfileServiceClient profileServiceClient) {
         this.userRepository = userRepository;
         this.profileServiceClient = profileServiceClient;
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
+    @Operation(summary = "Fetch all user accounts", description = "Retrieves a list of all user account security records. Restricted to Platform and Tenant Administrators.")
+    public ResponseEntity<List<UserEntity>> getAllUsers() {
+        log.info("Retrieving all user accounts");
+        return ResponseEntity.ok(userRepository.findAll());
     }
 
     @PostMapping
