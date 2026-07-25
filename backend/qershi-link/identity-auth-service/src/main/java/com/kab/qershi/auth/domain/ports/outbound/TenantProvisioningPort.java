@@ -1,16 +1,15 @@
 package com.kab.qershi.auth.domain.ports.outbound;
 
-import com.kab.qershi.auth.domain.model.Role;
-import java.util.UUID;
-
 public interface TenantProvisioningPort {
 
-    // Executes physical CREATE SCHEMA and runs the tenant migration scripts
+    /**
+     * Executes physical CREATE SCHEMA, sets up the search_path, and runs tenant migration scripts.
+     * After this completes, the schema contains all tables, permissions, and the default ADMIN role.
+     */
     void provisionTenantSchema(String schemaName);
 
-    // Drops a schema if something fails during onboarding (Rollback mechanism)
+    /**
+     * Drops a schema completely if an unrecoverable failure occurs during the onboarding pipeline.
+     */
     void dropTenantSchema(String schemaName);
-
-    // Seeds the default ADMIN role and permissions directly into the private schema vault
-    void seedTenantRbac(String schemaName, Role adminRole);
 }

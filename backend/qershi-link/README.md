@@ -1,86 +1,100 @@
-# 🚀 Qershi-Link SACCO Digitization
-**Company:** KAB Digital Solution PLC  
-**Lead Developer:** Arsema Degu Addis
+# Qershi Link Backend - Identity & Authentication Service
 
-This project is a microservices-based SACCO management system built strictly with **Spring Boot** and **PostgreSQL**.
+A core multi-tenant microservice built using **Spring Boot 3.4.2 (Java 21)** following strict **Clean Architecture / Hexagonal Architecture** patterns. This service orchestrates master identity data platforms while programmatically provisioning isolated physical schema namespaces per tenant (SACCO/Union) under a resilient Zero-Orphan database isolation policy.
 
-## 🏗 System Architecture
-We follow **Clean Architecture** and **MVC** patterns. Please organize your code as follows:
-*   **Domain**: Business entities and core logic.
-*   **Application**: Service layers and Handlers (must include input validation).
-*   **Infrastructure**: Database schemas, JPA repositories, and external configs.
+---
 
-## 🗄 Database Strategy
-*   **Multi-tenant**: We use a schema-per-tenant strategy.
-*   **Auth Requirement**: When a user is deleted from the auth service, the corresponding profile **MUST** be deleted from the `profile_schema.profile` table.
+## 🚀 Prerequisites
 
-## 🏁 How to Run the Project
-### 1. Prerequisites
-*   Install **Docker Desktop** and enable the built-in **Kubernetes** cluster.
-*   Install **Java 21**.
+Before launching the cluster, ensure your local development workstation has the following installed:
+* **Operating System:** Windows 10/11 with PowerShell
+* **Java Development Kit (JDK):** Version 21
+* **Containerization:** Docker Desktop with Kubernetes enabled
+* **Orchestration Client:** `kubectl` CLI
 
-### 2. Prepare the Cluster
+---
+
+## 🛠️ How to Run the Project
+
+Follow these sequential steps to compile your code, update your cluster images, and deploy safely to your infrastructure namespace.
+
+### Step 1: Package the Microservice
+Compile and package the source application into an executable fat JAR running framework verification checks:
 ```powershell
-kubectl create namespace sacco-core
+./mvnw clean package
+
+
+
+### Step 2: Build the Container Image
+
+Build the container layer using the network host bridge. Target the root project level and map to the target Dockerfile profile:
+
+```powershell
+docker build --network=host -t identity-auth-service:latest -f identity-auth-service/Dockerfile .
+
 ```
 
-### 3. Launch the Infrastructure
+### Step 3: Rolling Update to Kubernetes
+
+Apply a rolling restart sequence to force your local cluster to pull the newly built image layer inside the dedicated namespace:
+
 ```powershell
-kubectl apply -f deployments/postgres-db.yaml
+kubectl rollout restart deployment/identity-auth-service -n sacco-core
+
 ```
 
-### 4. Build and Deploy Services
-From the root directory (`qershi-link-parent`):
-```powershell
-# Build the image locally
-docker build -t identity-auth-service:latest -f identity-auth-service/Dockerfile .
+### Step 4: Monitor Pod Synchronization
 
-# Deploy to Kubernetes
-kubectl apply -f deployments/identity-service.yaml
+Watch the real-time status transitions as old container templates gracefully terminate and new ones spin up to an active state:
+
+```powershell
+kubectl get pods -n sacco-core -w
+
 ```
 
 ---
 
-## 🔍 Verification (The "Lead Dev" Checklist)
-After deploying, use these steps to ensure everything is working correctly:
+## 🔍 Accessing Live Swagger Documentation
 
-### 1. Check Pod Status
-Ensure both `identity-auth-service` and `postgres-db` show `1/1 READY` and `Running`:
+Because the application boots inside an isolated virtual Kubernetes network namespace, you must establish an interface bridge from your host operating system to view the live API schema.
+
+### Expose Port Globally (Persistent Tunnel Command)
+
+To open a permanent port tunnel that remains open in the background without locking your current terminal session, execute:
+
 ```powershell
-kubectl get pods -n sacco-core
+Start-Job -ScriptBlock { kubectl port-forward deployment/identity-auth-service 8080:8080 -n sacco-core }
+
 ```
 
-### 2. Verify Database Connection
-Check the application logs to ensure Spring Boot successfully connected to PostgreSQL:
-```powershell
-kubectl logs -l app=identity-auth -n sacco-core
-```
-*Look for: `HikariPool-1 - Start completed.`*
+*(Alternatively, you can run `kubectl port-forward deployment/identity-auth-service 8080:8080 -n sacco-core` in a separate PowerShell window and keep it open).*
 
-### 3. Inspect the Database
-If you need to check the `profile_schema.profile` table manually:
-```powershell
-kubectl exec -it <postgres-pod-name> -n sacco-core -- psql -U postgres -d qershi-link
-```
+### Open the API Interactive Console
 
-### 4. Access Swagger UI
-To test the API handlers and validation:
-1. Start port-forwarding:
-   ```powershell
-   kubectl port-forward service/identity-auth-service 8080:80 -n sacco-core
-   ```
-2. Open: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+Once the tunnel is up, you and your team can bypass the Spring Security parameter and run payloads directly via the active link below:
+
+👉 **[http://localhost:8080/swagger-ui/index.html](https://www.google.com/search?q=http://localhost:8080/swagger-ui/index.html)**
 
 ---
 
-## ⚠️ Important Rules
-*   **Image Pull Policy**: All YAML files use `imagePullPolicy: Never`. You **must** build locally first.
-*   **Validation**: Every Handler must use `@Valid` or `@Validated` as configured in the Parent POM.
-*   **Git Hygiene**: Do not push `target/`, `.idea/`, or `.env` files. Ensure the `.gitignore` is active.
+## 🪵 Troubleshooting & Diagnostic Runbooks
 
----
+If your deployment slips into a `CrashLoopBackOff` status or signals an initialization `Error`, use these exact debugging commands to surface stack traces:
 
-### Why this extra info helps your friends:
-*   **Independence**: They can fix their own `ErrImagePull` or database connection issues without asking you.
-*   **Consistency**: They will use the same `kubectl` commands you used, ensuring the whole team sees the same results.
-*   **Transparency**: It explains *why* we use `imagePullPolicy: Never`, which is a common point of confusion for new Kubernetes users.
+### Inspect Historical Lifecycles (The Crash Log)
+
+If a container crashes during context initialization, regular logging commands might return blank. Grab the exception trace from the *previously terminated* instance:
+
+```powershell
+kubectl logs deployment/identity-auth-service -n sacco-core --previous
+
+```
+
+### Track Live Pod Infrastructure Events
+
+To inspect cluster scheduler actions, failing health/readiness probes, or underlying memory constraints, describe the active pod profile:
+
+```powershell
+kubectl describe pod -n sacco-core <pod-name-from-get-pods>
+
+```

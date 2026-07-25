@@ -5,11 +5,11 @@ package com.kab.qershi.auth.infrastructure.config;
  * Utilizes InheritableThreadLocal to preserve schema parameters across asynchronous tasks.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.0.1
  */
 public final class TenantContext {
 
-    /** Default fallback fallback schema matching global platform shared components. */
+    /** Default fallback schema matching global platform shared components. */
     public static final String DEFAULT_TENANT = "master_schema";
 
     private static final InheritableThreadLocal<String> CURRENT_TENANT = new InheritableThreadLocal<>() {
@@ -20,7 +20,7 @@ public final class TenantContext {
     };
 
     private TenantContext() {
-        // Prevent utility class instantiation instantiations
+        // Prevent utility class instantiation
     }
 
     /**

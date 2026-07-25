@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 1. Point up to your actual root parent POM -->
+    <parent>
+        <groupId>com.kab.qershi</groupId>
+        <artifactId>qershi-link-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <!-- 2. Identify this specific module uniquely -->
+    <artifactId>common-library</artifactId>
+    <name>common-library</name>
+    <description>Shared core configurations, DTOs, and utilities</description>
+
+    <!-- Packaging defaults to 'jar', which is exactly what we want! -->
+
+    <dependencies>
+        <!--
+          NOTE: Data-JPA, Validation, Actuator, and Lombok are already
+          automatically inherited from your root parent POM's global <dependencies> block!
+          You only need to add extra dependencies here if they are unique to this library.
+        -->
+    </dependencies>
+</project>

@@ -1,33 +1,32 @@
 package com.kab.qershi.auth.domain.service;
 
+import com.kab.qershi.auth.domain.model.Permission;
 import com.kab.qershi.auth.domain.model.Role;
-import java.util.Set;
+import java.util.Collection;
 
 public class RbacDomainService {
 
-    // Section 1.1.1.6.6 Global Core Capability Permissions Matrix
-    private static final Set<String> CORE_PERMISSIONS = Set.of(
-            "MEMBER_CREATE",
-            "MEMBER_VIEW_BASIC",
-            "LOAN_REQUEST_CREATE",
-            "LOAN_APPROVE",
-            "CASH_DEPOSIT",
-            "SAVINGS_WITHDRAW",
-            "REPORT_VIEW_ALL",
-            "SACCO_ATTACH"
-    );
-
     /**
-     * Section 1.1.1.5.1: Permission Seeding Logic
-     * Automatically maps every single global permission to the newly spawned tenant's ADMIN role.
+     * Section 1.1.1.5.1: Custom Role Domain Validation
+     * Enforces core business constraints before custom local roles are persisted.
      */
-    public void seedAdminRolePermissions(Role adminRole) {
-        if (!adminRole.isSystemDefined() || !"ADMIN".equalsIgnoreCase(adminRole.getRoleName())) {
-            throw new IllegalArgumentException("System permission seeding can only be executed on primary infrastructure ADMIN roles.");
+    public void validateCustomRoleAssignment(Role role, Collection<Permission> permissionsToGrant) {
+        // Enforce immutability of core infrastructure profiles
+        if (role.isSystemDefined()) {
+            throw new IllegalStateException("System defined core roles cannot have their scopes altered.");
         }
 
-        for (String permission : CORE_PERMISSIONS) {
-            adminRole.grantPermission(permission);
+        if (permissionsToGrant == null || permissionsToGrant.isEmpty()) {
+            throw new IllegalArgumentException("A role must be granted at least one active capability.");
+        }
+
+        // Business Rule: Guard against assigning deactivated capabilities
+        for (Permission permission : permissionsToGrant) {
+            if (!permission.isActive()) {
+                throw new IllegalArgumentException(
+                        "Security violation: Cannot grant inactive system capability: " + permission.toAuthority()
+                );
+            }
         }
     }
 }

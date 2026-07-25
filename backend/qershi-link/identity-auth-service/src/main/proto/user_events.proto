@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package com.kab.qershi.auth.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.kab.qershi.auth.infrastructure.grpc";
+
+// The service definition exposing the remote procedure
+service ProfileServiceGrpc {
+  rpc CascadeDeleteProfile (ResourceDeleteRequest) returns (ResourceDeleteResponse);
+}
+
+message ResourceDeleteRequest {
+  string user_id = 1;
+}
+
+message ResourceDeleteResponse {
+  bool is_success = 1;
+  string feedback_message = 2;
+}

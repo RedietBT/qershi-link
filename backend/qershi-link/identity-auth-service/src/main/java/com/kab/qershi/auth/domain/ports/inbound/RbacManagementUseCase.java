@@ -7,7 +7,7 @@ public interface RbacManagementUseCase {
 
     record CreateRoleCommand(
             String roleName,
-            List<String> permissions
+            List<UUID> permissionIds // Refactored: Pass explicit UUIDs of rows in the permissions table
     ) {}
 
     record RoleResult(

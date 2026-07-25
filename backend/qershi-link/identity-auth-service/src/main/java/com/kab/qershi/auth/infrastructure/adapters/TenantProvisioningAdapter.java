@@ -1,117 +1,94 @@
 package com.kab.qershi.auth.infrastructure.adapters;
 
-import com.kab.qershi.auth.domain.model.Role;
 import com.kab.qershi.auth.domain.ports.outbound.TenantProvisioningPort;
-import com.kab.qershi.auth.infrastructure.persistence.RoleEntity;
-import com.kab.qershi.auth.infrastructure.persistence.SpringDataRoleRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.Statement;
-
 /**
  * Infrastructure outbound adapter handling programmatic PostgreSQL schema provisioning.
- * Executes native schema generation and direct seeding tasks for multi-tenant isolation vaults.
+ * Executes native schema generation and relational RBAC bootstrapping for isolated multi-tenant vaults.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.1
  */
 @Component
 public class TenantProvisioningAdapter implements TenantProvisioningPort {
 
     private final JdbcTemplate jdbcTemplate;
-    private final SpringDataRoleRepository roleRepository;
 
-    /**
-     * Constructs the provisioner adapter using spring JDBC utilities and default persistence repositories.
-     */
-    public TenantProvisioningAdapter(JdbcTemplate jdbcTemplate, SpringDataRoleRepository roleRepository) {
+    public TenantProvisioningAdapter(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.roleRepository = roleRepository;
     }
 
-    /**
-     * Creates a new physical PostgreSQL schema namespace and seeds the core required tables.
-     * Uses Requires New propagation to separate database DDL creation locks from standard business records.
-     *
-     * @param schemaName The fully sanitized name of the target database schema namespace.
-     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void provisionTenantSchema(String schemaName) {
-        // Execute the physical schema containment creation block
+        // 1. Ensure the schema exists
         jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
 
-        // Core DDL Layout Construction: Seed the required localized tables inside the newly created namespace.
-        // In full setups, this can also hook directly into Flyway or Liquibase programmatic migrations.
-        jdbcTemplate.execute("CREATE TABLE " + schemaName + ".roles (" +
-                "role_id UUID NOT NULL PRIMARY KEY, " +
+        // 2. Relational Schema Construction: Provision isolated structural domain tables with IF NOT EXISTS
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".roles (" +
+                "role_id UUID PRIMARY KEY, " +
                 "role_name VARCHAR(50) NOT NULL, " +
-                "is_system_defined BOOLEAN NOT NULL" +
+                "is_system_defined BOOLEAN NOT NULL DEFAULT FALSE, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
                 ")");
 
-        jdbcTemplate.execute("CREATE TABLE " + schemaName + ".role_permissions (" +
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".permissions (" +
+                "permission_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "resource VARCHAR(50) NOT NULL, " +
+                "action VARCHAR(50) NOT NULL, " +
+                "description VARCHAR(255), " +
+                "is_active BOOLEAN NOT NULL DEFAULT TRUE, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "CONSTRAINT uq_" + schemaName + "_res_act UNIQUE (resource, action)" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".role_permissions (" +
                 "role_id UUID NOT NULL, " +
-                "permission_code VARCHAR(100) NOT NULL, " +
-                "PRIMARY KEY (role_id, permission_code), " +
+                "permission_id UUID NOT NULL, " +
+                "PRIMARY KEY (role_id, permission_id), " +
+                "FOREIGN KEY (role_id) REFERENCES " + schemaName + ".roles(role_id) ON DELETE CASCADE, " +
+                "FOREIGN KEY (permission_id) REFERENCES " + schemaName + ".permissions(permission_id) ON DELETE CASCADE" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".user_roles (" +
+                "user_id UUID NOT NULL, " +
+                "role_id UUID NOT NULL, " +
+                "PRIMARY KEY (user_id, role_id), " +
                 "FOREIGN KEY (role_id) REFERENCES " + schemaName + ".roles(role_id) ON DELETE CASCADE" +
                 ")");
+
+        // 3. Seed data using ON CONFLICT to ensure idempotency
+        jdbcTemplate.execute("INSERT INTO " + schemaName + ".permissions (resource, action, description) VALUES " +
+                "('MEMBER',        'CREATE',       'Authority to register and onboard new SACCO members.'), " +
+                "('MEMBER',        'VIEW_BASIC',   'Authority to view basic profiles of SACCO members.'), " +
+                "('LOAN_REQUEST',  'CREATE',       'Authority to initiate a new loan request application.'), " +
+                "('LOAN',          'APPROVE',      'Authority to review and formally approve applied loans.'), " +
+                "('CASH',          'DEPOSIT',      'Authority to process over-the-counter cash deposits.'), " +
+                "('SAVINGS',       'WITHDRAW',     'Authority to process savings withdrawal requests.'), " +
+                "('REPORT',        'VIEW_ALL',     'Authority to run and view overall SACCO financial reports.'), " +
+                "('SACCO',         'ATTACH',       'Authority to link external core modules or sub-entities.') " +
+                "ON CONFLICT (resource, action) DO NOTHING");
+
+        jdbcTemplate.execute("INSERT INTO " + schemaName + ".roles (role_id, role_name, is_system_defined) VALUES " +
+                "('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f', 'ADMIN', TRUE) " +
+                "ON CONFLICT (role_id) DO NOTHING");
+
+        jdbcTemplate.execute("INSERT INTO " + schemaName + ".role_permissions (role_id, permission_id) " +
+                "SELECT '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f', permission_id " +
+                "FROM " + schemaName + ".permissions WHERE is_active = TRUE " +
+                "ON CONFLICT (role_id, permission_id) DO NOTHING");
     }
 
-    /**
-     * Drops a physical schema namespace from the database instance.
-     * Acts as the primary architectural cleanup mechanism enforcing your Zero-Orphan Policy.
-     *
-     * @param schemaName The target database schema namespace to drop.
-     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void dropTenantSchema(String schemaName) {
         if (schemaName == null || schemaName.trim().equalsIgnoreCase("public") || schemaName.trim().equalsIgnoreCase("master_schema")) {
             throw new IllegalArgumentException("Security Guard: Dropping fundamental system platform namespaces is strictly prohibited.");
         }
-        // CASCADE drops all tables, keys, and views inside the namespace instantly, reclaiming database resources
         jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + schemaName + " CASCADE");
-    }
-
-    /**
-     * Seeds the initialized administrator operational roles directly into the private schema vault space.
-     * Temporarily modifies connection search paths to run targets securely.
-     *
-     * @param schemaName The destination schema namespace context to host the role profiles.
-     * @param adminRole The core domain entity representing the default system admin capabilities.
-     */
-    @Override
-    public void seedTenantRbac(String schemaName, Role adminRole) {
-        DataSource dataSource = jdbcTemplate.getDataSource();
-        if (dataSource == null) {
-            throw new IllegalStateException("Database driver context failure: Unable to locate active DataSource pool.");
-        }
-
-        // We use raw connection handling here to temporarily force a search_path bypass
-        // specifically for seeding this exact schema, outside the normal request thread thread-pool context loop.
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
-
-            // Redirect connection pointer to the target schema vault space
-            statement.execute("SET search_path TO " + schemaName + ", public;");
-
-            // Build the infrastructure entity model
-            RoleEntity roleEntity = new RoleEntity();
-            roleEntity.setRoleId(adminRole.getRoleId());
-            roleEntity.setRoleName(adminRole.getRoleName());
-            roleEntity.setSystemDefined(adminRole.isSystemDefined());
-            roleEntity.getPermissions().addAll(adminRole.getPermissions());
-
-            // Persist the entity directly into the targeted schema space
-            roleRepository.save(roleEntity);
-
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to seed initial administrator security configurations inside schema context: " + schemaName, ex);
-        }
     }
 }

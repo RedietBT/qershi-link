@@ -10,20 +10,22 @@ import java.sql.Statement;
 
 /**
  * Connection management handler orchestrating physical PostgreSQL schema context switches.
- * Executes native search_path modifications to keep data isolated without multi-pool performance costs.
+ * Executes native search_path modifications to keep data isolated without multi-pool performance overhead.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @Component
-public class MultiTenantConnectionProvider implements MultiTenantConnectionProvider<String> {
+public class PostgresSchemaConnectionProvider implements MultiTenantConnectionProvider<String> {
 
     private final DataSource dataSource;
 
     /**
-     * Injection constructor binding your primary infrastructure database source connection pool.
+     * Injection constructor binding the primary infrastructure database source connection pool.
+     *
+     * @param dataSource The root connection pool data source instance.
      */
-    public MultiTenantConnectionProvider(DataSource dataSource) {
+    public PostgresSchemaConnectionProvider(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
@@ -39,13 +41,17 @@ public class MultiTenantConnectionProvider implements MultiTenantConnectionProvi
 
     /**
      * Retrieves an active connection and modifies its schema execution boundary context path.
-     * Protects the pipeline by isolating data before queries execute.
+     * Protects the pipeline by isolating data scopes before queries execute.
+     *
+     * @param tenantIdentifier The sanitized schema name representing the target tenant vault.
+     * @return Connection An active database connection pointing to the tenant's isolated space.
+     * @throws SQLException If database routing execution parameters fail.
      */
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
         final Connection connection = getAnyConnection();
         try (Statement stmt = connection.createStatement()) {
-            // Mitigates SQL injection by using the fully sanitized token string verified by domain engines
+            // Mitigates SQL injection by utilizing the fully sanitized token string verified by domain engines
             stmt.execute("SET search_path TO " + tenantIdentifier + ", public;");
         } catch (SQLException ex) {
             connection.close();
@@ -56,6 +62,10 @@ public class MultiTenantConnectionProvider implements MultiTenantConnectionProvi
 
     /**
      * Releases connections back into the shared resource collection after resetting their search paths.
+     *
+     * @param tenantIdentifier The identifier of the tenant context being abandoned.
+     * @param connection       The database connection instance to reset and return to the pool.
+     * @throws SQLException    If context tracking state reset routines fail.
      */
     @Override
     public void releaseConnection(String tenantIdentifier, Connection connection) throws SQLException {
@@ -73,13 +83,18 @@ public class MultiTenantConnectionProvider implements MultiTenantConnectionProvi
         return false;
     }
 
+    // 🛠️ FIXED: Renamed from isUnwrappableFrom to isUnwrappableAs to match Hibernate 6 interface specifications
     @Override
-    public boolean isUnwrappableFrom(Class<?> unwrapType) {
-        return false;
+    public boolean isUnwrappableAs(Class<?> unwrapType) {
+        return unwrapType.isInstance(this);
     }
 
+    // 🛠️ FIXED: Safely unwraps the provider instance or throws standard Hibernate exception context
     @Override
     public <T> T unwrap(Class<T> unwrapType) {
-        return null;
+        if (unwrapType.isInstance(this)) {
+            return unwrapType.cast(this);
+        }
+        throw new org.hibernate.service.UnknownUnwrapTypeException(unwrapType);
     }
 }

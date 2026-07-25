@@ -11,7 +11,7 @@ public class Role {
     private final UUID roleId;
     private final String roleName;
     private final boolean isSystemDefined;
-    private final Set<String> permissions;
+    private final Set<Permission> permissions;
 
     public Role(UUID roleId, String roleName, boolean isSystemDefined) {
         this.roleId = roleId != null ? roleId : UUID.randomUUID();
@@ -20,15 +20,21 @@ public class Role {
         this.permissions = new HashSet<>();
     }
 
-    public void grantPermission(String permissionCode) {
+    public void grantPermission(Permission permission) {
+        if (permission == null) {
+            throw new IllegalArgumentException("Cannot grant a null permission.");
+        }
+        if (!permission.isActive()) {
+            throw new IllegalArgumentException("Cannot grant an inactive system capability.");
+        }
         if (isSystemDefined && !permissions.isEmpty()) {
             throw new IllegalStateException("System defined core roles cannot have their seeded scopes altered.");
         }
-        this.permissions.add(permissionCode);
+        this.permissions.add(permission);
     }
 
     // Defensive read-only wrapper for security
-    public Set<String> getPermissions() {
+    public Set<Permission> getPermissions() {
         return Collections.unmodifiableSet(permissions);
     }
 }

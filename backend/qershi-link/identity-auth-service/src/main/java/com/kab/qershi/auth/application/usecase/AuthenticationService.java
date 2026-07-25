@@ -1,77 +1,75 @@
 package com.kab.qershi.auth.application.usecase;
 
-import com.kab.qershi.auth.domain.model.Sacco;
-import com.kab.qershi.auth.domain.model.User;
+import com.kab.qershi.auth.domain.model.*;
 import com.kab.qershi.auth.domain.ports.inbound.AuthenticationUseCase;
+import com.kab.qershi.auth.domain.ports.outbound.MessagingPort;
 import com.kab.qershi.auth.domain.ports.outbound.SaccoRepositoryPort;
 import com.kab.qershi.auth.domain.ports.outbound.UserRepositoryPort;
-
-import java.util.Collections;
+import com.kab.qershi.auth.infrastructure.security.JwtTokenProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
 
-/**
- * Service implementation handling multi-tenant user authentication checks.
- * Verifies global identities and maps local tenant schema routing keys.
- *
- * @author KAB Digital Solution PLC
- * @version 1.0.0
- */
 public class AuthenticationService implements AuthenticationUseCase {
-
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
     private final UserRepositoryPort userRepositoryPort;
     private final SaccoRepositoryPort saccoRepositoryPort;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final PasswordEncoder passwordEncoder;
+    private final MessagingPort messagingPort;
 
-    /**
-     * Constructs the authentication service with core master schema data repository providers.
-     */
-    public AuthenticationService(UserRepositoryPort userRepositoryPort, SaccoRepositoryPort saccoRepositoryPort) {
+    public AuthenticationService(UserRepositoryPort userRepositoryPort, SaccoRepositoryPort saccoRepositoryPort,
+                                 JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder, MessagingPort messagingPort) {
         this.userRepositoryPort = userRepositoryPort;
         this.saccoRepositoryPort = saccoRepositoryPort;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.passwordEncoder = passwordEncoder;
+        this.messagingPort = messagingPort;
     }
 
-    /**
-     * Validates credentials against security hashes and prepares tenant context maps.
-     *
-     * @param command The incoming login identifiers containing phone handles and validation pins.
-     * @return LoginResult Formatted multi-tenant context details ready for JWT signing engines.
-     * @throws IllegalArgumentException If no valid user profile is identified matching credentials.
-     * @throws SecurityException If an account status verification check fails.
-     */
     @Override
     public LoginResult login(LoginCommand command) {
-        // 1. Locate the identity profile inside the global master_schema index
         User user = userRepositoryPort.findByMsisdn(command.msisdn())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid authentication credentials provided."));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials."));
 
-        // 2. Validate operational readiness states via pure internal Domain verification checks
-        if (!user.canLogin()) {
-            user.recordFailedLogin();
-            userRepositoryPort.save(user);
-            throw new SecurityException("Authentication rejected: Account is currently flagged as inactive or locked.");
+        if (user.getStatus() == UserStatus.BLOCKED) {
+            log.warn("Blocked user attempt: {}", command.msisdn());
+            throw new SecurityException("Account is locked due to multiple failed attempts.");
         }
 
-        // Note: In infrastructure layer we will wire up real password checking filters (BCrypt matchers).
-        // This simulates a correct state transition check.
-        boolean pinMatches = "1234".equals(command.pin());
-        if (!pinMatches) {
-            user.recordFailedLogin();
-            userRepositoryPort.save(user);
-            throw new IllegalArgumentException("Invalid authentication credentials provided.");
+        if (user.getStatus() == UserStatus.PASSWORD_CHANGE_REQUIRED) {
+            return new LoginResult(null, null, 0L, new UserContext(user.getUserId(), user.getSaccoId(), null, "PENDING_PASSWORD", List.of()));
         }
 
-        // Reset account metrics on successful connection sequence execution
+        if (!passwordEncoder.matches(command.pin(), user.getCredentialHash())) {
+            user.recordFailedLogin();
+            userRepositoryPort.save(user);
+            log.warn("Failed login attempt for user: {}. Attempts: {}", command.msisdn(), user.getFailedLoginAttempts());
+            messagingPort.sendSms(user.getMsisdn(), "Security Alert: A failed login attempt was detected.");
+            throw new IllegalArgumentException("Invalid credentials. " + (3 - user.getFailedLoginAttempts()) + " attempts remaining.");
+        }
+
+        user.resetLoginAttempts();
         user.successfulLogin();
         userRepositoryPort.save(user);
+        log.info("User login successful: {}", command.msisdn());
+        return generateLoginResult(user);
+    }
 
-        // 3. Extract tenant parameters from the global registry mapping table
+    private LoginResult generateLoginResult(User user) {
         Sacco parentSacco = saccoRepositoryPort.findById(user.getSaccoId())
-                .orElseThrow(() -> new IllegalStateException("Critical corruption: Assigned SACCO map registry entry cannot be resolved."));
+                .orElseThrow(() -> new IllegalStateException("SACCO registry entry missing."));
 
-        // Note: In infrastructure implementation, a real query will run against sacco_xxx.role_permissions
-        // to collect permissions. For now, we seed an immutable placeholder list for structure consistency.
-        List<String> userPermissions = List.of("MEMBER_VIEW_BASIC", "LOAN_REQUEST_CREATE");
+        List<String> userPermissions = user.getLocalRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::toAuthority)
+                .distinct()
+                .toList();
 
-        UserContext structuredContext = new UserContext(
+        String token = jwtTokenProvider.createToken(user.getMsisdn(), user.getSaccoId().toString(), userPermissions);
+
+        UserContext context = new UserContext(
                 user.getUserId(),
                 user.getSaccoId(),
                 parentSacco.getSchemaName(),
@@ -79,11 +77,6 @@ public class AuthenticationService implements AuthenticationUseCase {
                 userPermissions
         );
 
-        return new LoginResult(
-                "MOCK_SECURE_JWT_TOKEN_CONTAINER_REPLACE_ME",
-                "Bearer",
-                3600L,
-                structuredContext
-        );
+        return new LoginResult(token, "Bearer", 3600L, context);
     }
 }

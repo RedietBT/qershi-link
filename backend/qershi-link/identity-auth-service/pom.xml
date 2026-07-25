@@ -3,27 +3,61 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Point this to your qershi-link-parent -->
     <parent>
         <groupId>com.kab.qershi</groupId>
         <artifactId>qershi-link-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath> <!-- Adjust path if parent is in root -->
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>identity-auth-service</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>identity-auth-service</name>
 
     <dependencies>
-        <!-- Standard Web and JPA -->
+        <!-- 🔗 Connects your service to the common-library packages -->
+        <dependency>
+            <groupId>com.kab.qershi</groupId>
+            <artifactId>common-library</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!-- Standard Web Starter -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- 🛡️ Spring Security (Required for @PreAuthorize) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- 📡 gRPC Spring Boot Starter (Required for @GrpcClient and net.devh packages) -->
+        <dependency>
+            <groupId>net.devh</groupId>
+            <artifactId>grpc-client-spring-boot-starter</artifactId>
+            <version>3.1.0.RELEASE</version>
+        </dependency>
+
+        <!-- ⚙️ Core gRPC Dependencies (Required for compiled Proto Stubs like ProfileServiceGrpc) -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <version>1.62.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>1.62.2</version>
+        </dependency>
+
+        <!-- 💡 FIXED: Provides legacy javax.annotation.Generated to the proto compiler on Java 21 -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Swagger Documentation (Version managed by Parent) -->
@@ -39,6 +73,32 @@
             <scope>runtime</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId> <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Test Starter -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -48,7 +108,47 @@
     </dependencies>
 
     <build>
+        <!-- Detects system architecture (Windows/Linux/Mac OS) to pick the correct protoc compiler binary -->
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.1</version>
+            </extension>
+        </extensions>
+
         <plugins>
+            <!-- Compiles *.proto definitions directly into Java classes -->
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
+                <configuration>
+                    <protocArtifact>com.google.protobuf:protoc:3.25.1:exe:${os.detected.classifier}</protocArtifact>
+                    <pluginId>grpc-java</pluginId>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.62.2:exe:${os.detected.classifier}</pluginArtifact>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>compile-custom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Java Compiler Engine Settings Configuration -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>21</release>
+                </configuration>
+            </plugin>
+
+            <!-- Explicitly activates the parent-configured plugin to build your executable binary -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

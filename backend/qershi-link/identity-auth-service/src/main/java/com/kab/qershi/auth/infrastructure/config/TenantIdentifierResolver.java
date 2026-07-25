@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
  * Bridges ThreadLocal tracking states into the active database session coordinator.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.0.1
  */
 @Component
 public class TenantIdentifierResolver implements CurrentTenantIdentifierResolver<String> {

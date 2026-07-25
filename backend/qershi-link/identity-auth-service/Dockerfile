@@ -2,21 +2,23 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# 1. Copy the Parent POM first (needed for version management)
+# 1. Copy the Root/Parent POM first to establish the reactor framework
 COPY pom.xml ./pom.xml
 
-# 2. Copy the Identity Service files using their relative paths from root
-COPY identity-auth-service/pom.xml ./identity-auth-service/pom.xml
-COPY identity-auth-service/src ./identity-auth-service/src
+# 2. Copy the shared library and the auth service directories
+COPY common-library ./common-library
+COPY identity-auth-service ./identity-auth-service
 
-# 3. Build using the child POM, but Maven will now see the Parent in the folder above
-RUN mvn -f identity-auth-service/pom.xml clean package -DskipTests
+# 3. Build target service from the root level
+# -pl (project-list): Tells Maven to focus strictly on identity-auth-service
+# -am (also-make): Tells Maven to automatically locate and build internal dependencies (common-library)
+RUN mvn clean package -pl identity-auth-service -am -DskipTests
 
-# Stage 2: Run with JRE 21
+# Stage 2: Lightweight Runtime
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# 4. Copy the jar from the child's target folder
+# 4. Pull the compiled executable binary out of the build stage
 COPY --from=build /app/identity-auth-service/target/*.jar app.jar
 
 EXPOSE 8080
