@@ -21,6 +21,8 @@ public interface SpringDataUserRepository extends JpaRepository<UserEntity, UUID
 
     Optional<UserEntity> findByMsisdn(String msisdn);
 
+    List<UserEntity> findBySaccoId(UUID saccoId);
+
     @Modifying
     @Query(value = "INSERT INTO master_schema.user_roles (user_id, role_id, sacco_id) VALUES (:userId, :roleId, :saccoId)", nativeQuery = true)
     void insertUserRole(@Param("userId") UUID userId, @Param("roleId") UUID roleId, @Param("saccoId") UUID saccoId);

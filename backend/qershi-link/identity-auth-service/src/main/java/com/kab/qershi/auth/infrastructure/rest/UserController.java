@@ -41,9 +41,13 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
-    @Operation(summary = "Fetch all user accounts", description = "Retrieves a list of all user account security records. Restricted to Platform and Tenant Administrators.")
-    public ResponseEntity<List<UserEntity>> getAllUsers() {
-        log.info("Retrieving all user accounts");
+    @Operation(summary = "Fetch user accounts", description = "Retrieves user account security records. Filterable by saccoId for tenant-scoped SACCO_ADMIN access.")
+    public ResponseEntity<List<UserEntity>> getAllUsers(@RequestParam(required = false) UUID saccoId) {
+        if (saccoId != null) {
+            log.info("Retrieving user accounts for SACCO: {}", saccoId);
+            return ResponseEntity.ok(userRepository.findBySaccoId(saccoId));
+        }
+        log.info("Retrieving all user accounts across platform");
         return ResponseEntity.ok(userRepository.findAll());
     }
 

@@ -53,7 +53,7 @@ public class SaccoOnboardingService implements SaccoOnboardingUseCase {
 
         UUID saccoId = UUID.randomUUID();
         Sacco newSacco = new Sacco(saccoId, command.saccoName(), sanitizedSchemaName, command.isUnion(), command.minShareRequirement());
-        GlobalRole assignedGlobalRole = command.isUnion() ? GlobalRole.UNION_ADMIN : GlobalRole.SACCO_USER;
+        GlobalRole assignedGlobalRole = command.isUnion() ? GlobalRole.UNION_ADMIN : GlobalRole.SACCO_ADMIN;
 
         User adminUser = new User(UUID.randomUUID(), command.adminMsisdn(), saccoId, hashedPin, assignedGlobalRole);
 
