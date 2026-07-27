@@ -6,7 +6,7 @@ option java_multiple_files = true;
 option java_package = "com.kab.qershi.auth.infrastructure.grpc";
 
 // The service definition exposing the remote procedure
-service ProfileServiceGrpc {
+service ProfileService {
   rpc CascadeDeleteProfile (ResourceDeleteRequest) returns (ResourceDeleteResponse);
 }
 
