@@ -14,17 +14,18 @@ import java.util.UUID;
  * @version 1.0.0
  */
 @Getter
+@Setter
 public class MemberProfile {
 
     private final UUID userId;
-    @Setter private String memberNo;
-    @Setter private String firstName;
-    @Setter private String middleName;
-    @Setter private String lastName;
-    @Setter private Gender gender;
-    @Setter private LocalDate dateOfBirth;
-    @Setter private MaritalStatus maritalStatus;
-    @Setter private MemberStatus status;
+    private String memberNo;
+    private String firstName;
+    private String middleName;
+    private String lastName;
+    private Gender gender;
+    private LocalDate dateOfBirth;
+    private MaritalStatus maritalStatus;
+    private MemberStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
 
@@ -42,6 +43,34 @@ public class MemberProfile {
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
+
+    public UUID getUserId() { return userId; }
+    public String getMemberNo() { return memberNo; }
+    public void setMemberNo(String memberNo) { this.memberNo = memberNo; this.updatedAt = Instant.now(); }
+
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; this.updatedAt = Instant.now(); }
+
+    public String getMiddleName() { return middleName; }
+    public void setMiddleName(String middleName) { this.middleName = middleName; this.updatedAt = Instant.now(); }
+
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; this.updatedAt = Instant.now(); }
+
+    public Gender getGender() { return gender; }
+    public void setGender(Gender gender) { this.gender = gender; this.updatedAt = Instant.now(); }
+
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; this.updatedAt = Instant.now(); }
+
+    public MaritalStatus getMaritalStatus() { return maritalStatus; }
+    public void setMaritalStatus(MaritalStatus maritalStatus) { this.maritalStatus = maritalStatus; this.updatedAt = Instant.now(); }
+
+    public MemberStatus getStatus() { return status; }
+    public void setStatus(MemberStatus status) { this.status = status; this.updatedAt = Instant.now(); }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
 
     public void updateTimestamp() {
         this.updatedAt = Instant.now();

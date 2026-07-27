@@ -34,4 +34,13 @@ public class ProfileAuditLog {
         this.newValue = newValue;
         this.timestamp = Instant.now();
     }
+
+    public UUID getLogId() { return logId; }
+    public UUID getUserId() { return userId; }
+    public UUID getModifiedByUserId() { return modifiedByUserId; }
+    public String getAction() { return action; }
+    public String getFieldChanged() { return fieldChanged; }
+    public String getOldValue() { return oldValue; }
+    public String getNewValue() { return newValue; }
+    public Instant getTimestamp() { return timestamp; }
 }

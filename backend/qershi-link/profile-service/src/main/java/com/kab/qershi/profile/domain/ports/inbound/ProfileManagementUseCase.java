@@ -14,8 +14,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Inbound Port interface defining use cases for core member profile onboarding,
- * demographic updates, Maker-Checker supervisor approvals, and profile queries.
+ * Inbound Port interface defining use cases for modular member profile onboarding,
+ * demographic updates, Maker-Checker supervisor approvals, queries, and deletion.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -23,9 +23,10 @@ import java.util.UUID;
 public interface ProfileManagementUseCase {
 
     /**
-     * Registers a new member's demographic profile linked to their identity user ID.
+     * Step 1: Creates initial demographic profile and governance maker record.
+     * If memberNo is null or blank, a structured member number (MEM-YYYY-XXXXX) is generated.
      */
-    MemberProfile registerMemberProfile(
+    MemberProfile createMemberProfile(
             UUID userId,
             String memberNo,
             String firstName,
@@ -34,27 +35,26 @@ public interface ProfileManagementUseCase {
             Gender gender,
             LocalDate dateOfBirth,
             MaritalStatus maritalStatus,
-            String primaryPhone,
-            String secondaryPhone,
-            String email,
-            String region,
-            String zoneSubcity,
-            String woreda,
-            String houseNumber,
-            String occupationSector,
-            String employerName,
-            BigDecimal monthlyIncome,
-            String tinNumber,
             UUID submittedByUserId
     );
 
-    Optional<MemberProfile> getProfileByUserId(UUID userId);
+    /**
+     * Updates core demographic names, gender, date of birth, and marital status.
+     */
+    MemberProfile updateDemographics(
+            UUID userId,
+            String firstName,
+            String middleName,
+            String lastName,
+            Gender gender,
+            LocalDate dateOfBirth,
+            MaritalStatus maritalStatus
+    );
 
-    Optional<MemberProfile> getProfileByMemberNo(String memberNo);
-
-    List<MemberProfile> getAllProfiles(MemberStatus status);
-
-    MemberAddress updateContactAddress(
+    /**
+     * Step 2: Saves or updates contact handle and residence address.
+     */
+    MemberAddress saveContactAddress(
             UUID userId,
             String primaryPhone,
             String secondaryPhone,
@@ -65,7 +65,10 @@ public interface ProfileManagementUseCase {
             String houseNumber
     );
 
-    MemberEmployment updateEmploymentProfile(
+    /**
+     * Step 3: Saves or updates occupation, employer, and tax information.
+     */
+    MemberEmployment saveEmploymentProfile(
             UUID userId,
             String occupationSector,
             String employerName,
@@ -73,7 +76,24 @@ public interface ProfileManagementUseCase {
             String tinNumber
     );
 
+    /**
+     * Step 6: Four-Eye Checker supervisor onboarding approval sign-off.
+     */
     MemberProfile approveMemberOnboarding(UUID userId, UUID supervisorId, String remarks);
 
+    /**
+     * Transitions member status (ACTIVE, SUSPENDED, DECEASED, CLOSED).
+     */
     MemberProfile changeMemberStatus(UUID userId, MemberStatus newStatus);
+
+    Optional<MemberProfile> getProfileByUserId(UUID userId);
+
+    Optional<MemberProfile> getProfileByMemberNo(String memberNo);
+
+    List<MemberProfile> getAllProfiles(MemberStatus status);
+
+    /**
+     * Purges member profile and all dependent records (used by gRPC cascade deletion).
+     */
+    void deleteProfileByUserId(UUID userId);
 }

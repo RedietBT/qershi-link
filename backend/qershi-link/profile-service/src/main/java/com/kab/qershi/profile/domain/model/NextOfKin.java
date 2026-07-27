@@ -14,15 +14,16 @@ import java.util.UUID;
  * @version 1.0.0
  */
 @Getter
+@Setter
 public class NextOfKin {
 
     private final UUID kinId;
     private final UUID userId;
-    @Setter private String fullName;
-    @Setter private String relationship;
-    @Setter private String primaryPhone;
-    @Setter private String idNumber;
-    @Setter private String physicalAddress;
+    private String fullName;
+    private String relationship;
+    private String primaryPhone;
+    private String idNumber;
+    private String physicalAddress;
     private BigDecimal allocationPercentage;
     private final Instant createdAt;
 
@@ -39,6 +40,25 @@ public class NextOfKin {
         this.createdAt = Instant.now();
     }
 
+    public UUID getKinId() { return kinId; }
+    public UUID getUserId() { return userId; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getRelationship() { return relationship; }
+    public void setRelationship(String relationship) { this.relationship = relationship; }
+
+    public String getPrimaryPhone() { return primaryPhone; }
+    public void setPrimaryPhone(String primaryPhone) { this.primaryPhone = primaryPhone; }
+
+    public String getIdNumber() { return idNumber; }
+    public void setIdNumber(String idNumber) { this.idNumber = idNumber; }
+
+    public String getPhysicalAddress() { return physicalAddress; }
+    public void setPhysicalAddress(String physicalAddress) { this.physicalAddress = physicalAddress; }
+
+    public BigDecimal getAllocationPercentage() { return allocationPercentage; }
     public void setAllocationPercentage(BigDecimal allocationPercentage) {
         if (allocationPercentage == null || allocationPercentage.compareTo(BigDecimal.ZERO) < 0
                 || allocationPercentage.compareTo(new BigDecimal("100.00")) > 0) {
@@ -46,4 +66,6 @@ public class NextOfKin {
         }
         this.allocationPercentage = allocationPercentage;
     }
+
+    public Instant getCreatedAt() { return createdAt; }
 }

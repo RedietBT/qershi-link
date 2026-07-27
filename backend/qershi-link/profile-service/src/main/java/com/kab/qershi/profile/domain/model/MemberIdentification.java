@@ -14,18 +14,19 @@ import java.util.UUID;
  * @version 1.0.0
  */
 @Getter
+@Setter
 public class MemberIdentification {
 
     private final UUID identificationId;
     private final UUID userId;
-    @Setter private IdType idType;
-    @Setter private String idNumber;
-    @Setter private LocalDate issueDate;
-    @Setter private LocalDate expiryDate;
-    @Setter private String issuingAuthority;
-    @Setter private KycStatus kycStatus;
-    @Setter private UUID verifiedByUserId;
-    @Setter private String verificationNotes;
+    private IdType idType;
+    private String idNumber;
+    private LocalDate issueDate;
+    private LocalDate expiryDate;
+    private String issuingAuthority;
+    private KycStatus kycStatus;
+    private UUID verifiedByUserId;
+    private String verificationNotes;
     private final Instant createdAt;
 
     public MemberIdentification(UUID identificationId, UUID userId, IdType idType, String idNumber,
@@ -43,6 +44,35 @@ public class MemberIdentification {
         this.verificationNotes = verificationNotes;
         this.createdAt = Instant.now();
     }
+
+    public UUID getIdentificationId() { return identificationId; }
+    public UUID getUserId() { return userId; }
+
+    public IdType getIdType() { return idType; }
+    public void setIdType(IdType idType) { this.idType = idType; }
+
+    public String getIdNumber() { return idNumber; }
+    public void setIdNumber(String idNumber) { this.idNumber = idNumber; }
+
+    public LocalDate getIssueDate() { return issueDate; }
+    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
+
+    public LocalDate getExpiryDate() { return expiryDate; }
+    public void setExpiryDate(LocalDate expiryDate) { this.expiryDate = expiryDate; }
+
+    public String getIssuingAuthority() { return issuingAuthority; }
+    public void setIssuingAuthority(String issuingAuthority) { this.issuingAuthority = issuingAuthority; }
+
+    public KycStatus getKycStatus() { return kycStatus; }
+    public void setKycStatus(KycStatus kycStatus) { this.kycStatus = kycStatus; }
+
+    public UUID getVerifiedByUserId() { return verifiedByUserId; }
+    public void setVerifiedByUserId(UUID verifiedByUserId) { this.verifiedByUserId = verifiedByUserId; }
+
+    public String getVerificationNotes() { return verificationNotes; }
+    public void setVerificationNotes(String verificationNotes) { this.verificationNotes = verificationNotes; }
+
+    public Instant getCreatedAt() { return createdAt; }
 
     public void verify(UUID supervisorId, String notes) {
         this.kycStatus = KycStatus.VERIFIED;

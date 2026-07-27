@@ -13,15 +13,16 @@ import java.util.UUID;
  * @version 1.0.0
  */
 @Getter
+@Setter
 public class ProfileDocument {
 
     private final UUID documentId;
     private final UUID userId;
-    @Setter private DocumentType documentType;
-    @Setter private String fileKey;
-    @Setter private String fileName;
-    @Setter private String contentType;
-    @Setter private long fileSizeBytes;
+    private DocumentType documentType;
+    private String fileKey;
+    private String fileName;
+    private String contentType;
+    private long fileSizeBytes;
     private final Instant uploadedAt;
 
     public ProfileDocument(UUID documentId, UUID userId, DocumentType documentType, String fileKey,
@@ -35,4 +36,24 @@ public class ProfileDocument {
         this.fileSizeBytes = fileSizeBytes;
         this.uploadedAt = Instant.now();
     }
+
+    public UUID getDocumentId() { return documentId; }
+    public UUID getUserId() { return userId; }
+
+    public DocumentType getDocumentType() { return documentType; }
+    public void setDocumentType(DocumentType documentType) { this.documentType = documentType; }
+
+    public String getFileKey() { return fileKey; }
+    public void setFileKey(String fileKey) { this.fileKey = fileKey; }
+
+    public String getFileName() { return fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
+
+    public String getContentType() { return contentType; }
+    public void setContentType(String contentType) { this.contentType = contentType; }
+
+    public long getFileSizeBytes() { return fileSizeBytes; }
+    public void setFileSizeBytes(long fileSizeBytes) { this.fileSizeBytes = fileSizeBytes; }
+
+    public Instant getUploadedAt() { return uploadedAt; }
 }

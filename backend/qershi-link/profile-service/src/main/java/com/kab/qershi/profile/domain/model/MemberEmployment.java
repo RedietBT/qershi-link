@@ -13,14 +13,15 @@ import java.util.UUID;
  * @version 1.0.0
  */
 @Getter
+@Setter
 public class MemberEmployment {
 
     private final UUID employmentId;
     private final UUID userId;
-    @Setter private String occupationSector;
-    @Setter private String employerName;
-    @Setter private BigDecimal monthlyIncome;
-    @Setter private String tinNumber;
+    private String occupationSector;
+    private String employerName;
+    private BigDecimal monthlyIncome;
+    private String tinNumber;
 
     public MemberEmployment(UUID employmentId, UUID userId, String occupationSector,
                             String employerName, BigDecimal monthlyIncome, String tinNumber) {
@@ -31,4 +32,19 @@ public class MemberEmployment {
         this.monthlyIncome = monthlyIncome != null ? monthlyIncome : BigDecimal.ZERO;
         this.tinNumber = tinNumber;
     }
+
+    public UUID getEmploymentId() { return employmentId; }
+    public UUID getUserId() { return userId; }
+
+    public String getOccupationSector() { return occupationSector; }
+    public void setOccupationSector(String occupationSector) { this.occupationSector = occupationSector; }
+
+    public String getEmployerName() { return employerName; }
+    public void setEmployerName(String employerName) { this.employerName = employerName; }
+
+    public BigDecimal getMonthlyIncome() { return monthlyIncome; }
+    public void setMonthlyIncome(BigDecimal monthlyIncome) { this.monthlyIncome = monthlyIncome; }
+
+    public String getTinNumber() { return tinNumber; }
+    public void setTinNumber(String tinNumber) { this.tinNumber = tinNumber; }
 }
