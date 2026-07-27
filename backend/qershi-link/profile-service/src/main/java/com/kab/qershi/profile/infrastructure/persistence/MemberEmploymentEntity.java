@@ -4,9 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
@@ -22,8 +20,6 @@ import java.util.UUID;
 @Table(name = "member_employments")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class MemberEmploymentEntity {
 
     @Id
@@ -44,4 +40,34 @@ public class MemberEmploymentEntity {
 
     @Column(name = "tin_number", length = 30)
     private String tinNumber;
+
+    public MemberEmploymentEntity() {}
+
+    public MemberEmploymentEntity(UUID employmentId, UUID userId, String occupationSector,
+                                  String employerName, BigDecimal monthlyIncome, String tinNumber) {
+        this.employmentId = employmentId;
+        this.userId = userId;
+        this.occupationSector = occupationSector;
+        this.employerName = employerName;
+        this.monthlyIncome = monthlyIncome;
+        this.tinNumber = tinNumber;
+    }
+
+    public UUID getEmploymentId() { return employmentId; }
+    public void setEmploymentId(UUID employmentId) { this.employmentId = employmentId; }
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+
+    public String getOccupationSector() { return occupationSector; }
+    public void setOccupationSector(String occupationSector) { this.occupationSector = occupationSector; }
+
+    public String getEmployerName() { return employerName; }
+    public void setEmployerName(String employerName) { this.employerName = employerName; }
+
+    public BigDecimal getMonthlyIncome() { return monthlyIncome; }
+    public void setMonthlyIncome(BigDecimal monthlyIncome) { this.monthlyIncome = monthlyIncome; }
+
+    public String getTinNumber() { return tinNumber; }
+    public void setTinNumber(String tinNumber) { this.tinNumber = tinNumber; }
 }

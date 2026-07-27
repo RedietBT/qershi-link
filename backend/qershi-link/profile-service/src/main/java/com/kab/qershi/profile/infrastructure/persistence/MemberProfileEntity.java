@@ -9,9 +9,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
@@ -28,8 +26,6 @@ import java.util.UUID;
 @Table(name = "member_profiles")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class MemberProfileEntity {
 
     @Id
@@ -68,4 +64,55 @@ public class MemberProfileEntity {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    public MemberProfileEntity() {}
+
+    public MemberProfileEntity(UUID userId, String memberNo, String firstName, String middleName, String lastName,
+                               Gender gender, LocalDate dateOfBirth, MaritalStatus maritalStatus, MemberStatus status,
+                               Instant createdAt, Instant updatedAt) {
+        this.userId = userId;
+        this.memberNo = memberNo;
+        this.firstName = firstName;
+        this.middleName = middleName;
+        this.lastName = lastName;
+        this.gender = gender;
+        this.dateOfBirth = dateOfBirth;
+        this.maritalStatus = maritalStatus;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+
+    public String getMemberNo() { return memberNo; }
+    public void setMemberNo(String memberNo) { this.memberNo = memberNo; }
+
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+
+    public String getMiddleName() { return middleName; }
+    public void setMiddleName(String middleName) { this.middleName = middleName; }
+
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+
+    public Gender getGender() { return gender; }
+    public void setGender(Gender gender) { this.gender = gender; }
+
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public MaritalStatus getMaritalStatus() { return maritalStatus; }
+    public void setMaritalStatus(MaritalStatus maritalStatus) { this.maritalStatus = maritalStatus; }
+
+    public MemberStatus getStatus() { return status; }
+    public void setStatus(MemberStatus status) { this.status = status; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

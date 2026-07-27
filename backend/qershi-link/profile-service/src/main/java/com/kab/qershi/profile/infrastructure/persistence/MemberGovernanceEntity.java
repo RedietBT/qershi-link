@@ -4,9 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
@@ -22,8 +20,6 @@ import java.util.UUID;
 @Table(name = "member_governance")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class MemberGovernanceEntity {
 
     @Id
@@ -44,4 +40,34 @@ public class MemberGovernanceEntity {
 
     @Column(name = "remarks", columnDefinition = "TEXT")
     private String remarks;
+
+    public MemberGovernanceEntity() {}
+
+    public MemberGovernanceEntity(UUID governanceId, UUID userId, UUID submittedByUserId,
+                                  UUID approvedByUserId, Instant approvalDate, String remarks) {
+        this.governanceId = governanceId;
+        this.userId = userId;
+        this.submittedByUserId = submittedByUserId;
+        this.approvedByUserId = approvedByUserId;
+        this.approvalDate = approvalDate;
+        this.remarks = remarks;
+    }
+
+    public UUID getGovernanceId() { return governanceId; }
+    public void setGovernanceId(UUID governanceId) { this.governanceId = governanceId; }
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+
+    public UUID getSubmittedByUserId() { return submittedByUserId; }
+    public void setSubmittedByUserId(UUID submittedByUserId) { this.submittedByUserId = submittedByUserId; }
+
+    public UUID getApprovedByUserId() { return approvedByUserId; }
+    public void setApprovedByUserId(UUID approvedByUserId) { this.approvedByUserId = approvedByUserId; }
+
+    public Instant getApprovalDate() { return approvalDate; }
+    public void setApprovalDate(Instant approvalDate) { this.approvalDate = approvalDate; }
+
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
 }

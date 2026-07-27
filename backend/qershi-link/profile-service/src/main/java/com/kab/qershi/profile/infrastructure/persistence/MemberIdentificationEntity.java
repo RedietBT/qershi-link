@@ -8,9 +8,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
@@ -27,8 +25,6 @@ import java.util.UUID;
 @Table(name = "member_identifications")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class MemberIdentificationEntity {
 
     @Id
@@ -66,4 +62,55 @@ public class MemberIdentificationEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    public MemberIdentificationEntity() {}
+
+    public MemberIdentificationEntity(UUID identificationId, UUID userId, IdType idType, String idNumber,
+                                      LocalDate issueDate, LocalDate expiryDate, String issuingAuthority,
+                                      KycStatus kycStatus, UUID verifiedByUserId, String verificationNotes, Instant createdAt) {
+        this.identificationId = identificationId;
+        this.userId = userId;
+        this.idType = idType;
+        this.idNumber = idNumber;
+        this.issueDate = issueDate;
+        this.expiryDate = expiryDate;
+        this.issuingAuthority = issuingAuthority;
+        this.kycStatus = kycStatus;
+        this.verifiedByUserId = verifiedByUserId;
+        this.verificationNotes = verificationNotes;
+        this.createdAt = createdAt;
+    }
+
+    public UUID getIdentificationId() { return identificationId; }
+    public void setIdentificationId(UUID identificationId) { this.identificationId = identificationId; }
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+
+    public IdType getIdType() { return idType; }
+    public void setIdType(IdType idType) { this.idType = idType; }
+
+    public String getIdNumber() { return idNumber; }
+    public void setIdNumber(String idNumber) { this.idNumber = idNumber; }
+
+    public LocalDate getIssueDate() { return issueDate; }
+    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
+
+    public LocalDate getExpiryDate() { return expiryDate; }
+    public void setExpiryDate(LocalDate expiryDate) { this.expiryDate = expiryDate; }
+
+    public String getIssuingAuthority() { return issuingAuthority; }
+    public void setIssuingAuthority(String issuingAuthority) { this.issuingAuthority = issuingAuthority; }
+
+    public KycStatus getKycStatus() { return kycStatus; }
+    public void setKycStatus(KycStatus kycStatus) { this.kycStatus = kycStatus; }
+
+    public UUID getVerifiedByUserId() { return verifiedByUserId; }
+    public void setVerifiedByUserId(UUID verifiedByUserId) { this.verifiedByUserId = verifiedByUserId; }
+
+    public String getVerificationNotes() { return verificationNotes; }
+    public void setVerificationNotes(String verificationNotes) { this.verificationNotes = verificationNotes; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }
