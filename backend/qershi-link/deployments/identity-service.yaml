@@ -15,7 +15,6 @@ spec:
     spec:
       containers:
         - name: identity-auth
-          # Replace 'your-docker-username' with your actual username later
           image: identity-auth-service:latest
           imagePullPolicy: Never
           ports:
@@ -34,10 +33,10 @@ metadata:
   name: identity-auth-service
   namespace: sacco-core
 spec:
+  type: LoadBalancer
   selector:
     app: identity-auth
   ports:
     - protocol: TCP
-      port: 80
+      port: 8080
       targetPort: 8080
-  type: ClusterIP

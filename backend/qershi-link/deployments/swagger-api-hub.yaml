@@ -21,10 +21,10 @@ spec:
           imagePullPolicy: Never
           ports:
             - name: http
-              containerPort: 9020
+              containerPort: 8090
           env:
             - name: SERVER_PORT
-              value: "9020"
+              value: "8090"
           resources:
             requests:
               memory: "256Mi"
@@ -35,13 +35,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 9020
+              port: 8090
             initialDelaySeconds: 30
             periodSeconds: 15
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 9020
+              port: 8090
             initialDelaySeconds: 20
             periodSeconds: 10
 ---
@@ -53,11 +53,11 @@ metadata:
   labels:
     app: swagger-api-hub
 spec:
+  type: LoadBalancer
   selector:
     app: swagger-api-hub
   ports:
     - name: http
       protocol: TCP
-      port: 9020
-      targetPort: 9020
-  type: ClusterIP
+      port: 8090
+      targetPort: 8090

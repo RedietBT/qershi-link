@@ -50,7 +50,7 @@ Compile and package the source application into an executable fat JAR running fr
 Build the container layer using the network host bridge. Target the root project level and map to the target Dockerfile profile:
 
 ```powershell
-docker build --network=host -t profile-service:latest -f profile-service/Dockerfile .
+docker build -t profile-service:latest -f profile-service/Dockerfile .
 ```
 
 ### Step 3: Rolling Update to Kubernetes
@@ -71,19 +71,11 @@ kubectl get pods -n sacco-core -w
 
 ---
 
-## 🌐 Accessing Centralized Swagger Documentation Hub (Port 9020)
+## 🌐 Accessing Centralized Swagger Documentation Hub (Port 8090)
 
-Instead of opening individual microservice Swagger ports, access all backend APIs through the **Centralized Swagger API Hub on Port 9020**:
+The Centralized Swagger API Hub runs as a Kubernetes `LoadBalancer` service directly accessible on port `8090`:
 
-### Expose Port 9020 Tunnel (Persistent Tunnel Command)
-
-```powershell
-Start-Job -ScriptBlock { kubectl port-forward deployment/swagger-api-hub 9020:9020 -n sacco-core }
-```
-
-### Open the Unified API Console
-
-👉 **http://localhost:9020/swagger-ui.html**
+👉 **http://localhost:8090/swagger-ui/index.html**
 
 *(Use the **"Select a Spec"** dropdown menu at the top right of the screen to switch between `2. Member Profile Service`, `1. Identity & Auth Service`, and other microservices).*
 

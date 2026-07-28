@@ -65,6 +65,7 @@ metadata:
   labels:
     app: profile-service
 spec:
+  type: LoadBalancer
   selector:
     app: profile-service
   ports:
@@ -76,4 +77,3 @@ spec:
       protocol: TCP
       port: 9081
       targetPort: 9081
-  type: ClusterIP

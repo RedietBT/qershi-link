@@ -11,7 +11,7 @@ The system uses a **physical schema-per-tenant isolation model** to guarantee ze
 ```
                                   +-----------------------+
                                   |   swagger-api-hub     |
-                                  |      (Port 9020)      |
+                                  |      (Port 8090)      |
                                   +-----------+-----------+
                                               |
                        ┌──────────────────────┴──────────────────────┐
@@ -31,12 +31,12 @@ The system uses a **physical schema-per-tenant isolation model** to guarantee ze
 
 ## 📦 Microservices Matrix
 
-| Microservice | HTTP Port | gRPC Port | Primary Purpose | README Link |
-|---|---|---|---|---|
-| 🌐 **`swagger-api-hub`** | `9020` | N/A | **Centralized API Documentation Hub & Microservices Dropdown Selector** | [swagger-api-hub](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/swagger-api-hub) |
-| 🔑 **`identity-auth-service`** | `8080` | Client | Master Identity Platform, Authentication, SACCO Onboarding, RBAC Security | [identity-auth-service/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/identity-auth-service/README.md) |
-| 👤 **`profile-service`** | `8081` | `9081` | SACCO Member Onboarding, Demographics, Address, Employment, KYC Verifications, Next of Kin | [profile-service/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/profile-service/README.md) |
-| 🔗 **`common-library`** | N/A | N/A | Shared Domain DTOs, Context Interceptors, PII Masking Utilities (`PiiMasker`) | [common-library](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/common-library) |
+| Microservice | HTTP Port | gRPC Port | Service Type | Primary Purpose | README Link |
+|---|---|---|---|---|---|
+| 🌐 **`swagger-api-hub`** | `8090` | N/A | LoadBalancer | **Centralized API Documentation Hub & Microservices Dropdown Selector** | [swagger-api-hub](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/swagger-api-hub) |
+| 🔑 **`identity-auth-service`** | `8080` | Client | LoadBalancer | Master Identity Platform, Authentication, SACCO Onboarding, RBAC Security | [identity-auth-service/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/identity-auth-service/README.md) |
+| 👤 **`profile-service`** | `8081` | `9081` | LoadBalancer | SACCO Member Onboarding, Demographics, Address, Employment, KYC Verifications, Next of Kin | [profile-service/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/profile-service/README.md) |
+| 🔗 **`common-library`** | N/A | N/A | N/A | Shared Domain DTOs, Context Interceptors, PII Masking Utilities (`PiiMasker`) | [common-library](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/common-library) |
 
 ---
 
@@ -59,23 +59,21 @@ The system uses a **physical schema-per-tenant isolation model** to guarantee ze
 
 ### Step 2: Build Container Images
 ```powershell
-# Build Swagger API Hub Image
-docker build --network=host -t swagger-api-hub:latest -f swagger-api-hub/Dockerfile .
-
 # Build Identity Auth Service Image
-docker build --network=host -t identity-auth-service:latest -f identity-auth-service/Dockerfile .
+docker build -t identity-auth-service:latest -f identity-auth-service/Dockerfile .
 
 # Build Profile Service Image
-docker build --network=host -t profile-service:latest -f profile-service/Dockerfile .
+docker build -t profile-service:latest -f profile-service/Dockerfile .
+
+# Build Swagger API Hub Image
+docker build -t swagger-api-hub:latest -f swagger-api-hub/Dockerfile .
 ```
 
 ### Step 3: Deploy & Restart Kubernetes Cluster
 ```powershell
-# Deploy Infrastructure Namespace
+# Deploy Infrastructure Namespace & Services
 kubectl apply -f deployments/postgres-db.yaml
 kubectl apply -f deployments/postgres-service.yaml
-
-# Deploy Microservices & Swagger API Hub
 kubectl apply -f deployments/identity-service.yaml
 kubectl apply -f deployments/profile-service.yaml
 kubectl apply -f deployments/swagger-api-hub.yaml
@@ -95,19 +93,11 @@ kubectl get pods -n sacco-core -w
 
 ## 🌐 Centralized Swagger UI Interactive API Documentation
 
-Access all backend microservice APIs from **ONE single URL** on Port **`9020`**:
+All services are deployed as Kubernetes `LoadBalancer` services directly exposed on `localhost`:
 
-### Expose Port 9020 (Persistent Tunnel Command)
-
-```powershell
-Start-Job -ScriptBlock { kubectl port-forward deployment/swagger-api-hub 9020:9020 -n sacco-core }
-```
-
-### Open the Unified API Hub Console
-
-👉 **http://localhost:9020/swagger-ui.html**
-
-*(Select any microservice from the **"Select a Spec"** dropdown menu at the top right corner of the screen to load its interactive OpenAPI documentation).*
+- 🌐 **Centralized Swagger API Hub**: 👉 **`http://localhost:8090/swagger-ui/index.html`**
+- 🔑 **Identity & Auth Service API**: 👉 **`http://localhost:8080/swagger-ui/index.html`**
+- 👤 **Member Profile Service API**: 👉 **`http://localhost:8081/swagger-ui/index.html`**
 
 ---
 
