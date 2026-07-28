@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 
 /**
  * REST API Controller for Nominated Beneficiaries (Next of Kin) and Payout Percentage Allocations.
+ * Secured with fine-grained RBAC permission checks (@PreAuthorize).
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -46,6 +48,7 @@ public class NextOfKinController {
     }
 
     @PostMapping("/{userId}")
+    @PreAuthorize("hasAuthority('NEXT_OF_KIN_MANAGE')")
     @Operation(summary = "Add Next of Kin", description = "Adds a nominated beneficiary for a member. Enforces total percentage allocation limit <= 100.00%.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Next of Kin beneficiary added successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -69,6 +72,7 @@ public class NextOfKinController {
     }
 
     @GetMapping("/{userId}")
+    @PreAuthorize("hasAuthority('NEXT_OF_KIN_VIEW')")
     @Operation(summary = "List Member Next of Kin", description = "Returns all nominated beneficiaries registered for a member.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Beneficiary list retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
@@ -83,6 +87,7 @@ public class NextOfKinController {
     }
 
     @PutMapping("/{kinId}")
+    @PreAuthorize("hasAuthority('NEXT_OF_KIN_MANAGE')")
     @Operation(summary = "Update Next of Kin", description = "Updates nominated beneficiary details and allocation percentage.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Next of Kin beneficiary updated successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -105,6 +110,7 @@ public class NextOfKinController {
     }
 
     @DeleteMapping("/{kinId}")
+    @PreAuthorize("hasAuthority('NEXT_OF_KIN_MANAGE')")
     @Operation(summary = "Delete Next of Kin", description = "Removes a nominated beneficiary entry.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Next of Kin beneficiary removed successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),

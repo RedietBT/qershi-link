@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 
 /**
  * REST API Controller for Government Identity Document Submissions and KYC Verification.
+ * Secured with fine-grained RBAC permission checks (@PreAuthorize).
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -46,6 +48,7 @@ public class KycController {
     }
 
     @PostMapping("/{userId}/identifications")
+    @PreAuthorize("hasAuthority('KYC_SUBMIT')")
     @Operation(summary = "Submit KYC Document", description = "Submits a government identity document (National ID, Passport, Kebele ID, Driving License) for member verification.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "KYC document submitted successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -69,6 +72,7 @@ public class KycController {
     }
 
     @GetMapping("/{userId}/identifications")
+    @PreAuthorize("hasAuthority('KYC_VIEW')")
     @Operation(summary = "List Member KYC Documents", description = "Lists all government identity verification documents submitted for a member.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document list retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
@@ -83,6 +87,7 @@ public class KycController {
     }
 
     @GetMapping("/identifications/{identificationId}")
+    @PreAuthorize("hasAuthority('KYC_VIEW')")
     @Operation(summary = "Get KYC Document Details", description = "Fetches details of a specific identity document by identification ID.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document details retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -99,6 +104,7 @@ public class KycController {
     }
 
     @PutMapping("/identifications/{identificationId}/verify")
+    @PreAuthorize("hasAuthority('KYC_VERIFY')")
     @Operation(summary = "Verify KYC Document", description = "Supervisor approves identity document status to VERIFIED.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document verified successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -117,6 +123,7 @@ public class KycController {
     }
 
     @PutMapping("/identifications/{identificationId}/reject")
+    @PreAuthorize("hasAuthority('KYC_VERIFY')")
     @Operation(summary = "Reject KYC Document", description = "Supervisor rejects identity document with rejection audit notes.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document rejected", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
