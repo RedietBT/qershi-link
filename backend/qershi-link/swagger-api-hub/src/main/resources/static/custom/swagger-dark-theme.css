@@ -1,0 +1,139 @@
+/* =========================================================================
+   Qershi Link Swagger UI Modern Dark Theme & Custom Toggle Styles
+   ========================================================================= */
+
+/* Dark Mode Styles applied to body.dark-mode */
+body.dark-mode {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+body.dark-mode .swagger-ui {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+/* Header / Topbar */
+body.dark-mode .swagger-ui .topbar {
+    background-color: #1e293b !important;
+    border-bottom: 1px solid #334155 !important;
+    padding: 10px 0 !important;
+}
+
+/* Info Section & Titles */
+body.dark-mode .swagger-ui .info .title,
+body.dark-mode .swagger-ui .info h1,
+body.dark-mode .swagger-ui .info h2,
+body.dark-mode .swagger-ui .info h3,
+body.dark-mode .swagger-ui .info h4,
+body.dark-mode .swagger-ui .info h5,
+body.dark-mode .swagger-ui .info p,
+body.dark-mode .swagger-ui .info li,
+body.dark-mode .swagger-ui .info table {
+    color: #f8fafc !important;
+}
+
+body.dark-mode .swagger-ui .scheme-container {
+    background-color: #1e293b !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid #334155 !important;
+    border-radius: 8px !important;
+}
+
+/* Operations Blocks & Cards */
+body.dark-mode .swagger-ui .opblock-tag {
+    color: #f8fafc !important;
+    border-bottom: 1px solid #334155 !important;
+}
+
+body.dark-mode .swagger-ui .opblock {
+    background-color: #1e293b !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid #334155 !important;
+}
+
+body.dark-mode .swagger-ui .opblock .opblock-summary-description,
+body.dark-mode .swagger-ui .opblock .opblock-summary-path,
+body.dark-mode .swagger-ui .opblock-description-wrapper p,
+body.dark-mode .swagger-ui .tab li,
+body.dark-mode .swagger-ui label,
+body.dark-mode .swagger-ui .response-col_status,
+body.dark-mode .swagger-ui .response-col_description {
+    color: #cbd5e1 !important;
+}
+
+/* Inputs, Selects, and Textareas */
+body.dark-mode .swagger-ui input[type=text],
+body.dark-mode .swagger-ui input[type=password],
+body.dark-mode .swagger-ui textarea,
+body.dark-mode .swagger-ui select {
+    background-color: #334155 !important;
+    color: #f8fafc !important;
+    border: 1px solid #475569 !important;
+    border-radius: 6px !important;
+}
+
+body.dark-mode .swagger-ui input[type=text]:focus,
+body.dark-mode .swagger-ui textarea:focus,
+body.dark-mode .swagger-ui select:focus {
+    border-color: #38bdf8 !important;
+    outline: none !important;
+}
+
+/* Tables & Response Containers */
+body.dark-mode .swagger-ui table thead tr td,
+body.dark-mode .swagger-ui table thead tr th {
+    color: #f8fafc !important;
+    border-bottom: 1px solid #475569 !important;
+}
+
+body.dark-mode .swagger-ui .highlight-code pre,
+body.dark-mode .swagger-ui .microlight {
+    background-color: #020617 !important;
+    color: #38bdf8 !important;
+    border-radius: 6px !important;
+}
+
+body.dark-mode .swagger-ui .model-box {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+body.dark-mode .swagger-ui section.models {
+    border: 1px solid #334155 !important;
+    background-color: #0f172a !important;
+    border-radius: 8px !important;
+}
+
+body.dark-mode .swagger-ui section.models h4 {
+    color: #f8fafc !important;
+}
+
+/* Floating Bulb Theme Toggle Button Styling */
+.theme-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    transition: all 0.3s ease;
+    margin-left: 15px;
+}
+
+.theme-toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.5);
+    background: linear-gradient(135deg, #38bdf8, #0284c7);
+}
+
+.theme-toggle-btn:active {
+    transform: translateY(0);
+}
