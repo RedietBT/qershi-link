@@ -1,5 +1,6 @@
 package com.kab.qershi.profile.application.usecase;
 
+import com.kab.qershi.common.util.PiiMasker;
 import com.kab.qershi.profile.domain.model.NextOfKin;
 import com.kab.qershi.profile.domain.model.ProfileAuditLog;
 import com.kab.qershi.profile.domain.ports.inbound.NextOfKinUseCase;
@@ -14,6 +15,7 @@ import java.util.UUID;
 
 /**
  * Application Use Case implementation service managing nominated beneficiaries and 100% allocation validations.
+ * All beneficiary additions, updates, and deletions are audited into profile_audit_logs, and log outputs are PII masked.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -33,7 +35,7 @@ public class NextOfKinService implements NextOfKinUseCase {
     @Override
     public NextOfKin addNextOfKin(UUID userId, String fullName, String relationship, String primaryPhone,
                                   String idNumber, String physicalAddress, BigDecimal allocationPercentage) {
-        log.info("Adding Next of Kin ({}) for user ID: {}", fullName, userId);
+        log.info("Adding Next of Kin ({}) for user ID: {}", PiiMasker.maskName(fullName), PiiMasker.maskIdNumber(userId.toString()));
 
         profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot add Next of Kin. Member profile not found for user ID: " + userId));
@@ -64,6 +66,7 @@ public class NextOfKinService implements NextOfKinUseCase {
 
         NextOfKin saved = nextOfKinRepository.saveNextOfKin(kin);
 
+        // Audit Log Entry for Beneficiary Addition
         profileRepository.saveAuditLog(new ProfileAuditLog(
                 UUID.randomUUID(),
                 userId,
@@ -71,7 +74,7 @@ public class NextOfKinService implements NextOfKinUseCase {
                 "ADD_NEXT_OF_KIN",
                 "fullName",
                 null,
-                fullName + " (" + allocationPercentage + "%)"
+                PiiMasker.maskName(fullName) + " (" + allocationPercentage + "%)"
         ));
 
         return saved;
@@ -85,7 +88,7 @@ public class NextOfKinService implements NextOfKinUseCase {
     @Override
     public NextOfKin updateNextOfKin(UUID kinId, String fullName, String relationship, String primaryPhone,
                                      String idNumber, String physicalAddress, BigDecimal allocationPercentage) {
-        log.info("Updating Next of Kin ID: {}", kinId);
+        log.info("Updating Next of Kin ID: {}", PiiMasker.maskIdNumber(kinId.toString()));
 
         NextOfKin existing = nextOfKinRepository.findById(kinId)
                 .orElseThrow(() -> new IllegalArgumentException("Next of Kin record not found for ID: " + kinId));
@@ -115,6 +118,7 @@ public class NextOfKinService implements NextOfKinUseCase {
 
         NextOfKin updated = nextOfKinRepository.saveNextOfKin(existing);
 
+        // Audit Log Entry for Beneficiary Update
         profileRepository.saveAuditLog(new ProfileAuditLog(
                 UUID.randomUUID(),
                 userId,
@@ -130,7 +134,7 @@ public class NextOfKinService implements NextOfKinUseCase {
 
     @Override
     public void deleteNextOfKin(UUID kinId) {
-        log.warn("Deleting Next of Kin ID: {}", kinId);
+        log.warn("Deleting Next of Kin ID: {}", PiiMasker.maskIdNumber(kinId.toString()));
 
         NextOfKin existing = nextOfKinRepository.findById(kinId)
                 .orElseThrow(() -> new IllegalArgumentException("Next of Kin record not found for ID: " + kinId));
@@ -138,13 +142,14 @@ public class NextOfKinService implements NextOfKinUseCase {
         UUID userId = existing.getUserId();
         nextOfKinRepository.deleteById(kinId);
 
+        // Audit Log Entry for Beneficiary Removal
         profileRepository.saveAuditLog(new ProfileAuditLog(
                 UUID.randomUUID(),
                 userId,
                 userId,
                 "DELETE_NEXT_OF_KIN",
                 "fullName",
-                existing.getFullName(),
+                PiiMasker.maskName(existing.getFullName()),
                 null
         ));
     }
