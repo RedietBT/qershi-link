@@ -23,6 +23,7 @@
 		<module>common-library</module>
 		<module>identity-auth-service</module>
 		<module>profile-service</module>
+		<module>swagger-api-hub</module>
 	</modules>
 
 	<properties>

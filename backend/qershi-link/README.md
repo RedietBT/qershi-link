@@ -10,8 +10,8 @@ The system uses a **physical schema-per-tenant isolation model** to guarantee ze
 
 ```
                                   +-----------------------+
-                                  |    API Gateway /      |
-                                  |    Ingress Route      |
+                                  |   swagger-api-hub     |
+                                  |      (Port 9020)      |
                                   +-----------+-----------+
                                               |
                        ┌──────────────────────┴──────────────────────┐
@@ -33,9 +33,10 @@ The system uses a **physical schema-per-tenant isolation model** to guarantee ze
 
 | Microservice | HTTP Port | gRPC Port | Primary Purpose | README Link |
 |---|---|---|---|---|
-| **`identity-auth-service`** | `8080` | Client | Master Identity Platform, Authentication, SACCO Onboarding, RBAC Security | [identity-auth-service/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/identity-auth-service/README.md) |
-| **`profile-service`** | `8081` | `9081` | SACCO Member Onboarding, Demographics, Address, Employment, KYC Verifications, Next of Kin | [profile-service/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/profile-service/README.md) |
-| **`common-library`** | N/A | N/A | Shared Domain DTOs, Context Interceptors, PII Masking Utilities (`PiiMasker`) | [common-library/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/common-library) |
+| 🌐 **`swagger-api-hub`** | `9020` | N/A | **Centralized API Documentation Hub & Microservices Dropdown Selector** | [swagger-api-hub](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/swagger-api-hub) |
+| 🔑 **`identity-auth-service`** | `8080` | Client | Master Identity Platform, Authentication, SACCO Onboarding, RBAC Security | [identity-auth-service/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/identity-auth-service/README.md) |
+| 👤 **`profile-service`** | `8081` | `9081` | SACCO Member Onboarding, Demographics, Address, Employment, KYC Verifications, Next of Kin | [profile-service/README.md](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/profile-service/README.md) |
+| 🔗 **`common-library`** | N/A | N/A | Shared Domain DTOs, Context Interceptors, PII Masking Utilities (`PiiMasker`) | [common-library](file:///c:/Users/HP/Documents/projects/qershi-link/backend/qershi-link/common-library) |
 
 ---
 
@@ -58,6 +59,9 @@ The system uses a **physical schema-per-tenant isolation model** to guarantee ze
 
 ### Step 2: Build Container Images
 ```powershell
+# Build Swagger API Hub Image
+docker build --network=host -t swagger-api-hub:latest -f swagger-api-hub/Dockerfile .
+
 # Build Identity Auth Service Image
 docker build --network=host -t identity-auth-service:latest -f identity-auth-service/Dockerfile .
 
@@ -71,13 +75,15 @@ docker build --network=host -t profile-service:latest -f profile-service/Dockerf
 kubectl apply -f deployments/postgres-db.yaml
 kubectl apply -f deployments/postgres-service.yaml
 
-# Deploy Microservices
+# Deploy Microservices & Swagger API Hub
 kubectl apply -f deployments/identity-service.yaml
 kubectl apply -f deployments/profile-service.yaml
+kubectl apply -f deployments/swagger-api-hub.yaml
 
 # Restart Deployments
 kubectl rollout restart deployment/identity-auth-service -n sacco-core
 kubectl rollout restart deployment/profile-service -n sacco-core
+kubectl rollout restart deployment/swagger-api-hub -n sacco-core
 ```
 
 ### Step 4: Monitor Pod Status
@@ -87,14 +93,21 @@ kubectl get pods -n sacco-core -w
 
 ---
 
-## 🔍 Swagger UI Interactive API Documentation
+## 🌐 Centralized Swagger UI Interactive API Documentation
 
-Establish persistent local port-forwarding tunnels to access interactive Swagger documentation consoles with custom Dark Mode toggle buttons:
+Access all backend microservice APIs from **ONE single URL** on Port **`9020`**:
 
-| Service | Port Forwarding Command | Interactive Swagger UI URL |
-|---|---|---|
-| **Identity Auth Service** | `kubectl port-forward deployment/identity-auth-service 8080:8080 -n sacco-core` | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) |
-| **Profile Service** | `kubectl port-forward deployment/profile-service 8081:8081 -n sacco-core` | [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html) |
+### Expose Port 9020 (Persistent Tunnel Command)
+
+```powershell
+Start-Job -ScriptBlock { kubectl port-forward deployment/swagger-api-hub 9020:9020 -n sacco-core }
+```
+
+### Open the Unified API Hub Console
+
+👉 **http://localhost:9020/swagger-ui.html**
+
+*(Select any microservice from the **"Select a Spec"** dropdown menu at the top right corner of the screen to load its interactive OpenAPI documentation).*
 
 ---
 

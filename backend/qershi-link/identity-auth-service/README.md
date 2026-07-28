@@ -41,7 +41,7 @@ Follow these sequential steps to compile your code, update your cluster images, 
 ### Step 1: Package the Microservice
 Compile and package the source application into an executable fat JAR running framework verification checks:
 ```powershell
-./mvnw clean package
+./mvnw clean package -pl identity-auth-service -am
 ```
 
 ### Step 2: Build the Container Image
@@ -70,25 +70,21 @@ kubectl get pods -n sacco-core -w
 
 ---
 
-## 🔍 Accessing Live Swagger Documentation
+## 🌐 Accessing Centralized Swagger Documentation Hub (Port 9020)
 
-Because the application boots inside an isolated virtual Kubernetes network namespace, you must establish an interface bridge from your host operating system to view the live API schema.
+Instead of opening individual microservice Swagger ports, access all backend APIs through the **Centralized Swagger API Hub on Port 9020**:
 
-### Expose Port Globally (Persistent Tunnel Command)
-
-To open a permanent port tunnel that remains open in the background without locking your current terminal session, execute:
+### Expose Port 9020 Tunnel (Persistent Tunnel Command)
 
 ```powershell
-Start-Job -ScriptBlock { kubectl port-forward deployment/identity-auth-service 8080:8080 -n sacco-core }
+Start-Job -ScriptBlock { kubectl port-forward deployment/swagger-api-hub 9020:9020 -n sacco-core }
 ```
 
-*(Alternatively, you can run `kubectl port-forward deployment/identity-auth-service 8080:8080 -n sacco-core` in a separate PowerShell window and keep it open).*
+### Open the Unified API Console
 
-### Open the API Interactive Console
+👉 **http://localhost:9020/swagger-ui.html**
 
-Once the tunnel is up, you and your team can bypass the Spring Security parameter and run payloads directly via the active link below:
-
-👉 **http://localhost:8080/swagger-ui/index.html**
+*(Use the **"Select a Spec"** dropdown menu at the top right of the screen to switch between `1. Identity & Auth Service`, `2. Member Profile Service`, and other microservices).*
 
 ---
 
