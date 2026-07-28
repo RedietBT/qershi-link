@@ -3,8 +3,6 @@ package com.kab.qershi.auth.infrastructure.persistence;
 import com.kab.qershi.auth.domain.model.GlobalRole;
 import com.kab.qershi.auth.domain.model.UserStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.time.Instant;
@@ -14,8 +12,6 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users", schema = "master_schema")
-@Getter
-@Setter
 public class UserEntity {
 
     @Id
@@ -52,4 +48,76 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<RoleEntity> localRoles = new HashSet<>();
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
+    public String getMsisdn() {
+        return msisdn;
+    }
+
+    public void setMsisdn(String msisdn) {
+        this.msisdn = msisdn;
+    }
+
+    public UUID getSaccoId() {
+        return saccoId;
+    }
+
+    public void setSaccoId(UUID saccoId) {
+        this.saccoId = saccoId;
+    }
+
+    public String getCredentialHash() {
+        return credentialHash;
+    }
+
+    public void setCredentialHash(String credentialHash) {
+        this.credentialHash = credentialHash;
+    }
+
+    public GlobalRole getGlobalRole() {
+        return globalRole;
+    }
+
+    public void setGlobalRole(GlobalRole globalRole) {
+        this.globalRole = globalRole;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public void setFailedLoginAttempts(int failedLoginAttempts) {
+        this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public Set<RoleEntity> getLocalRoles() {
+        return localRoles;
+    }
+
+    public void setLocalRoles(Set<RoleEntity> localRoles) {
+        this.localRoles = localRoles;
+    }
 }

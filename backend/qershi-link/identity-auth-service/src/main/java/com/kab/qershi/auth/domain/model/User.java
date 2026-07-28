@@ -1,15 +1,11 @@
 package com.kab.qershi.auth.domain.model;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@Getter
 public class User {
     private final UUID userId;
     private String msisdn; // Managed by custom setter for safety
@@ -17,7 +13,6 @@ public class User {
     private String credentialHash;
     private GlobalRole globalRole;
     private final Set<Role> localRoles; // Alignment: Tracks tenant-specific RBAC assignments
-    @Setter
     private UserStatus status;
     private int failedLoginAttempts;
     private Instant lastLoginAt;
@@ -31,6 +26,42 @@ public class User {
         this.localRoles = new HashSet<>();
         this.status = UserStatus.PENDING_APPROVAL;
         this.failedLoginAttempts = 0;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public String getMsisdn() {
+        return msisdn;
+    }
+
+    public UUID getSaccoId() {
+        return saccoId;
+    }
+
+    public String getCredentialHash() {
+        return credentialHash;
+    }
+
+    public GlobalRole getGlobalRole() {
+        return globalRole;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
     }
 
     // Explicit Security Setter: Force E.164 formatting for Ethiopian numbers
@@ -49,7 +80,6 @@ public class User {
         this.localRoles.add(role);
     }
 
-
     public void revokeLocalRole(Role role) {
         this.localRoles.remove(role);
     }
@@ -65,8 +95,6 @@ public class User {
     public void recordFailedLogin() {
         this.failedLoginAttempts++;
         if (this.failedLoginAttempts >= 5) {
-            // Note: In core banking systems, you might want a status like 'LOCKED'
-            // instead of 'DEACTIVATED' to separate brute-force lockouts from admin closures.
             this.status = UserStatus.DEACTIVATED;
         }
     }
@@ -82,8 +110,6 @@ public class User {
         }
     }
 
-    // Inside com.kab.qershi.auth.domain.model.User
-
     public void setCredentialHash(String credentialHash) {
         if (credentialHash == null || credentialHash.isEmpty()) {
             throw new IllegalArgumentException("Credential hash cannot be null or empty.");
@@ -94,5 +120,4 @@ public class User {
     public void resetLoginAttempts() {
         this.failedLoginAttempts = 0;
     }
-
 }

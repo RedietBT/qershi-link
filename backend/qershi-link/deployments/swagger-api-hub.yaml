@@ -36,13 +36,13 @@ spec:
             httpGet:
               path: /actuator/health/liveness
               port: 8090
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 15
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
               port: 8090
-            initialDelaySeconds: 20
+            initialDelaySeconds: 45
             periodSeconds: 10
 ---
 apiVersion: v1
