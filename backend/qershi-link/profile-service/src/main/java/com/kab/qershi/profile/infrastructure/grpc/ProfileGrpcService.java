@@ -3,6 +3,7 @@ package com.kab.qershi.profile.infrastructure.grpc;
 import com.kab.qershi.auth.infrastructure.grpc.ProfileServiceGrpc;
 import com.kab.qershi.auth.infrastructure.grpc.ResourceDeleteRequest;
 import com.kab.qershi.auth.infrastructure.grpc.ResourceDeleteResponse;
+import com.kab.qershi.common.util.PiiMasker;
 import com.kab.qershi.profile.domain.ports.inbound.ProfileManagementUseCase;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -14,6 +15,7 @@ import java.util.UUID;
 /**
  * gRPC Server Service Handler exposing inter-service RPC endpoints for profile-service.
  * Listens on gRPC port (9081) for cascade deletion calls originating from identity-auth-service.
+ * PII Protected: All log parameters are masked using PiiMasker.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -33,7 +35,7 @@ public class ProfileGrpcService extends ProfileServiceGrpc.ProfileServiceImplBas
     public void cascadeDeleteProfile(ResourceDeleteRequest request,
                                      StreamObserver<ResourceDeleteResponse> responseObserver) {
         String userIdStr = request.getUserId();
-        log.warn("Received gRPC cascadeDeleteProfile request for user ID: {}", userIdStr);
+        log.warn("Received gRPC cascadeDeleteProfile request for user ID: {}", PiiMasker.maskIdNumber(userIdStr));
 
         try {
             UUID userId = UUID.fromString(userIdStr);
@@ -46,9 +48,9 @@ public class ProfileGrpcService extends ProfileServiceGrpc.ProfileServiceImplBas
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
-            log.info("gRPC cascadeDeleteProfile completed successfully for user ID: {}", userIdStr);
+            log.info("gRPC cascadeDeleteProfile completed successfully for user ID: {}", PiiMasker.maskIdNumber(userIdStr));
         } catch (Exception ex) {
-            log.error("Failed to execute gRPC cascadeDeleteProfile for user ID: {}", userIdStr, ex);
+            log.error("Failed to execute gRPC cascadeDeleteProfile for user ID: {}", PiiMasker.maskIdNumber(userIdStr), ex);
             ResourceDeleteResponse response = ResourceDeleteResponse.newBuilder()
                     .setIsSuccess(false)
                     .setFeedbackMessage("Error purging profile: " + ex.getMessage())
