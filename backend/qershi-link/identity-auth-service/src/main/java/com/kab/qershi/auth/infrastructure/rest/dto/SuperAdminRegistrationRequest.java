@@ -1,9 +1,24 @@
 package com.kab.qershi.auth.infrastructure.rest.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 
+/**
+ * REST API payload container enforcing input validation for Super Admin registration.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.1.0
+ */
+@Schema(description = "Request schema for Super Admin registration")
 public record SuperAdminRegistrationRequest(
-        @Pattern(regexp = "^\\+[1-9]\\d{1,14}$", message = "Invalid MSISDN format") String msisdn
+        @Schema(
+                description = "Primary mobile telephone identifier handle formatted in Ethiopian E.164 (+251XXXXXXXXX)",
+                example = "+251911223344",
+                pattern = "^\\+251\\d{9}$",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        @NotBlank(message = "Phone number (msisdn) cannot be blank.")
+        @Pattern(regexp = "^\\+251\\d{9}$", message = "Phone number must comply with Ethiopian E.164 format (+251XXXXXXXXX)")
+        String msisdn
 ) {}
