@@ -1,12 +1,10 @@
 package com.kab.qershi.auth.domain.model;
 
-import lombok.Getter;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@Getter
 public class Role {
     private final UUID roleId;
     private final String roleName;
@@ -18,6 +16,18 @@ public class Role {
         this.roleName = roleName;
         this.isSystemDefined = isSystemDefined;
         this.permissions = new HashSet<>();
+    }
+
+    public UUID getRoleId() {
+        return roleId;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public boolean isSystemDefined() {
+        return isSystemDefined;
     }
 
     public void grantPermission(Permission permission) {
