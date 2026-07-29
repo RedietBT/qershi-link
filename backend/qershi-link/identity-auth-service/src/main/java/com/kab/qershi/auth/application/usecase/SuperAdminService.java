@@ -32,7 +32,7 @@ public class SuperAdminService {
     @Transactional
     public void registerSuperAdmin(SuperAdminRegistrationRequest request) {
         String userId = UUID.randomUUID().toString();
-        // Generate a secure temporary PIN (default to 551994 for ease or random 6-digit PIN)
+        // Generate a secure temporary PIN
         String rawPin = String.format("%06d", new SecureRandom().nextInt(900000) + 100000);
         String hashedPin = passwordEncoder.encode(rawPin);
 
@@ -46,7 +46,7 @@ public class SuperAdminService {
 
         userRepositoryPort.assignRole(userId, SUPER_ADMIN_ROLE_ID, PLATFORM_SACCO_ID);
 
-        log.info("Registered Super Admin for MSISDN {} with initial PIN: {}", request.msisdn(), rawPin);
-        messagingPort.sendSms(request.msisdn(), "Your Super Admin PIN is: " + rawPin);
+        log.info("Registered Super Admin for MSISDN {}", request.msisdn());
+        messagingPort.sendSms(request.msisdn(), "Welcome to System Platform! Your Super Admin PIN is: " + rawPin);
     }
 }

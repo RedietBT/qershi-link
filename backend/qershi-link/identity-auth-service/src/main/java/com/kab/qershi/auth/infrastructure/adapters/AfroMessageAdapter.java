@@ -27,7 +27,7 @@ public class AfroMessageAdapter implements MessagingPort {
 
     @Override
     public void sendSms(String msisdn, String message) {
-        log.info("Preparing to send SMS notification to MSISDN [{}]: {}", msisdn, message);
+        log.info("Preparing to dispatch SMS notification to MSISDN [{}]", msisdn);
 
         // 1. Setup Headers
         HttpHeaders headers = new HttpHeaders();
@@ -50,7 +50,7 @@ public class AfroMessageAdapter implements MessagingPort {
                 restTemplate.postForEntity(apiUrl, request, String.class);
                 log.info("SMS notification successfully dispatched via AfroMessage gateway to {}", msisdn);
             } else {
-                log.warn("AfroMessage API URL is unconfigured/placeholder ({}). SMS logged locally: [{}] -> {}", apiUrl, msisdn, message);
+                log.warn("AfroMessage API URL unconfigured. SMS notification queued for {}", msisdn);
             }
         } catch (Exception e) {
             log.error("Failed to send SMS to {}: {}", msisdn, e.getMessage());

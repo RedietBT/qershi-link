@@ -16,8 +16,8 @@ public class SaccoOnboardingService implements SaccoOnboardingUseCase {
     private final UserRepositoryPort userRepositoryPort;
     private final TenantProvisioningPort tenantProvisioningPort;
     private final IdentityDomainService identityDomainService;
-    private final MessagingPort messagingPort; // New injected port
-    private final PasswordEncoder passwordEncoder; // New injected encoder
+    private final MessagingPort messagingPort;
+    private final PasswordEncoder passwordEncoder;
 
     private static final UUID SYSTEM_ADMIN_ROLE_ID = UUID.fromString("018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f");
 
@@ -46,9 +46,8 @@ public class SaccoOnboardingService implements SaccoOnboardingUseCase {
 
         String sanitizedSchemaName = identityDomainService.generateAndSanitizeSchemaName(command.saccoName(), command.isUnion());
 
-        // Generate temporary PIN
-        // Change this line in your services
-        String rawPin = String.format("%06d", new SecureRandom().nextInt(1000000));
+        // Generate 6-digit initial PIN
+        String rawPin = String.format("%06d", new SecureRandom().nextInt(900000) + 100000);
         String hashedPin = passwordEncoder.encode(rawPin);
 
         UUID saccoId = UUID.randomUUID();
@@ -66,7 +65,7 @@ public class SaccoOnboardingService implements SaccoOnboardingUseCase {
             adminUser.assignLocalRole(defaultAdminRole);
             userRepositoryPort.save(adminUser);
 
-            // Trigger SMS notification
+            // Trigger SMS notification welcoming SACCO onboard to Qershi Link platform
             String smsBody = String.format(
                     "Welcome to Qershi Link! Your admin account for %s is ready. Use PIN: %s to log in. Please change your PIN immediately after your first login.",
                     command.saccoName(),

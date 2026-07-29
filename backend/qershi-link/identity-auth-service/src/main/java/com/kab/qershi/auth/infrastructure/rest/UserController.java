@@ -3,6 +3,8 @@ package com.kab.qershi.auth.infrastructure.rest;
 import com.kab.qershi.auth.domain.model.UserStatus;
 import com.kab.qershi.auth.domain.ports.outbound.MessagingPort;
 import com.kab.qershi.auth.infrastructure.grpc.ProfileServiceClient;
+import com.kab.qershi.auth.infrastructure.persistence.SaccoEntity;
+import com.kab.qershi.auth.infrastructure.persistence.SpringDataSaccoRepository;
 import com.kab.qershi.auth.infrastructure.persistence.SpringDataUserRepository;
 import com.kab.qershi.auth.infrastructure.persistence.UserEntity;
 import com.kab.qershi.auth.infrastructure.rest.dto.CreateUserRequest;
@@ -28,7 +30,7 @@ import java.util.UUID;
  * Manages purely security metrics (MSISDN, Status) without demographic pollution.
  *
  * @author KAB Digital Solution PLC
- * @version 1.5.0
+ * @version 1.6.0
  */
 @RestController
 @RequestMapping("/api/v1/users")
@@ -37,15 +39,18 @@ public class UserController {
 
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
     private final SpringDataUserRepository userRepository;
+    private final SpringDataSaccoRepository saccoRepository;
     private final ProfileServiceClient profileServiceClient;
     private final PasswordEncoder passwordEncoder;
     private final MessagingPort messagingPort;
 
     public UserController(SpringDataUserRepository userRepository,
+                          SpringDataSaccoRepository saccoRepository,
                           ProfileServiceClient profileServiceClient,
                           PasswordEncoder passwordEncoder,
                           MessagingPort messagingPort) {
         this.userRepository = userRepository;
+        this.saccoRepository = saccoRepository;
         this.profileServiceClient = profileServiceClient;
         this.passwordEncoder = passwordEncoder;
         this.messagingPort = messagingPort;
@@ -87,8 +92,13 @@ public class UserController {
 
         userRepository.save(userEntity);
 
-        // Dispatch SMS notification with initial PIN
-        String smsMessage = "Welcome to Qershi Link! Your user account has been created. Your initial PIN is: " + rawPin;
+        // Fetch SACCO name to welcome user under their SACCO identity
+        String saccoName = saccoRepository.findById(request.saccoId())
+                .map(SaccoEntity::getSaccoName)
+                .orElse("your SACCO");
+
+        // Dispatch SMS notification with initial PIN (welcome with SACCO name)
+        String smsMessage = "Welcome to " + saccoName + "! Your user account has been created. Your initial PIN is: " + rawPin;
         try {
             messagingPort.sendSms(request.msisdn(), smsMessage);
             log.info("Initial PIN SMS notification dispatched to {}", request.msisdn());
@@ -96,7 +106,7 @@ public class UserController {
             log.error("Failed to send SMS to {}: {}", request.msisdn(), e.getMessage());
         }
 
-        return ResponseEntity.ok("User registered successfully. Initial PIN (" + rawPin + ") sent via SMS to " + request.msisdn() + ".");
+        return ResponseEntity.ok("User registered successfully. Initial PIN sent via SMS to " + request.msisdn() + ".");
     }
 
     @GetMapping("/{id}")

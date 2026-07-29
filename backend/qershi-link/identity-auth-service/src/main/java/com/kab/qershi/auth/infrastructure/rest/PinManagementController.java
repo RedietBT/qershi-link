@@ -2,6 +2,8 @@ package com.kab.qershi.auth.infrastructure.rest;
 
 import com.kab.qershi.auth.domain.model.UserStatus;
 import com.kab.qershi.auth.domain.ports.outbound.MessagingPort;
+import com.kab.qershi.auth.infrastructure.persistence.SaccoEntity;
+import com.kab.qershi.auth.infrastructure.persistence.SpringDataSaccoRepository;
 import com.kab.qershi.auth.infrastructure.persistence.SpringDataUserRepository;
 import com.kab.qershi.auth.infrastructure.persistence.UserEntity;
 import com.kab.qershi.auth.infrastructure.rest.dto.ResendPinRequest;
@@ -23,7 +25,7 @@ import java.util.UUID;
  * Dedicated REST controller providing standalone global endpoints for initial PIN dispatches and SMS resend triggers.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @RestController
 @RequestMapping("/api/v1/pin")
@@ -32,13 +34,16 @@ public class PinManagementController {
 
     private static final Logger log = LoggerFactory.getLogger(PinManagementController.class);
     private final SpringDataUserRepository userRepository;
+    private final SpringDataSaccoRepository saccoRepository;
     private final PasswordEncoder passwordEncoder;
     private final MessagingPort messagingPort;
 
     public PinManagementController(SpringDataUserRepository userRepository,
+                                   SpringDataSaccoRepository saccoRepository,
                                    PasswordEncoder passwordEncoder,
                                    MessagingPort messagingPort) {
         this.userRepository = userRepository;
+        this.saccoRepository = saccoRepository;
         this.passwordEncoder = passwordEncoder;
         this.messagingPort = messagingPort;
     }
@@ -91,8 +96,13 @@ public class PinManagementController {
 
         userRepository.save(userEntity);
 
+        // Fetch SACCO name for personalized SMS greeting
+        String saccoName = saccoRepository.findById(userEntity.getSaccoId())
+                .map(SaccoEntity::getSaccoName)
+                .orElse("your SACCO");
+
         // Dispatch new PIN via AfroMessage SMS gateway
-        String smsMessage = "Welcome to Qershi Link! Your initial login PIN has been reset. Your new PIN is: " + newPin;
+        String smsMessage = "Welcome to " + saccoName + "! Your initial login PIN has been reset. Your new PIN is: " + newPin;
         try {
             messagingPort.sendSms(userEntity.getMsisdn(), smsMessage);
             log.info("Resent initial PIN SMS notification to {}", userEntity.getMsisdn());
@@ -100,6 +110,6 @@ public class PinManagementController {
             log.error("Failed to resend SMS to {}: {}", userEntity.getMsisdn(), e.getMessage());
         }
 
-        return ResponseEntity.ok("New initial PIN (" + newPin + ") successfully generated and sent via SMS to " + userEntity.getMsisdn() + ".");
+        return ResponseEntity.ok("New initial PIN successfully generated and sent via SMS to " + userEntity.getMsisdn() + ".");
     }
 }
