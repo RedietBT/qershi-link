@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,7 +16,7 @@ import java.util.UUID;
  * Updated to support multi-tenant role assignment and authority resolution.
  *
  * @author KAB Digital Solution PLC
- * @version 1.2.0
+ * @version 1.2.1
  */
 @Repository
 public interface SpringDataUserRepository extends JpaRepository<UserEntity, UUID> {
@@ -24,7 +26,8 @@ public interface SpringDataUserRepository extends JpaRepository<UserEntity, UUID
     List<UserEntity> findBySaccoId(UUID saccoId);
 
     @Modifying
-    @Query(value = "INSERT INTO master_schema.user_roles (user_id, role_id, sacco_id) VALUES (:userId, :roleId, :saccoId)", nativeQuery = true)
+    @Transactional
+    @Query(value = "INSERT INTO master_schema.user_roles (user_id, role_id, sacco_id) VALUES (:userId, :roleId, :saccoId) ON CONFLICT DO NOTHING", nativeQuery = true)
     void insertUserRole(@Param("userId") UUID userId, @Param("roleId") UUID roleId, @Param("saccoId") UUID saccoId);
 
     @Query(value = "SELECT DISTINCT p.resource || '_' || p.action " +

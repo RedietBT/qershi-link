@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.SecureRandom;
@@ -27,7 +28,7 @@ import java.util.UUID;
  * Manages purely security metrics (MSISDN, Status) without demographic pollution.
  *
  * @author KAB Digital Solution PLC
- * @version 1.4.0
+ * @version 1.4.3
  */
 @RestController
 @RequestMapping("/api/v1/users")
@@ -139,6 +140,7 @@ public class UserController {
     }
 
     @PostMapping("/{userId}/roles/{roleId}")
+    @Transactional
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
     @Operation(
             summary = "Assign role to user",
