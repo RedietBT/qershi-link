@@ -43,10 +43,11 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        // 2. Permit core authentication entry points
+                        // 2. Permit core authentication entry points & global PIN operations
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register-super-admin",
+                                "/api/v1/pin/**",
                                 "/api/v1/sacco/onboard"
                         ).permitAll()
                         // 3. Permit password change (User is authenticated via partial JWT)

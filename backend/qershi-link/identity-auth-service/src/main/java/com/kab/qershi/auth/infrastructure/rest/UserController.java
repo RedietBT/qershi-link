@@ -28,7 +28,7 @@ import java.util.UUID;
  * Manages purely security metrics (MSISDN, Status) without demographic pollution.
  *
  * @author KAB Digital Solution PLC
- * @version 1.4.3
+ * @version 1.5.0
  */
 @RestController
 @RequestMapping("/api/v1/users")
@@ -73,10 +73,8 @@ public class UserController {
             throw new IllegalArgumentException("User with phone number " + request.msisdn() + " is already registered.");
         }
 
-        // Generate 6-digit initial PIN if not supplied
-        String rawPin = (request.pin() != null && request.pin().matches("^\\d{4,6}$"))
-                ? request.pin()
-                : String.format("%06d", new SecureRandom().nextInt(900000) + 100000);
+        // System automatically generates a secure 6-digit initial PIN for SMS delivery
+        String rawPin = String.format("%06d", new SecureRandom().nextInt(900000) + 100000);
 
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(UUID.randomUUID());
