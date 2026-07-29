@@ -18,17 +18,17 @@ import java.util.UUID;
  * demographic updates, Maker-Checker supervisor approvals, queries, and deletion.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 public interface ProfileManagementUseCase {
 
     /**
      * Step 1: Creates initial demographic profile and governance maker record.
-     * If memberNo is null or blank, a structured member number (MEM-YYYY-XXXXX) is generated.
+     * Member number is automatically generated as [SACCO_INITIALS]-[YEAR]-[6_DIGIT_SEQ] (e.g. AWS-2026-000142).
      */
     MemberProfile createMemberProfile(
             UUID userId,
-            String memberNo,
+            String saccoName,
             String firstName,
             String middleName,
             String lastName,

@@ -28,7 +28,7 @@ import java.util.UUID;
  * demographic updates, Maker-Checker onboarding approvals, and cascade purges.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 public class ProfileManagementService implements ProfileManagementUseCase {
 
@@ -48,7 +48,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
     }
 
     @Override
-    public MemberProfile createMemberProfile(UUID userId, String memberNo, String firstName, String middleName,
+    public MemberProfile createMemberProfile(UUID userId, String saccoName, String firstName, String middleName,
                                              String lastName, Gender gender, LocalDate dateOfBirth,
                                              MaritalStatus maritalStatus, UUID submittedByUserId) {
         log.info("Initiating tenant-scoped member profile creation for user ID: {}", userId);
@@ -57,12 +57,17 @@ public class ProfileManagementService implements ProfileManagementUseCase {
             throw new IllegalArgumentException("Profile already exists for user ID: " + userId);
         }
 
-        String formattedMemberNo = (memberNo != null && !memberNo.trim().isEmpty())
-                ? memberNo.trim().toUpperCase()
-                : generateStructuredMemberNo();
+        // Auto-generate structured Member ID in format: [SACCO_INITIALS]-[YEAR]-[6_DIGIT_SEQUENCE] (e.g. AWS-2026-000142)
+        String formattedMemberNo = generateStructuredMemberNo(saccoName);
 
-        if (profileRepository.existsByMemberNo(formattedMemberNo)) {
-            throw new IllegalArgumentException("Member number already registered in tenant schema: " + formattedMemberNo);
+        // Guarantee unique member number constraint safety
+        int attempts = 0;
+        while (profileRepository.existsByMemberNo(formattedMemberNo)) {
+            attempts++;
+            formattedMemberNo = generateStructuredMemberNo(saccoName);
+            if (attempts > 10) {
+                throw new IllegalStateException("Failed to generate unique member number after multiple attempts.");
+            }
         }
 
         MemberProfile profile = new MemberProfile(
@@ -299,9 +304,43 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         ));
     }
 
-    private String generateStructuredMemberNo() {
+    /**
+     * Generates a structured Member ID in format: [SACCO_INITIALS]-[YEAR]-[6_DIGIT_SEQUENCE]
+     * Examples: AWS-2026-000142, BSC-2026-100589, QL-2026-000101
+     */
+    private String generateStructuredMemberNo(String saccoName) {
+        String initials = deriveSaccoInitials(saccoName);
         int year = Year.now().getValue();
-        int randomSeq = 10000 + random.nextInt(90000);
-        return String.format("MEM-%d-%d", year, randomSeq);
+        int randomSeq = random.nextInt(900000) + 100000; // 6-digit sequence (100000-999999)
+        return String.format("%s-%d-%06d", initials, year, randomSeq);
+    }
+
+    /**
+     * Helper to derive 2 to 3 uppercase initials from a SACCO legal name.
+     */
+    public static String deriveSaccoInitials(String saccoName) {
+        if (saccoName == null || saccoName.trim().isEmpty()) {
+            return "QL";
+        }
+        String[] words = saccoName.trim().toUpperCase().split("\\s+");
+        if (words.length == 1) {
+            String w = words[0];
+            return w.length() >= 3 ? w.substring(0, 3) : w;
+        }
+        if (words.length == 2) {
+            String w1 = words[0];
+            String w2 = words[1];
+            if (w1.length() >= 2) {
+                return "" + w1.charAt(0) + w1.charAt(1) + w2.charAt(0);
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (!word.isEmpty() && Character.isLetter(word.charAt(0))) {
+                sb.append(word.charAt(0));
+                if (sb.length() >= 3) break;
+            }
+        }
+        return sb.length() > 0 ? sb.toString() : "QL";
     }
 }

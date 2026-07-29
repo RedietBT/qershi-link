@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
  * Secured with fine-grained RBAC permission checks (@PreAuthorize).
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @RestController
 @RequestMapping("/api/v1/profiles")
@@ -57,17 +57,17 @@ public class MemberProfileController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('MEMBER_CREATE')")
-    @Operation(summary = "Register Member Profile", description = "Creates a new SACCO member profile linked to userId from identity service in PENDING_APPROVAL status.")
+    @Operation(summary = "Register Member Profile", description = "Creates a new SACCO member profile linked to userId with auto-generated Member ID in format: [SACCO_INITIALS]-[YEAR]-[6_DIGIT_SEQ].")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Member profile created successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation constraint failure or invalid payload format", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Conflict: Profile already exists for user ID or member number registered", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Conflict: Profile already exists for user ID", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Internal server error occurred", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse<MemberProfileResponse>> createProfile(@Valid @RequestBody CreateProfileRequest request) {
         MemberProfile profile = profileManagementUseCase.createMemberProfile(
                 request.getUserId(),
-                request.getMemberNo(),
+                request.getSaccoName(),
                 request.getFirstName(),
                 request.getMiddleName(),
                 request.getLastName(),
@@ -206,7 +206,7 @@ public class MemberProfileController {
 
     @GetMapping("/member-no/{memberNo}")
     @PreAuthorize("hasAuthority('MEMBER_VIEW_BASIC')")
-    @Operation(summary = "Get Profile by Member Number", description = "Searches member profile by structured member number (e.g. MEM-2026-10482).")
+    @Operation(summary = "Get Profile by Member Number", description = "Searches member profile by structured member number (e.g. AWS-2026-000142).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Profile details retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Member profile not found for Member No", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
