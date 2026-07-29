@@ -13,6 +13,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Data Adapter bridging Domain Model User operations to Spring Data JPA Persistence entities.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.5.0
+ */
 @Component
 public class UserRepositoryAdapter implements UserRepositoryPort {
 
@@ -23,8 +29,20 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     }
 
     @Override
+    @Transactional
     public User save(User user) {
-        UserEntity entity = mapToEntity(user);
+        // Fetch existing entity to preserve mapped relationships (e.g. localRoles in user_roles)
+        UserEntity entity = repository.findById(user.getUserId())
+                .orElseGet(() -> mapToEntity(user));
+
+        entity.setMsisdn(user.getMsisdn());
+        entity.setSaccoId(user.getSaccoId());
+        entity.setCredentialHash(user.getCredentialHash());
+        entity.setGlobalRole(user.getGlobalRole());
+        entity.setStatus(user.getStatus() != null ? user.getStatus() : UserStatus.PENDING_APPROVAL);
+        entity.setFailedLoginAttempts(user.getFailedLoginAttempts());
+        entity.setLastLoginAt(user.getLastLoginAt());
+
         UserEntity savedEntity = repository.save(entity);
         return mapToDomain(savedEntity);
     }
@@ -38,7 +56,6 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     @Override
     @Transactional
     public void assignRole(String userId, String roleId, String saccoId) {
-        // Updated to include saccoId to match the new multi-tenant database schema
         repository.insertUserRole(UUID.fromString(userId), UUID.fromString(roleId), UUID.fromString(saccoId));
     }
 
@@ -47,7 +64,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         UserEntity entity = new UserEntity();
         entity.setUserId(UUID.fromString(userId));
         entity.setMsisdn(msisdn);
-        entity.setSaccoId(UUID.fromString(saccoId)); // Ensure this is captured
+        entity.setSaccoId(UUID.fromString(saccoId));
         entity.setCredentialHash(hashedPin);
         entity.setGlobalRole(GlobalRole.valueOf(role));
         entity.setStatus(UserStatus.ACTIVE);
@@ -63,8 +80,6 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
 
     @Override
     public List<String> findPermissions(UUID userId, UUID saccoId) {
-        // Delegates to the native query that joins user_roles → role_permissions → permissions
-        // and returns the authority strings in RESOURCE_ACTION format (e.g. MEMBER_CREATE)
         return repository.findAuthoritiesByUserIdAndSaccoId(userId, saccoId);
     }
 
@@ -72,13 +87,15 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     private User mapToDomain(UserEntity entity) {
         if (entity == null) return null;
 
-        return new User(
+        User user = new User(
                 entity.getUserId(),
                 entity.getMsisdn(),
                 entity.getSaccoId(),
                 entity.getCredentialHash(),
                 entity.getGlobalRole()
         );
+        user.setStatus(entity.getStatus());
+        return user;
     }
 
     private UserEntity mapToEntity(User domain) {
