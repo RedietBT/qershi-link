@@ -30,7 +30,7 @@ import java.util.UUID;
  * Manages purely security metrics (MSISDN, Status) without demographic pollution.
  *
  * @author KAB Digital Solution PLC
- * @version 1.6.0
+ * @version 1.8.0
  */
 @RestController
 @RequestMapping("/api/v1/users")
@@ -149,7 +149,7 @@ public class UserController {
 
     @PostMapping("/{userId}/roles/{roleId}")
     @Transactional
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('ROLE_UPDATE', 'ROLE_MANAGE')")
     @Operation(
             summary = "Assign role to user",
             description = "Maps a specific role to a user within a specific tenant (SACCO) context."
