@@ -7,6 +7,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,17 +20,21 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Servlet Filter intercepting HTTP requests to validate JWT Bearer tokens,
- * populate Spring SecurityContext authorities, and populate TenantContext.
+ * populate Spring SecurityContext authorities (roles & permissions), and populate TenantContext.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -44,27 +50,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = parseClaims(token);
                 if (claims != null) {
                     String username = claims.getSubject();
-                    List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                    Set<SimpleGrantedAuthority> authorities = new HashSet<>();
 
-                    // 1. Role claim
-                    String role = claims.get("role", String.class);
-                    if (role != null && !role.isBlank()) {
-                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                    // 1. Check "authorities" claim (used by Identity Auth Service)
+                    List<?> authoritiesClaim = claims.get("authorities", List.class);
+                    if (authoritiesClaim != null) {
+                        for (Object auth : authoritiesClaim) {
+                            if (auth != null && !auth.toString().isBlank()) {
+                                authorities.add(new SimpleGrantedAuthority(auth.toString().trim()));
+                            }
+                        }
                     }
 
-                    // 2. Permissions / Authorities array claim
-                    List<?> permissions = claims.get("permissions", List.class);
-                    if (permissions != null) {
-                        for (Object perm : permissions) {
-                            if (perm != null) {
-                                authorities.add(new SimpleGrantedAuthority(perm.toString()));
+                    // 2. Check "permissions" claim
+                    List<?> permissionsClaim = claims.get("permissions", List.class);
+                    if (permissionsClaim != null) {
+                        for (Object perm : permissionsClaim) {
+                            if (perm != null && !perm.toString().isBlank()) {
+                                authorities.add(new SimpleGrantedAuthority(perm.toString().trim()));
+                            }
+                        }
+                    }
+
+                    // 3. Check "role" or "roles" claims
+                    String role = claims.get("role", String.class);
+                    if (role != null && !role.isBlank()) {
+                        String roleAuth = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+                        authorities.add(new SimpleGrantedAuthority(roleAuth));
+                    }
+
+                    List<?> rolesClaim = claims.get("roles", List.class);
+                    if (rolesClaim != null) {
+                        for (Object r : rolesClaim) {
+                            if (r != null && !r.toString().isBlank()) {
+                                String roleAuth = r.toString().startsWith("ROLE_") ? r.toString() : "ROLE_" + r.toString();
+                                authorities.add(new SimpleGrantedAuthority(roleAuth));
                             }
                         }
                     }
 
                     UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+                            new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>(authorities));
                     SecurityContextHolder.getContext().setAuthentication(auth);
+                    log.debug("Populated SecurityContext for user {} with authorities: {}", username, authorities);
                 }
             }
 
@@ -89,6 +117,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .parseClaimsJws(token)
                     .getBody();
         } catch (Exception ex) {
+            log.warn("Failed to parse JWT token in profile-service: {}", ex.getMessage());
             return null;
         }
     }

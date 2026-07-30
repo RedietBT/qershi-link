@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 
 /**
  * REST API Controller for SACCO Member Profile Lifecycle Management.
- * Secured with fine-grained RBAC permission checks (@PreAuthorize).
+ * Secured with fine-grained RBAC permission checks (@PreAuthorize("hasAuthority(...)")).
  *
  * @author KAB Digital Solution PLC
  * @version 1.1.0

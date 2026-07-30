@@ -8,13 +8,13 @@ import jakarta.validation.constraints.Pattern;
  * REST API payload container enforcing input validation for Super Admin registration.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 @Schema(description = "Request schema for Super Admin registration")
 public record SuperAdminRegistrationRequest(
         @Schema(
                 description = "Primary mobile telephone identifier handle formatted in Ethiopian E.164 (+251XXXXXXXXX)",
-                example = "+251911223344",
+                example = "+251900000000",
                 pattern = "^\\+251\\d{9}$",
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
