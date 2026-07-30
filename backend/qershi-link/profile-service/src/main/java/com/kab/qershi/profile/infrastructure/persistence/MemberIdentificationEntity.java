@@ -10,6 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -35,7 +37,8 @@ public class MemberIdentificationEntity {
     private UUID userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "id_type", nullable = false)
+    @JdbcTypeCode(SqlTypes.OTHER)
+    @Column(name = "id_type", nullable = false, columnDefinition = "profile_id_type")
     private IdType idType;
 
     @Column(name = "id_number", nullable = false, length = 100)
@@ -51,7 +54,8 @@ public class MemberIdentificationEntity {
     private String issuingAuthority;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "kyc_status", nullable = false)
+    @JdbcTypeCode(SqlTypes.OTHER)
+    @Column(name = "kyc_status", nullable = false, columnDefinition = "profile_kyc_status")
     private KycStatus kycStatus;
 
     @Column(name = "verified_by_user_id")

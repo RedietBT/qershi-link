@@ -11,6 +11,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -45,6 +47,7 @@ public class MemberProfileEntity {
     private String lastName;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.OTHER)
     @Column(name = "gender", nullable = false, columnDefinition = "profile_gender")
     private Gender gender;
 
@@ -52,10 +55,12 @@ public class MemberProfileEntity {
     private LocalDate dateOfBirth;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.OTHER)
     @Column(name = "marital_status", nullable = false, columnDefinition = "profile_marital_status")
     private MaritalStatus maritalStatus;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.OTHER)
     @Column(name = "status", nullable = false, columnDefinition = "profile_member_status")
     private MemberStatus status;
 
