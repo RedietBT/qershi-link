@@ -18,7 +18,7 @@ import java.io.IOException;
  * and populate the TenantContext ThreadLocal container.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @Component
 @Order(1)
@@ -35,7 +35,7 @@ public class TenantContextFilter implements Filter {
             String tenantId = httpRequest.getHeader(TENANT_HEADER);
 
             if (tenantId != null && !tenantId.isBlank()) {
-                String sanitizedTenantSchema = tenantId.trim().toLowerCase().replaceAll("[^a_z0-9_]", "");
+                String sanitizedTenantSchema = tenantId.trim().toLowerCase().replaceAll("[^a-z0-9_]", "");
                 TenantContext.setTenantSchema(sanitizedTenantSchema);
                 log.debug("Tenant context bound to schema: {}", sanitizedTenantSchema);
             } else {

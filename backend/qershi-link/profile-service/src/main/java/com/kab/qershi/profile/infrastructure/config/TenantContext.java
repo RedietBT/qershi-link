@@ -5,12 +5,12 @@ package com.kab.qershi.profile.infrastructure.config;
  * Utilizes InheritableThreadLocal to preserve schema parameters across asynchronous tasks.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 public final class TenantContext {
 
-    /** Default fallback schema matching global platform shared components. */
-    public static final String DEFAULT_TENANT = "master_schema";
+    /** Default fallback schema matching Flyway migration schema for profile service components. */
+    public static final String DEFAULT_TENANT = "profile_schema";
 
     private static final InheritableThreadLocal<String> CURRENT_TENANT = new InheritableThreadLocal<>() {
         @Override
