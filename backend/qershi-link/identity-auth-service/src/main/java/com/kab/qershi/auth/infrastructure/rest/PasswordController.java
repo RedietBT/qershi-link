@@ -13,6 +13,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for user authentication PIN management and password rotation.
+ * Supports both unauthenticated first-time password rotation using MSISDN + initial PIN,
+ * and authenticated user PIN rotation via Bearer JWT.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.2.0
+ */
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Authentication Engine", description = "Endpoints for managing identity security and PIN rotation")
@@ -32,8 +40,20 @@ public class PasswordController {
     @ApiResponse(responseCode = "200", description = "PIN updated successfully.")
     @ApiResponse(responseCode = "400", description = "Invalid current PIN or validation error.")
     public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        // Retrieves the MSISDN from the security context (set by the JWT filter)
-        String msisdn = SecurityContextHolder.getContext().getAuthentication().getName();
+        String msisdn = request.msisdn();
+
+        // If MSISDN is omitted in the request body, extract it from SecurityContext (JWT authentication)
+        if (msisdn == null || msisdn.isBlank()) {
+            if (SecurityContextHolder.getContext().getAuthentication() != null
+                    && SecurityContextHolder.getContext().getAuthentication().isAuthenticated()
+                    && !"anonymousUser".equals(SecurityContextHolder.getContext().getAuthentication().getName())) {
+                msisdn = SecurityContextHolder.getContext().getAuthentication().getName();
+            }
+        }
+
+        if (msisdn == null || msisdn.isBlank()) {
+            throw new IllegalArgumentException("Phone number (msisdn) is required in the request body or via Bearer Authorization header.");
+        }
 
         passwordService.changePassword(msisdn, request.oldPin(), request.newPin());
 

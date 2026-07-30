@@ -47,12 +47,11 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register-super-admin",
+                                "/api/v1/auth/change-password",
                                 "/api/v1/pin/**",
                                 "/api/v1/sacco/onboard"
                         ).permitAll()
-                        // 3. Permit password change (User is authenticated via partial JWT)
-                        .requestMatchers("/api/v1/auth/change-password").authenticated()
-                        // 4. Secure all other endpoints
+                        // 3. Secure all other endpoints
                         .requestMatchers("/api/v1/platform/**").permitAll()
                         .anyRequest().authenticated()
                 )
