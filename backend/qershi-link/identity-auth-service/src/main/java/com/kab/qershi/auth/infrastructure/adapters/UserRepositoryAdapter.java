@@ -15,9 +15,10 @@ import java.util.UUID;
 
 /**
  * Data Adapter bridging Domain Model User operations to Spring Data JPA Persistence entities.
+ * Enforces PASSWORD_CHANGE_REQUIRED initial status for all accounts including Super Admins.
  *
  * @author KAB Digital Solution PLC
- * @version 1.5.0
+ * @version 1.6.0
  */
 @Component
 public class UserRepositoryAdapter implements UserRepositoryPort {
@@ -39,7 +40,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         entity.setSaccoId(user.getSaccoId());
         entity.setCredentialHash(user.getCredentialHash());
         entity.setGlobalRole(user.getGlobalRole());
-        entity.setStatus(user.getStatus() != null ? user.getStatus() : UserStatus.PENDING_APPROVAL);
+        entity.setStatus(user.getStatus() != null ? user.getStatus() : UserStatus.PASSWORD_CHANGE_REQUIRED);
         entity.setFailedLoginAttempts(user.getFailedLoginAttempts());
         entity.setLastLoginAt(user.getLastLoginAt());
 
@@ -67,7 +68,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         entity.setSaccoId(UUID.fromString(saccoId));
         entity.setCredentialHash(hashedPin);
         entity.setGlobalRole(GlobalRole.valueOf(role));
-        entity.setStatus(UserStatus.ACTIVE);
+        entity.setStatus(UserStatus.PASSWORD_CHANGE_REQUIRED);
 
         repository.save(entity);
     }
@@ -107,7 +108,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         entity.setSaccoId(domain.getSaccoId());
         entity.setCredentialHash(domain.getCredentialHash());
         entity.setGlobalRole(domain.getGlobalRole());
-        entity.setStatus(domain.getStatus() != null ? domain.getStatus() : UserStatus.PENDING_APPROVAL);
+        entity.setStatus(domain.getStatus() != null ? domain.getStatus() : UserStatus.PASSWORD_CHANGE_REQUIRED);
         entity.setFailedLoginAttempts(domain.getFailedLoginAttempts());
         entity.setLastLoginAt(domain.getLastLoginAt());
 

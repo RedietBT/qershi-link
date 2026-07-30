@@ -39,7 +39,15 @@ public class AuthenticationService implements AuthenticationUseCase {
         }
 
         if (user.getStatus() == UserStatus.PASSWORD_CHANGE_REQUIRED) {
-            return new LoginResult(null, null, 0L, new UserContext(user.getUserId(), user.getSaccoId(), null, "PENDING_PASSWORD", List.of()));
+            Sacco parentSacco = saccoRepositoryPort.findById(user.getSaccoId()).orElse(null);
+            String schemaName = parentSacco != null ? parentSacco.getSchemaName() : null;
+            return new LoginResult(null, null, 0L, new UserContext(
+                    user.getUserId(),
+                    user.getSaccoId(),
+                    schemaName,
+                    "PENDING_PASSWORD",
+                    List.of()
+            ));
         }
 
         if (!passwordEncoder.matches(command.pin(), user.getCredentialHash())) {

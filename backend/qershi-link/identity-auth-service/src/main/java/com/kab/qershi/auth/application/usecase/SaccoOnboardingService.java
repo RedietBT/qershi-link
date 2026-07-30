@@ -55,6 +55,7 @@ public class SaccoOnboardingService implements SaccoOnboardingUseCase {
         GlobalRole assignedGlobalRole = command.isUnion() ? GlobalRole.UNION_ADMIN : GlobalRole.SACCO_ADMIN;
 
         User adminUser = new User(UUID.randomUUID(), command.adminMsisdn(), saccoId, hashedPin, assignedGlobalRole);
+        adminUser.setStatus(UserStatus.PASSWORD_CHANGE_REQUIRED);
 
         try {
             tenantProvisioningPort.provisionTenantSchema(sanitizedSchemaName);
