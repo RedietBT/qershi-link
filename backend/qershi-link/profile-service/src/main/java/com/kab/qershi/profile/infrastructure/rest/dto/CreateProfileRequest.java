@@ -17,11 +17,11 @@ import java.util.UUID;
 
 /**
  * REST API Request DTO for member onboarding profile creation.
- * Member IDs are 100% auto-generated using SACCO initials, year, and a 6-digit sequence.
+ * Member IDs are 100% auto-generated using structured sequence numbers.
  * The submittedByUserId is automatically extracted from the authenticated JWT token.
  *
  * @author KAB Digital Solution PLC
- * @version 1.2.0
+ * @version 1.3.0
  */
 @Getter
 @Setter
@@ -33,9 +33,6 @@ public class CreateProfileRequest {
     @NotNull(message = "User ID is required")
     @Schema(description = "UUID of the user account created in Identity Auth Service", example = "7cad2f18-33d2-4761-b218-a70015bb4926")
     private UUID userId;
-
-    @Schema(description = "Name of the SACCO for generating customized Member ID prefix (optional)", example = "Awash SACCO")
-    private String saccoName;
 
     @NotBlank(message = "First name is required")
     @Pattern(regexp = "^[A-Za-z\\s\\-']{2,100}$", message = "First name must contain only alphabetic characters")
@@ -67,9 +64,6 @@ public class CreateProfileRequest {
 
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
-
-    public String getSaccoName() { return saccoName; }
-    public void setSaccoName(String saccoName) { this.saccoName = saccoName; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }

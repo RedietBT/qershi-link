@@ -28,7 +28,7 @@ import java.util.UUID;
  * demographic updates, Maker-Checker onboarding approvals, and cascade purges.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 public class ProfileManagementService implements ProfileManagementUseCase {
 
@@ -48,7 +48,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
     }
 
     @Override
-    public MemberProfile createMemberProfile(UUID userId, String saccoName, String firstName, String middleName,
+    public MemberProfile createMemberProfile(UUID userId, String firstName, String middleName,
                                              String lastName, Gender gender, LocalDate dateOfBirth,
                                              MaritalStatus maritalStatus, UUID submittedByUserId) {
         log.info("Initiating tenant-scoped member profile creation for user ID: {}", userId);
@@ -57,14 +57,14 @@ public class ProfileManagementService implements ProfileManagementUseCase {
             throw new IllegalArgumentException("Profile already exists for user ID: " + userId);
         }
 
-        // Auto-generate structured Member ID in format: [SACCO_INITIALS]-[YEAR]-[6_DIGIT_SEQUENCE] (e.g. AWS-2026-000142)
-        String formattedMemberNo = generateStructuredMemberNo(saccoName);
+        // Auto-generate structured Member ID in format: QL-[YEAR]-[6_DIGIT_SEQUENCE] (e.g. QL-2026-000142)
+        String formattedMemberNo = generateStructuredMemberNo(null);
 
         // Guarantee unique member number constraint safety
         int attempts = 0;
         while (profileRepository.existsByMemberNo(formattedMemberNo)) {
             attempts++;
-            formattedMemberNo = generateStructuredMemberNo(saccoName);
+            formattedMemberNo = generateStructuredMemberNo(null);
             if (attempts > 10) {
                 throw new IllegalStateException("Failed to generate unique member number after multiple attempts.");
             }
@@ -305,8 +305,8 @@ public class ProfileManagementService implements ProfileManagementUseCase {
     }
 
     /**
-     * Generates a structured Member ID in format: [SACCO_INITIALS]-[YEAR]-[6_DIGIT_SEQUENCE]
-     * Examples: AWS-2026-000142, BSC-2026-100589, QL-2026-000101
+     * Generates a structured Member ID in format: [INITIALS]-[YEAR]-[6_DIGIT_SEQUENCE]
+     * Examples: QL-2026-000142, AWS-2026-100589
      */
     private String generateStructuredMemberNo(String saccoName) {
         String initials = deriveSaccoInitials(saccoName);

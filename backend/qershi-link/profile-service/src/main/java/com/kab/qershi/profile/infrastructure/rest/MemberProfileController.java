@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  * Automatically extracts maker submittedByUserId from JWT authentication.
  *
  * @author KAB Digital Solution PLC
- * @version 1.2.0
+ * @version 1.3.0
  */
 @RestController
 @RequestMapping("/api/v1/profiles")
@@ -77,7 +77,6 @@ public class MemberProfileController {
 
         MemberProfile profile = profileManagementUseCase.createMemberProfile(
                 request.getUserId(),
-                request.getSaccoName(),
                 request.getFirstName(),
                 request.getMiddleName(),
                 request.getLastName(),
@@ -216,7 +215,7 @@ public class MemberProfileController {
 
     @GetMapping("/member-no/{memberNo}")
     @PreAuthorize("hasAuthority('MEMBER_VIEW_BASIC')")
-    @Operation(summary = "Get Profile by Member Number", description = "Searches member profile by structured member number (e.g. AWS-2026-000142).")
+    @Operation(summary = "Get Profile by Member Number", description = "Searches member profile by structured member number (e.g. QL-2026-000142).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Profile details retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Member profile not found for Member No", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
