@@ -10,10 +10,10 @@ import java.sql.Statement;
 
 /**
  * Connection management handler orchestrating physical PostgreSQL schema context switches for profile-service.
- * Executes native search_path modifications to keep tenant profile data isolated without connection pool overhead.
+ * Includes profile_schema in the search_path so core profile entities are always resolvable under tenant execution.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Component
 public class PostgresSchemaConnectionProvider implements MultiTenantConnectionProvider<String> {
@@ -38,7 +38,11 @@ public class PostgresSchemaConnectionProvider implements MultiTenantConnectionPr
     public Connection getConnection(String tenantIdentifier) throws SQLException {
         final Connection connection = getAnyConnection();
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute("SET search_path TO " + tenantIdentifier + ", public;");
+            if (tenantIdentifier != null && !tenantIdentifier.isBlank() && !tenantIdentifier.equalsIgnoreCase(TenantContext.DEFAULT_TENANT)) {
+                stmt.execute("SET search_path TO " + tenantIdentifier + ", " + TenantContext.DEFAULT_TENANT + ", public;");
+            } else {
+                stmt.execute("SET search_path TO " + TenantContext.DEFAULT_TENANT + ", public;");
+            }
         } catch (SQLException ex) {
             connection.close();
             throw ex;
