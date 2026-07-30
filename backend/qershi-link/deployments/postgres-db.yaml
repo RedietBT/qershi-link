@@ -10,7 +10,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: manual
   hostPath:
-    path: "/data/qershi-link-postgres"
+    path: "/run/desktop/mnt/host/c/Users/HP/qershi-link-postgres-data"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
