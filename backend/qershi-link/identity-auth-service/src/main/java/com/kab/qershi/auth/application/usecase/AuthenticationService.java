@@ -20,7 +20,7 @@ public class AuthenticationService implements AuthenticationUseCase {
     private final MessagingPort messagingPort;
 
     public AuthenticationService(UserRepositoryPort userRepositoryPort, SaccoRepositoryPort saccoRepositoryPort,
-                                 JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder, MessagingPort messagingPort) {
+                                  JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder, MessagingPort messagingPort) {
         this.userRepositoryPort = userRepositoryPort;
         this.saccoRepositoryPort = saccoRepositoryPort;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -71,7 +71,11 @@ public class AuthenticationService implements AuthenticationUseCase {
         jwtAuthorities.add("ROLE_" + user.getGlobalRole().name()); // e.g. "ROLE_SUPER_ADMIN"
         jwtAuthorities.addAll(permissions);
 
-        String token = jwtTokenProvider.createToken(user.getMsisdn(), user.getSaccoId().toString(), jwtAuthorities);
+        String token = jwtTokenProvider.createToken(
+                user.getMsisdn(),
+                user.getUserId() != null ? user.getUserId().toString() : null,
+                user.getSaccoId() != null ? user.getSaccoId().toString() : null,
+                jwtAuthorities);
 
         // 3. Response context: global role name is its own field — permissions passed separately
         UserContext context = new UserContext(

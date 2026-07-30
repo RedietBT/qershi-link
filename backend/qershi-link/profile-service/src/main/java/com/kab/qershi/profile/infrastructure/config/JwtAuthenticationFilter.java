@@ -23,13 +23,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Servlet Filter intercepting HTTP requests to validate JWT Bearer tokens,
- * populate Spring SecurityContext authorities (roles & permissions), and populate TenantContext.
+ * populate Spring SecurityContext authorities (roles & permissions), extract userId principal, and populate TenantContext.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -50,6 +51,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = parseClaims(token);
                 if (claims != null) {
                     String username = claims.getSubject();
+                    String userIdStr = claims.get("userId", String.class);
+
+                    Object principal = username;
+                    if (userIdStr != null && !userIdStr.isBlank()) {
+                        try {
+                            principal = UUID.fromString(userIdStr.trim());
+                        } catch (Exception ignored) {}
+                    }
+
                     Set<SimpleGrantedAuthority> authorities = new HashSet<>();
 
                     // 1. Check "authorities" claim (used by Identity Auth Service)
@@ -90,9 +100,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
 
                     UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>(authorities));
+                            new UsernamePasswordAuthenticationToken(principal, null, new ArrayList<>(authorities));
+                    if (userIdStr != null && !userIdStr.isBlank()) {
+                        auth.setDetails(userIdStr.trim());
+                    }
+
                     SecurityContextHolder.getContext().setAuthentication(auth);
-                    log.debug("Populated SecurityContext for user {} with authorities: {}", username, authorities);
+                    log.debug("Populated SecurityContext for principal {} with authorities: {}", principal, authorities);
                 }
             }
 

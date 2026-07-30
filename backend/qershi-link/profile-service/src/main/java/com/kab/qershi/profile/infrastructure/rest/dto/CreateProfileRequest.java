@@ -18,15 +18,16 @@ import java.util.UUID;
 /**
  * REST API Request DTO for member onboarding profile creation.
  * Member IDs are 100% auto-generated using SACCO initials, year, and a 6-digit sequence.
+ * The submittedByUserId is automatically extracted from the authenticated JWT token.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Request payload container for member profile registration. Member No is automatically generated.")
+@Schema(description = "Request payload container for member profile registration. Member No and SubmittedByUserId are automatically handled.")
 public class CreateProfileRequest {
 
     @NotNull(message = "User ID is required")
@@ -64,10 +65,6 @@ public class CreateProfileRequest {
     @Schema(description = "Marital status", example = "SINGLE")
     private MaritalStatus maritalStatus;
 
-    @NotNull(message = "Submitted by user ID is required")
-    @Schema(description = "UUID of the maker/admin officer registering the member", example = "018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f")
-    private UUID submittedByUserId;
-
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
 
@@ -91,7 +88,4 @@ public class CreateProfileRequest {
 
     public MaritalStatus getMaritalStatus() { return maritalStatus; }
     public void setMaritalStatus(MaritalStatus maritalStatus) { this.maritalStatus = maritalStatus; }
-
-    public UUID getSubmittedByUserId() { return submittedByUserId; }
-    public void setSubmittedByUserId(UUID submittedByUserId) { this.submittedByUserId = submittedByUserId; }
 }
