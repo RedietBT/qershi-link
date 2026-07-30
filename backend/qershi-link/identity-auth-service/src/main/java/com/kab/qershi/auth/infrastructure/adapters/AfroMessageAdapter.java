@@ -18,9 +18,10 @@ import java.util.Set;
  * Outbound SMS Messaging Adapter interfacing with the AfroMessage HTTP Gateway.
  * Features built-in dummy/test phone number safeguards to prevent accidental live SMS dispatches
  * during Swagger UI API testing or automated integration trials.
+ * Security Enhanced: Does not log raw phone numbers in application logs.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 @Component
 public class AfroMessageAdapter implements MessagingPort {
@@ -44,11 +45,11 @@ public class AfroMessageAdapter implements MessagingPort {
 
     @Override
     public void sendSms(String msisdn, String message) {
-        log.info("Preparing to dispatch SMS notification to MSISDN [{}]", msisdn);
+        log.info("Preparing to dispatch SMS notification");
 
         // Safeguard: Block dummy / Swagger test phone numbers from invoking live AfroMessage gateway
         if (isDummyTestPhoneNumber(msisdn)) {
-            log.warn("Blocked live SMS dispatch for dummy/test MSISDN [{}]. Message body: [{}]", msisdn, message);
+            log.warn("Blocked live SMS dispatch for dummy/test phone number");
             return;
         }
 
@@ -71,12 +72,12 @@ public class AfroMessageAdapter implements MessagingPort {
         try {
             if (apiUrl != null && !apiUrl.isBlank() && !apiUrl.contains("example.com")) {
                 restTemplate.postForEntity(apiUrl, request, String.class);
-                log.info("SMS notification successfully dispatched via AfroMessage gateway to {}", msisdn);
+                log.info("SMS notification successfully dispatched via AfroMessage gateway");
             } else {
-                log.warn("AfroMessage API URL unconfigured. SMS notification queued for {}", msisdn);
+                log.warn("AfroMessage API URL unconfigured. SMS notification queued");
             }
         } catch (Exception e) {
-            log.error("Failed to send SMS to {}: {}", msisdn, e.getMessage());
+            log.error("Failed to send SMS notification: {}", e.getMessage());
         }
     }
 
