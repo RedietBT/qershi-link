@@ -45,18 +45,18 @@ public class MemberProfileEntity {
     private String lastName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "gender", nullable = false)
+    @Column(name = "gender", nullable = false, columnDefinition = "profile_gender")
     private Gender gender;
 
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "marital_status", nullable = false)
+    @Column(name = "marital_status", nullable = false, columnDefinition = "profile_marital_status")
     private MaritalStatus maritalStatus;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "profile_member_status")
     private MemberStatus status;
 
     @Column(name = "created_at", nullable = false, updatable = false)
