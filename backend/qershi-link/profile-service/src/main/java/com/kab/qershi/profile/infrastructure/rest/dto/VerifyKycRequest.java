@@ -21,14 +21,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class VerifyKycRequest {
 
-    @NotNull(message = "Supervisor ID is required")
-    private UUID supervisorId;
-
     @Size(max = 500, message = "Verification notes cannot exceed 500 characters")
     private String notes;
-
-    public UUID getSupervisorId() { return supervisorId; }
-    public void setSupervisorId(UUID supervisorId) { this.supervisorId = supervisorId; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

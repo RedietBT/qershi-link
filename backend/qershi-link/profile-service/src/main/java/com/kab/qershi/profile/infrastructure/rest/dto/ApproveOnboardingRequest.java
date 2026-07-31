@@ -21,14 +21,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ApproveOnboardingRequest {
 
-    @NotNull(message = "Supervisor ID is required")
-    private UUID supervisorId;
-
     @Size(max = 500, message = "Remarks cannot exceed 500 characters")
     private String remarks;
-
-    public UUID getSupervisorId() { return supervisorId; }
-    public void setSupervisorId(UUID supervisorId) { this.supervisorId = supervisorId; }
 
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }

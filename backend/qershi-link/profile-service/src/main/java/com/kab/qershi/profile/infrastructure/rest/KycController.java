@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,16 +50,15 @@ public class KycController {
 
     @PostMapping("/{userId}/identifications")
     @PreAuthorize("hasAuthority('KYC_SUBMIT')")
-    @Operation(summary = "Submit KYC Document", description = "Submits a government identity document (National ID, Passport, Kebele ID, Driving License) for member verification.")
+    @Operation(summary = "Submit KYC Identification Document", description = "Stores official identity document details for a member profile.")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "KYC document submitted successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "ID number or IdType validation constraint failure", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Cannot submit KYC. Member profile not found for user ID", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "KYC identification document submitted successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation failure or invalid ID payload", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
-    public ResponseEntity<ApiResponse<KycIdentificationResponse>> submitKycIdentification(
+    public ResponseEntity<ApiResponse<KycIdentificationResponse>> submitIdentification(
             @Parameter(description = "UUID of the member user", required = true) @PathVariable UUID userId,
             @Valid @RequestBody SubmitKycRequest request) {
-        MemberIdentification identification = kycVerificationUseCase.submitKycIdentification(
+        MemberIdentification saved = kycVerificationUseCase.submitKycIdentification(
                 userId,
                 request.getIdType(),
                 request.getIdNumber(),
@@ -66,16 +66,15 @@ public class KycController {
                 request.getExpiryDate(),
                 request.getIssuingAuthority()
         );
-        KycIdentificationResponse response = KycIdentificationResponse.fromDomain(identification);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("KYC document submitted successfully", response));
+                .body(ApiResponse.ok("KYC identification document submitted successfully", KycIdentificationResponse.fromDomain(saved)));
     }
 
     @GetMapping("/{userId}/identifications")
     @PreAuthorize("hasAuthority('KYC_VIEW')")
-    @Operation(summary = "List Member KYC Documents", description = "Lists all government identity verification documents submitted for a member.")
+    @Operation(summary = "List Member KYC Documents", description = "Lists all government identity document submissions for a specific member.")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document list retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Member KYC documents retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse<List<KycIdentificationResponse>>> getIdentificationsByUserId(
             @Parameter(description = "UUID of the member user", required = true) @PathVariable UUID userId) {
@@ -105,7 +104,7 @@ public class KycController {
 
     @PutMapping("/identifications/{identificationId}/verify")
     @PreAuthorize("hasAuthority('KYC_VERIFY')")
-    @Operation(summary = "Verify KYC Document", description = "Supervisor approves identity document status to VERIFIED.")
+    @Operation(summary = "Verify KYC Document", description = "Supervisor approves identity document status to VERIFIED. Supervisor ID is extracted from JWT.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document verified successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Supervisor ID missing or invalid verification payload", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -113,18 +112,22 @@ public class KycController {
     })
     public ResponseEntity<ApiResponse<KycIdentificationResponse>> verifyKycIdentification(
             @Parameter(description = "UUID of the identification document", required = true) @PathVariable UUID identificationId,
-            @Valid @RequestBody VerifyKycRequest request) {
+            @RequestBody(required = false) VerifyKycRequest request,
+            Authentication authentication) {
+        UUID supervisorId = extractUserIdFromAuthentication(authentication);
+        String notes = (request != null) ? request.getNotes() : null;
+
         MemberIdentification verified = kycVerificationUseCase.verifyKycIdentification(
                 identificationId,
-                request.getSupervisorId(),
-                request.getNotes()
+                supervisorId,
+                notes
         );
         return ResponseEntity.ok(ApiResponse.ok("KYC document verified successfully", KycIdentificationResponse.fromDomain(verified)));
     }
 
     @PutMapping("/identifications/{identificationId}/reject")
     @PreAuthorize("hasAuthority('KYC_VERIFY')")
-    @Operation(summary = "Reject KYC Document", description = "Supervisor rejects identity document with rejection audit notes.")
+    @Operation(summary = "Reject KYC Document", description = "Supervisor rejects identity document with rejection audit notes. Supervisor ID is extracted from JWT.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document rejected", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Supervisor ID missing or invalid rejection payload", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -132,12 +135,37 @@ public class KycController {
     })
     public ResponseEntity<ApiResponse<KycIdentificationResponse>> rejectKycIdentification(
             @Parameter(description = "UUID of the identification document", required = true) @PathVariable UUID identificationId,
-            @Valid @RequestBody VerifyKycRequest request) {
+            @RequestBody(required = false) VerifyKycRequest request,
+            Authentication authentication) {
+        UUID supervisorId = extractUserIdFromAuthentication(authentication);
+        String notes = (request != null) ? request.getNotes() : null;
+
         MemberIdentification rejected = kycVerificationUseCase.rejectKycIdentification(
                 identificationId,
-                request.getSupervisorId(),
-                request.getNotes()
+                supervisorId,
+                notes
         );
         return ResponseEntity.ok(ApiResponse.ok("KYC document rejected", KycIdentificationResponse.fromDomain(rejected)));
+    }
+
+    private UUID extractUserIdFromAuthentication(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UUID uuid) {
+            return uuid;
+        }
+        if (principal instanceof String str) {
+            try {
+                return UUID.fromString(str.trim());
+            } catch (IllegalArgumentException ignored) {}
+        }
+        if (authentication.getDetails() != null) {
+            try {
+                return UUID.fromString(authentication.getDetails().toString().trim());
+            } catch (IllegalArgumentException ignored) {}
+        }
+        return null;
     }
 }

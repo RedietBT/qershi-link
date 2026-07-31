@@ -161,7 +161,7 @@ public class MemberProfileController {
 
     @PutMapping("/{userId}/approve")
     @PreAuthorize("hasAuthority('MEMBER_APPROVE')")
-    @Operation(summary = "Approve Member Onboarding", description = "Four-Eye Principle (Maker-Checker) supervisor approval to activate member profile.")
+    @Operation(summary = "Approve Member Onboarding", description = "Four-Eye Principle (Maker-Checker) supervisor approval to activate member profile. Supervisor ID is automatically extracted from JWT.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Member onboarding approved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Supervisor ID missing or invalid approval payload", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -169,11 +169,16 @@ public class MemberProfileController {
     })
     public ResponseEntity<ApiResponse<MemberProfileResponse>> approveOnboarding(
             @Parameter(description = "UUID of the member user", required = true) @PathVariable UUID userId,
-            @Valid @RequestBody ApproveOnboardingRequest request) {
+            @RequestBody(required = false) ApproveOnboardingRequest request,
+            Authentication authentication) {
+        
+        UUID supervisorId = extractUserIdFromAuthentication(authentication);
+        String remarks = (request != null) ? request.getRemarks() : null;
+
         MemberProfile approved = profileManagementUseCase.approveMemberOnboarding(
                 userId,
-                request.getSupervisorId(),
-                request.getRemarks()
+                supervisorId,
+                remarks
         );
         MemberProfileResponse response = MemberProfileResponse.fromDomain(approved, null, null, null);
         return ResponseEntity.ok(ApiResponse.ok("Member onboarding approved successfully", response));
