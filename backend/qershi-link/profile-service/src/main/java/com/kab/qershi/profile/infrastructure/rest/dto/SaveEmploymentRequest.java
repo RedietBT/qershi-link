@@ -38,6 +38,12 @@ public class SaveEmploymentRequest {
     @Pattern(regexp = "^[0-9]{10}$", message = "TIN number must be 10 numeric digits")
     private String tinNumber;
 
+    @Size(max = 50, message = "Employee ID cannot exceed 50 characters")
+    private String employeeId;
+
+    @Size(max = 100, message = "External Employee ID cannot exceed 100 characters")
+    private String externalEmployeeId;
+
     public String getOccupationSector() { return occupationSector; }
     public void setOccupationSector(String occupationSector) { this.occupationSector = occupationSector; }
 
@@ -49,4 +55,10 @@ public class SaveEmploymentRequest {
 
     public String getTinNumber() { return tinNumber; }
     public void setTinNumber(String tinNumber) { this.tinNumber = tinNumber; }
+
+    public String getEmployeeId() { return employeeId; }
+    public void setEmployeeId(String employeeId) { this.employeeId = employeeId; }
+
+    public String getExternalEmployeeId() { return externalEmployeeId; }
+    public void setExternalEmployeeId(String externalEmployeeId) { this.externalEmployeeId = externalEmployeeId; }
 }

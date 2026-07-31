@@ -183,7 +183,8 @@ public class ProfileManagementService implements ProfileManagementUseCase {
 
     @Override
     public MemberEmployment saveEmploymentProfile(UUID userId, String occupationSector, String employerName,
-                                                   BigDecimal monthlyIncome, String tinNumber) {
+                                                   BigDecimal monthlyIncome, String tinNumber,
+                                                   String employeeId, String externalEmployeeId) {
         log.info("Saving employment profile for user ID: {}", userId);
 
         profileRepository.findByUserId(userId)
@@ -192,13 +193,29 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         Optional<MemberEmployment> existingOpt = profileRepository.findEmploymentByUserId(userId);
         UUID employmentId = existingOpt.map(MemberEmployment::getEmploymentId).orElseGet(UUID::randomUUID);
 
+        // Determine final Employee ID: provided ID -> existing ID -> auto-generated structured ID
+        String finalEmployeeId = employeeId;
+        if (finalEmployeeId == null || finalEmployeeId.isBlank()) {
+            finalEmployeeId = existingOpt.map(MemberEmployment::getEmployeeId).orElse(null);
+        }
+        if (finalEmployeeId == null || finalEmployeeId.isBlank()) {
+            String tenantSchema = TenantContext.getTenantSchema();
+            finalEmployeeId = generateStructuredEmployeeNo(tenantSchema);
+        }
+
+        String finalExternalId = (externalEmployeeId != null && !externalEmployeeId.isBlank())
+                ? externalEmployeeId
+                : existingOpt.map(MemberEmployment::getExternalEmployeeId).orElse(null);
+
         MemberEmployment employment = new MemberEmployment(
                 employmentId,
                 userId,
                 occupationSector,
                 employerName,
                 monthlyIncome,
-                tinNumber
+                tinNumber,
+                finalEmployeeId,
+                finalExternalId
         );
 
         MemberEmployment savedEmployment = profileRepository.saveEmployment(employment);
@@ -214,6 +231,13 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         ));
 
         return savedEmployment;
+    }
+
+    private String generateStructuredEmployeeNo(String saccoName) {
+        String initials = deriveSaccoInitials(saccoName);
+        int year = Year.now().getValue();
+        int randomSeq = random.nextInt(900000) + 100000;
+        return String.format("%s-EMP-%d-%06d", initials, year, randomSeq);
     }
 
     @Override

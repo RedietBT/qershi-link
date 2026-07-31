@@ -73,7 +73,9 @@ public interface ProfileManagementUseCase {
             String occupationSector,
             String employerName,
             BigDecimal monthlyIncome,
-            String tinNumber
+            String tinNumber,
+            String employeeId,
+            String externalEmployeeId
     );
 
     /**

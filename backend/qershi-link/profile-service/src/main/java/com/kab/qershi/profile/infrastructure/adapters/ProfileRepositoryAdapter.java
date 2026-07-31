@@ -209,7 +209,9 @@ public class ProfileRepositoryAdapter implements ProfileRepositoryPort {
                 domain.getOccupationSector(),
                 domain.getEmployerName(),
                 domain.getMonthlyIncome(),
-                domain.getTinNumber()
+                domain.getTinNumber(),
+                domain.getEmployeeId(),
+                domain.getExternalEmployeeId()
         );
     }
 
@@ -221,7 +223,9 @@ public class ProfileRepositoryAdapter implements ProfileRepositoryPort {
                 entity.getOccupationSector(),
                 entity.getEmployerName(),
                 entity.getMonthlyIncome(),
-                entity.getTinNumber()
+                entity.getTinNumber(),
+                entity.getEmployeeId(),
+                entity.getExternalEmployeeId()
         );
     }
 

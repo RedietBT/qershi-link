@@ -155,7 +155,9 @@ public class MemberProfileController {
                 request.getOccupationSector(),
                 request.getEmployerName(),
                 request.getMonthlyIncome(),
-                request.getTinNumber()
+                request.getTinNumber(),
+                request.getEmployeeId(),
+                request.getExternalEmployeeId()
         );
         return ResponseEntity.ok(ApiResponse.ok("Employment profile saved successfully", employment));
     }

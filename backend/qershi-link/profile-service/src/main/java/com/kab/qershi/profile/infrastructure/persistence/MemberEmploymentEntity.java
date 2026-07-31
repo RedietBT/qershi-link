@@ -41,16 +41,30 @@ public class MemberEmploymentEntity {
     @Column(name = "tin_number", length = 30)
     private String tinNumber;
 
+    @Column(name = "employee_id", length = 50)
+    private String employeeId;
+
+    @Column(name = "external_employee_id", length = 100)
+    private String externalEmployeeId;
+
     public MemberEmploymentEntity() {}
 
     public MemberEmploymentEntity(UUID employmentId, UUID userId, String occupationSector,
                                   String employerName, BigDecimal monthlyIncome, String tinNumber) {
+        this(employmentId, userId, occupationSector, employerName, monthlyIncome, tinNumber, null, null);
+    }
+
+    public MemberEmploymentEntity(UUID employmentId, UUID userId, String occupationSector,
+                                  String employerName, BigDecimal monthlyIncome, String tinNumber,
+                                  String employeeId, String externalEmployeeId) {
         this.employmentId = employmentId;
         this.userId = userId;
         this.occupationSector = occupationSector;
         this.employerName = employerName;
         this.monthlyIncome = monthlyIncome;
         this.tinNumber = tinNumber;
+        this.employeeId = employeeId;
+        this.externalEmployeeId = externalEmployeeId;
     }
 
     public UUID getEmploymentId() { return employmentId; }
@@ -70,4 +84,10 @@ public class MemberEmploymentEntity {
 
     public String getTinNumber() { return tinNumber; }
     public void setTinNumber(String tinNumber) { this.tinNumber = tinNumber; }
+
+    public String getEmployeeId() { return employeeId; }
+    public void setEmployeeId(String employeeId) { this.employeeId = employeeId; }
+
+    public String getExternalEmployeeId() { return externalEmployeeId; }
+    public void setExternalEmployeeId(String externalEmployeeId) { this.externalEmployeeId = externalEmployeeId; }
 }
