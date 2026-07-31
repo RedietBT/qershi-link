@@ -26,7 +26,7 @@ spec:
               containerPort: 9081
           env:
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://postgres-service:5432/qershi-link?currentSchema=profile_schema"
+              value: "jdbc:postgresql://postgres-service:5432/qershi-link?currentSchema=profile_schema&stringtype=unspecified"
             - name: SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA
               value: "profile_schema"
             - name: SPRING_DATASOURCE_USERNAME
