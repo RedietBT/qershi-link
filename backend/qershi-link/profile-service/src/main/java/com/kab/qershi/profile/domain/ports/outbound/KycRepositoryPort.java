@@ -1,5 +1,6 @@
 package com.kab.qershi.profile.domain.ports.outbound;
 
+import com.kab.qershi.profile.domain.model.KycStatus;
 import com.kab.qershi.profile.domain.model.MemberIdentification;
 
 import java.util.List;
@@ -19,6 +20,8 @@ public interface KycRepositoryPort {
     Optional<MemberIdentification> findById(UUID identificationId);
 
     List<MemberIdentification> findByUserId(UUID userId);
+
+    List<MemberIdentification> findAllIdentifications(KycStatus status);
 
     void deleteByUserId(UUID userId);
 }

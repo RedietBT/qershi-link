@@ -1,5 +1,6 @@
 package com.kab.qershi.profile.infrastructure.persistence;
 
+import com.kab.qershi.profile.domain.model.KycStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,6 +17,8 @@ import java.util.UUID;
 public interface SpringDataMemberIdentificationRepository extends JpaRepository<MemberIdentificationEntity, UUID> {
 
     List<MemberIdentificationEntity> findByUserId(UUID userId);
+
+    List<MemberIdentificationEntity> findByKycStatus(KycStatus kycStatus);
 
     void deleteByUserId(UUID userId);
 }

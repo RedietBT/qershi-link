@@ -2,6 +2,7 @@ package com.kab.qershi.profile.infrastructure.rest;
 
 import com.kab.qershi.profile.domain.model.MemberAddress;
 import com.kab.qershi.profile.domain.model.MemberEmployment;
+import com.kab.qershi.profile.domain.model.MemberGovernance;
 import com.kab.qershi.profile.domain.model.MemberProfile;
 import com.kab.qershi.profile.domain.model.MemberStatus;
 import com.kab.qershi.profile.domain.ports.inbound.ProfileManagementUseCase;
@@ -85,7 +86,7 @@ public class MemberProfileController {
                 request.getMaritalStatus(),
                 submittedByUserId
         );
-        MemberProfileResponse response = MemberProfileResponse.fromDomain(profile, null, null, null);
+        MemberProfileResponse response = buildProfileResponse(profile);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Member profile created successfully", response));
     }
@@ -110,7 +111,7 @@ public class MemberProfileController {
                 request.getDateOfBirth(),
                 request.getMaritalStatus()
         );
-        MemberProfileResponse response = MemberProfileResponse.fromDomain(updated, null, null, null);
+        MemberProfileResponse response = buildProfileResponse(updated);
         return ResponseEntity.ok(ApiResponse.ok("Demographics updated successfully", response));
     }
 
@@ -180,7 +181,7 @@ public class MemberProfileController {
                 supervisorId,
                 remarks
         );
-        MemberProfileResponse response = MemberProfileResponse.fromDomain(approved, null, null, null);
+        MemberProfileResponse response = buildProfileResponse(approved);
         return ResponseEntity.ok(ApiResponse.ok("Member onboarding approved successfully", response));
     }
 
@@ -196,7 +197,7 @@ public class MemberProfileController {
             @Parameter(description = "UUID of the member user", required = true) @PathVariable UUID userId,
             @Valid @RequestBody ChangeStatusRequest request) {
         MemberProfile updated = profileManagementUseCase.changeMemberStatus(userId, request.getStatus());
-        MemberProfileResponse response = MemberProfileResponse.fromDomain(updated, null, null, null);
+        MemberProfileResponse response = buildProfileResponse(updated);
         return ResponseEntity.ok(ApiResponse.ok("Member status updated successfully", response));
     }
 
@@ -214,7 +215,7 @@ public class MemberProfileController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error("Member profile not found for user ID: " + userId));
         }
-        MemberProfileResponse response = MemberProfileResponse.fromDomain(profileOpt.get(), null, null, null);
+        MemberProfileResponse response = buildProfileResponse(profileOpt.get());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -232,7 +233,7 @@ public class MemberProfileController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error("Member profile not found for Member No: " + memberNo));
         }
-        MemberProfileResponse response = MemberProfileResponse.fromDomain(profileOpt.get(), null, null, null);
+        MemberProfileResponse response = buildProfileResponse(profileOpt.get());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -246,9 +247,18 @@ public class MemberProfileController {
             @Parameter(description = "Optional filter by MemberStatus") @RequestParam(required = false) MemberStatus status) {
         List<MemberProfile> profiles = profileManagementUseCase.getAllProfiles(status);
         List<MemberProfileResponse> responseList = profiles.stream()
-                .map(p -> MemberProfileResponse.fromDomain(p, null, null, null))
+                .map(this::buildProfileResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(responseList));
+    }
+
+    private MemberProfileResponse buildProfileResponse(MemberProfile profile) {
+        if (profile == null) return null;
+        UUID userId = profile.getUserId();
+        MemberAddress address = profileManagementUseCase.findAddressByUserId(userId).orElse(null);
+        MemberEmployment employment = profileManagementUseCase.findEmploymentByUserId(userId).orElse(null);
+        MemberGovernance governance = profileManagementUseCase.findGovernanceByUserId(userId).orElse(null);
+        return MemberProfileResponse.fromDomain(profile, address, employment, governance);
     }
 
     /**

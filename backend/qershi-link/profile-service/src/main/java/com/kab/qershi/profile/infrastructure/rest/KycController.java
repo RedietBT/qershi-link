@@ -1,5 +1,6 @@
 package com.kab.qershi.profile.infrastructure.rest;
 
+import com.kab.qershi.profile.domain.model.KycStatus;
 import com.kab.qershi.profile.domain.model.MemberIdentification;
 import com.kab.qershi.profile.domain.ports.inbound.KycVerificationUseCase;
 import com.kab.qershi.profile.infrastructure.rest.dto.ApiResponse;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -68,6 +70,22 @@ public class KycController {
         );
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("KYC identification document submitted successfully", KycIdentificationResponse.fromDomain(saved)));
+    }
+
+    @GetMapping("/identifications")
+    @PreAuthorize("hasAuthority('KYC_VIEW')")
+    @Operation(summary = "Get All Identification Documents", description = "Retrieves all member identity documents across the SACCO. Optionally filters by KYC verification status (UNVERIFIED, VERIFIED, REJECTED).")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC documents retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    public ResponseEntity<ApiResponse<List<KycIdentificationResponse>>> getAllIdentifications(
+            @Parameter(description = "Optional filter by KYC status (UNVERIFIED, VERIFIED, REJECTED)")
+            @RequestParam(required = false) KycStatus status) {
+        List<MemberIdentification> list = kycVerificationUseCase.getAllIdentifications(status);
+        List<KycIdentificationResponse> responseList = list.stream()
+                .map(KycIdentificationResponse::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.ok(responseList));
     }
 
     @GetMapping("/{userId}/identifications")

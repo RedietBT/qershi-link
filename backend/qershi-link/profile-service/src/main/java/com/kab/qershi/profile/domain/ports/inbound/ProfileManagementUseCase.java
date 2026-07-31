@@ -4,6 +4,7 @@ import com.kab.qershi.profile.domain.model.Gender;
 import com.kab.qershi.profile.domain.model.MaritalStatus;
 import com.kab.qershi.profile.domain.model.MemberAddress;
 import com.kab.qershi.profile.domain.model.MemberEmployment;
+import com.kab.qershi.profile.domain.model.MemberGovernance;
 import com.kab.qershi.profile.domain.model.MemberProfile;
 import com.kab.qershi.profile.domain.model.MemberStatus;
 
@@ -90,6 +91,12 @@ public interface ProfileManagementUseCase {
     Optional<MemberProfile> getProfileByMemberNo(String memberNo);
 
     List<MemberProfile> getAllProfiles(MemberStatus status);
+
+    Optional<MemberAddress> findAddressByUserId(UUID userId);
+
+    Optional<MemberEmployment> findEmploymentByUserId(UUID userId);
+
+    Optional<MemberGovernance> findGovernanceByUserId(UUID userId);
 
     /**
      * Purges member profile and all dependent records (used by gRPC cascade deletion).

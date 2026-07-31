@@ -12,6 +12,7 @@ import com.kab.qershi.profile.domain.ports.inbound.ProfileManagementUseCase;
 import com.kab.qershi.profile.domain.ports.outbound.KycRepositoryPort;
 import com.kab.qershi.profile.domain.ports.outbound.NextOfKinRepositoryPort;
 import com.kab.qershi.profile.domain.ports.outbound.ProfileRepositoryPort;
+import com.kab.qershi.profile.infrastructure.config.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,14 +58,15 @@ public class ProfileManagementService implements ProfileManagementUseCase {
             throw new IllegalArgumentException("Profile already exists for user ID: " + userId);
         }
 
-        // Auto-generate structured Member ID in format: QL-[YEAR]-[6_DIGIT_SEQUENCE] (e.g. QL-2026-000142)
-        String formattedMemberNo = generateStructuredMemberNo(null);
+        // Auto-generate structured Member ID in format: [SACCO_INITIALS]-[YEAR]-[6_DIGIT_SEQUENCE] (e.g. AS-2026-000142)
+        String tenantSchema = TenantContext.getTenantSchema();
+        String formattedMemberNo = generateStructuredMemberNo(tenantSchema);
 
         // Guarantee unique member number constraint safety
         int attempts = 0;
         while (profileRepository.existsByMemberNo(formattedMemberNo)) {
             attempts++;
-            formattedMemberNo = generateStructuredMemberNo(null);
+            formattedMemberNo = generateStructuredMemberNo(tenantSchema);
             if (attempts > 10) {
                 throw new IllegalStateException("Failed to generate unique member number after multiple attempts.");
             }
@@ -287,6 +289,21 @@ public class ProfileManagementService implements ProfileManagementUseCase {
     }
 
     @Override
+    public Optional<MemberAddress> findAddressByUserId(UUID userId) {
+        return profileRepository.findAddressByUserId(userId);
+    }
+
+    @Override
+    public Optional<MemberEmployment> findEmploymentByUserId(UUID userId) {
+        return profileRepository.findEmploymentByUserId(userId);
+    }
+
+    @Override
+    public Optional<MemberGovernance> findGovernanceByUserId(UUID userId) {
+        return profileRepository.findGovernanceByUserId(userId);
+    }
+
+    @Override
     public void deleteProfileByUserId(UUID userId) {
         log.warn("Executing cascade deletion for member profile with user ID: {}", userId);
         kycRepository.deleteByUserId(userId);
@@ -316,31 +333,44 @@ public class ProfileManagementService implements ProfileManagementUseCase {
     }
 
     /**
-     * Helper to derive 2 to 3 uppercase initials from a SACCO legal name.
+     * Helper to derive 2 to 3 uppercase initials from a SACCO legal name or schema name.
+     * Examples: "Awach SACCO" -> "AS", "sacco_awach_sacco" -> "AS", "Awash SACCO" -> "AS".
      */
-    public static String deriveSaccoInitials(String saccoName) {
-        if (saccoName == null || saccoName.trim().isEmpty()) {
-            return "QL";
+    public static String deriveSaccoInitials(String input) {
+        if (input == null || input.isBlank() || input.equalsIgnoreCase(TenantContext.DEFAULT_TENANT)) {
+            return "AS";
         }
-        String[] words = saccoName.trim().toUpperCase().split("\\s+");
-        if (words.length == 1) {
-            String w = words[0];
-            return w.length() >= 3 ? w.substring(0, 3) : w;
+
+        String clean = input.trim();
+        if (clean.toLowerCase().startsWith("sacco_")) {
+            clean = clean.substring(6);
+        } else if (clean.toLowerCase().startsWith("union_")) {
+            clean = clean.substring(6);
         }
-        if (words.length == 2) {
-            String w1 = words[0];
-            String w2 = words[1];
-            if (w1.length() >= 2) {
-                return "" + w1.charAt(0) + w1.charAt(1) + w2.charAt(0);
+
+        String[] words = clean.split("[\\s_]+");
+
+        if (words.length >= 2) {
+            StringBuilder sb = new StringBuilder();
+            for (String word : words) {
+                if (!word.isBlank() && Character.isLetterOrDigit(word.charAt(0))) {
+                    sb.append(Character.toUpperCase(word.charAt(0)));
+                    if (sb.length() >= 3) break;
+                }
+            }
+            if (sb.length() >= 2) {
+                return sb.toString();
             }
         }
-        StringBuilder sb = new StringBuilder();
-        for (String word : words) {
-            if (!word.isEmpty() && Character.isLetter(word.charAt(0))) {
-                sb.append(word.charAt(0));
-                if (sb.length() >= 3) break;
+
+        if (words.length == 1 && !words[0].isBlank()) {
+            String w = words[0].toUpperCase();
+            if (w.length() >= 2) {
+                return "" + w.charAt(0) + "S";
             }
+            return w;
         }
-        return sb.length() > 0 ? sb.toString() : "QL";
+
+        return "AS";
     }
 }

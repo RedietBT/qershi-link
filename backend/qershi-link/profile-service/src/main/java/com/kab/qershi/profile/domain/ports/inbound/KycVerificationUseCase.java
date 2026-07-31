@@ -1,6 +1,7 @@
 package com.kab.qershi.profile.domain.ports.inbound;
 
 import com.kab.qershi.profile.domain.model.IdType;
+import com.kab.qershi.profile.domain.model.KycStatus;
 import com.kab.qershi.profile.domain.model.MemberIdentification;
 
 import java.time.LocalDate;
@@ -26,6 +27,8 @@ public interface KycVerificationUseCase {
     );
 
     List<MemberIdentification> getIdentificationsByUserId(UUID userId);
+
+    List<MemberIdentification> getAllIdentifications(KycStatus status);
 
     Optional<MemberIdentification> getIdentificationById(UUID identificationId);
 

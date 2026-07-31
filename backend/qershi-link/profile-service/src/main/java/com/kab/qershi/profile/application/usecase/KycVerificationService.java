@@ -79,6 +79,11 @@ public class KycVerificationService implements KycVerificationUseCase {
     }
 
     @Override
+    public List<MemberIdentification> getAllIdentifications(KycStatus status) {
+        return kycRepository.findAllIdentifications(status);
+    }
+
+    @Override
     public Optional<MemberIdentification> getIdentificationById(UUID identificationId) {
         return kycRepository.findById(identificationId);
     }

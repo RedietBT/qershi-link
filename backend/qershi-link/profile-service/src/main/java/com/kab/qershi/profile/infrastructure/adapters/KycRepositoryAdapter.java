@@ -1,5 +1,6 @@
 package com.kab.qershi.profile.infrastructure.adapters;
 
+import com.kab.qershi.profile.domain.model.KycStatus;
 import com.kab.qershi.profile.domain.model.MemberIdentification;
 import com.kab.qershi.profile.domain.ports.outbound.KycRepositoryPort;
 import com.kab.qershi.profile.infrastructure.persistence.MemberIdentificationEntity;
@@ -43,6 +44,16 @@ public class KycRepositoryAdapter implements KycRepositoryPort {
     public List<MemberIdentification> findByUserId(UUID userId) {
         return identificationRepository.findByUserId(userId)
                 .stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MemberIdentification> findAllIdentifications(KycStatus status) {
+        List<MemberIdentificationEntity> entities = (status != null)
+                ? identificationRepository.findByKycStatus(status)
+                : identificationRepository.findAll();
+        return entities.stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }
