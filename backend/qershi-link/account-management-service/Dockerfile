@@ -1,0 +1,6 @@
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY account-management-service/target/*.jar app.jar
+EXPOSE 8082
+EXPOSE 9082
+ENTRYPOINT ["java", "-jar", "app.jar"]

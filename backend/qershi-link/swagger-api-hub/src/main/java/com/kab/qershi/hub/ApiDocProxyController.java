@@ -39,6 +39,11 @@ public class ApiDocProxyController {
         return fetchApiDocs("profile-service", 8081);
     }
 
+    @GetMapping(value = "/account", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getAccountApiDocs() {
+        return fetchApiDocs("account-management-service", 8082);
+    }
+
     private ResponseEntity<String> fetchApiDocs(String serviceName, int port) {
         String[] candidateUrls = new String[]{
                 "http://" + serviceName + ":" + (serviceName.contains("identity") ? 8080 : port) + "/v3/api-docs",

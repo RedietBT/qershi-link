@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-management-service
+  namespace: sacco-core
+  labels:
+    app: account-management-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: account-management-service
+  template:
+    metadata:
+      labels:
+        app: account-management-service
+    spec:
+      containers:
+        - name: account-management-service
+          image: account-management-service:latest
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8082
+            - name: grpc
+              containerPort: 9082
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service:5432/qershi-link?stringtype=unspecified"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "postgres"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "postgres"
+            - name: SERVER_PORT
+              value: "8082"
+            - name: GRPC_SERVER_PORT
+              value: "9082"
+            - name: GRPC_CLIENT_PROFILE_SERVICE_ADDRESS
+              value: "static://profile-service:9081"
+            - name: JWT_SECRET
+              value: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 90
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: account-management-service
+  namespace: sacco-core
+  labels:
+    app: account-management-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: account-management-service
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8082
+      targetPort: 8082
+    - name: grpc
+      protocol: TCP
+      port: 9082
+      targetPort: 9082
