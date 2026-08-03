@@ -23,8 +23,8 @@ CREATE TABLE account_products (
 CREATE INDEX idx_ap_product_code ON account_products(product_code);
 CREATE INDEX idx_ap_category ON account_products(category);
 
--- 2. Core Member Savings Account Ledger Table
-CREATE TABLE savings_accounts (
+-- 2. Core Member Account Ledger Table (FLEXCUBE / Temenos Standard)
+CREATE TABLE accounts (
     account_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_no          VARCHAR(50) NOT NULL UNIQUE,
     user_id             UUID NOT NULL,
@@ -42,30 +42,30 @@ CREATE TABLE savings_accounts (
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT fk_sa_product_code FOREIGN KEY (product_code)
+    CONSTRAINT fk_acc_product_code FOREIGN KEY (product_code)
         REFERENCES account_products(product_code) ON UPDATE CASCADE
 );
 
-CREATE INDEX idx_sa_account_no ON savings_accounts(account_no);
-CREATE INDEX idx_sa_user_id ON savings_accounts(user_id);
-CREATE INDEX idx_sa_sacco_branch ON savings_accounts(sacco_code, branch_code);
-CREATE INDEX idx_sa_status ON savings_accounts(status);
+CREATE INDEX idx_acc_account_no ON accounts(account_no);
+CREATE INDEX idx_acc_user_id ON accounts(user_id);
+CREATE INDEX idx_acc_sacco_branch ON accounts(sacco_code, branch_code);
+CREATE INDEX idx_acc_status ON accounts(status);
 
 -- 3. Monetary Lien Holds Table (Collateral Blocks & Partial Guarantees)
 CREATE TABLE account_liens (
-    lien_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_no         VARCHAR(50) NOT NULL,
-    lien_amount        DECIMAL(19,4) NOT NULL,
-    reason             TEXT NOT NULL,
-    reference_no       VARCHAR(100),
-    placed_by_user_id  UUID NOT NULL,
+    lien_id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_no          VARCHAR(50) NOT NULL,
+    lien_amount         DECIMAL(19,4) NOT NULL,
+    reason              TEXT NOT NULL,
+    reference_no        VARCHAR(100),
+    placed_by_user_id   UUID NOT NULL,
     released_by_user_id UUID,
-    status             lien_status NOT NULL DEFAULT 'ACTIVE',
-    placed_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    released_at        TIMESTAMPTZ,
+    status              lien_status NOT NULL DEFAULT 'ACTIVE',
+    placed_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    released_at         TIMESTAMPTZ,
 
     CONSTRAINT fk_al_account_no FOREIGN KEY (account_no)
-        REFERENCES savings_accounts(account_no) ON DELETE CASCADE
+        REFERENCES accounts(account_no) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_al_account_no ON account_liens(account_no);
