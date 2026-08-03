@@ -38,6 +38,7 @@ spec:
               port: 8090
             initialDelaySeconds: 120
             periodSeconds: 15
+            timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
             httpGet:
@@ -45,6 +46,7 @@ spec:
               port: 8090
             initialDelaySeconds: 120
             periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
 ---
 apiVersion: v1
