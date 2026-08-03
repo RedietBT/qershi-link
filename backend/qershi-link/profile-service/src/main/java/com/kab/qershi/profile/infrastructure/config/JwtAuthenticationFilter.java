@@ -16,18 +16,24 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Servlet Filter intercepting HTTP requests to validate JWT Bearer tokens,
- * populate Spring SecurityContext authorities (roles & permissions), extract userId principal, and populate TenantContext.
+ * populate Spring SecurityContext authorities (roles & permissions), extract userId principal,
+ * and automatically bind the SACCO tenant schema to TenantContext from saccoId JWT claim or X-Tenant-ID header.
  *
  * @author KAB Digital Solution PLC
  * @version 1.2.0
@@ -39,6 +45,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    private final DataSource dataSource;
+    private final ConcurrentHashMap<UUID, String> saccoSchemaCache = new ConcurrentHashMap<>();
+
+    public JwtAuthenticationFilter(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -107,13 +120,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
                     log.debug("Populated SecurityContext for principal {} with authorities: {}", principal, authorities);
+
+                    // 4. Resolve Tenant Context schema from JWT Claims (saccoSchema or saccoId)
+                    String saccoSchema = claims.get("saccoSchema", String.class);
+                    if (saccoSchema != null && !saccoSchema.isBlank()) {
+                        TenantContext.setTenantSchema(saccoSchema.trim());
+                    } else {
+                        String saccoIdStr = claims.get("saccoId", String.class);
+                        if (saccoIdStr != null && !saccoIdStr.isBlank()) {
+                            try {
+                                UUID saccoId = UUID.fromString(saccoIdStr.trim());
+                                String resolvedSchema = saccoSchemaCache.computeIfAbsent(saccoId, this::lookupSaccoSchema);
+                                if (resolvedSchema != null && !resolvedSchema.isBlank()) {
+                                    TenantContext.setTenantSchema(resolvedSchema);
+                                }
+                            } catch (Exception ex) {
+                                log.warn("Failed parsing saccoId claim: {}", ex.getMessage());
+                            }
+                        }
+                    }
                 }
             }
 
-            // Also check X-Tenant-ID header to populate tenant context
-            String tenantHeader = request.getHeader("X-Tenant-ID");
-            if (tenantHeader != null && !tenantHeader.isBlank()) {
-                TenantContext.setTenantSchema(tenantHeader.trim());
+            // 5. Fallback check for X-Tenant-ID header if TenantContext not set yet
+            if (TenantContext.getTenantSchema() == null || TenantContext.getTenantSchema().equals(TenantContext.DEFAULT_TENANT)) {
+                String tenantHeader = request.getHeader("X-Tenant-ID");
+                if (tenantHeader != null && !tenantHeader.isBlank()) {
+                    TenantContext.setTenantSchema(tenantHeader.trim());
+                }
             }
 
             filterChain.doFilter(request, response);
@@ -134,5 +168,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.warn("Failed to parse JWT token in profile-service: {}", ex.getMessage());
             return null;
         }
+    }
+
+    private String lookupSaccoSchema(UUID saccoId) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT schema_name FROM master_schema.sacco_registry WHERE sacco_id = ?")) {
+            ps.setObject(1, saccoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String schema = rs.getString("schema_name");
+                    log.info("Resolved tenant saccoId {} to schema: {}", saccoId, schema);
+                    return schema;
+                }
+            }
+        } catch (Exception ex) {
+            log.error("Error looking up sacco schema for saccoId {}: {}", saccoId, ex.getMessage());
+        }
+        return TenantContext.DEFAULT_TENANT;
     }
 }
