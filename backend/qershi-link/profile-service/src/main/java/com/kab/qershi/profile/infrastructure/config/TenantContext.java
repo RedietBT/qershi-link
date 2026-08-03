@@ -9,8 +9,8 @@ package com.kab.qershi.profile.infrastructure.config;
  */
 public final class TenantContext {
 
-    /** Default fallback schema matching Flyway migration schema for profile service components. */
-    public static final String DEFAULT_TENANT = "profile_schema";
+    /** Default fallback schema matching public system platform namespace. */
+    public static final String DEFAULT_TENANT = "public";
 
     private static final InheritableThreadLocal<String> CURRENT_TENANT = new InheritableThreadLocal<>() {
         @Override
