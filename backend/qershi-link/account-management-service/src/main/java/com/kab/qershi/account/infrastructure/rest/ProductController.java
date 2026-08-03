@@ -39,7 +39,7 @@ public class ProductController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_SACCO_ADMIN') or hasAuthority('PRODUCT_CREATE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN') or hasAuthority('PRODUCT_CREATE')")
     @Operation(summary = "Create Dynamic Deposit Product", description = "Defines a new deposit product and auto-assigns a unique 3-digit product code (e.g. 101, 102).")
     public ResponseEntity<ApiResponse<AccountProduct>> createProduct(@Valid @RequestBody CreateProductRequest request) {
         AccountProduct product = productManagementUseCase.createProduct(
@@ -58,7 +58,7 @@ public class ProductController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_TELLER', 'PRODUCT_VIEW', 'MEMBER_VIEW_BASIC')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN') or hasAuthority('PRODUCT_VIEW')")
     @Operation(summary = "Get All Deposit Products", description = "Retrieves all deposit products configured for the active SACCO.")
     public ResponseEntity<ApiResponse<List<AccountProduct>>> getAllProducts() {
         List<AccountProduct> products = productManagementUseCase.getAllProducts();
@@ -66,7 +66,7 @@ public class ProductController {
     }
 
     @GetMapping("/{productCode}")
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_TELLER', 'PRODUCT_VIEW', 'MEMBER_VIEW_BASIC')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN') or hasAuthority('PRODUCT_VIEW')")
     @Operation(summary = "Get Product Details", description = "Retrieves deposit product rules by its 3-digit product code.")
     public ResponseEntity<ApiResponse<AccountProduct>> getProductByCode(@PathVariable String productCode) {
         AccountProduct product = productManagementUseCase.getProductByCode(productCode);
