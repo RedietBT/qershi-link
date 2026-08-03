@@ -74,7 +74,7 @@ public class AccountController {
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "Get Member Accounts", description = "Retrieves all accounts owned by a specific member within the active SACCO tenant.")
     public ResponseEntity<ApiResponse<List<Account>>> getAccountsByUserId(@PathVariable UUID userId) {
         List<Account> accounts = accountOpeningUseCase.getAccountsByUserId(userId);
@@ -82,7 +82,7 @@ public class AccountController {
     }
 
     @GetMapping("/phone/{phoneNumber}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "Find Accounts by Phone Number", description = "Tenant-isolated lookup returning accounts linked to member phone number in the active SACCO tenant.")
     public ResponseEntity<ApiResponse<List<Account>>> getAccountsByPhoneNumber(@PathVariable String phoneNumber) {
         List<Account> accounts = accountOpeningUseCase.getAccountsByPhoneNumber(phoneNumber);
@@ -90,7 +90,7 @@ public class AccountController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_VIEW_ALL')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_VIEW_ALL')")
     @Operation(summary = "List All Accounts", description = "Retrieves all member accounts across the active SACCO tenant.")
     public ResponseEntity<ApiResponse<List<Account>>> getAllAccounts() {
         List<Account> accounts = accountOpeningUseCase.getAllAccounts();
