@@ -28,10 +28,10 @@ public interface SpringDataAccountRepository extends JpaRepository<AccountEntity
     boolean existsByAccountNo(String accountNo);
 
     /**
-     * Native/HQL query executing phone number to account lookup within the active tenant schema.
+     * Native query executing tenant-isolated phone number to account lookup by joining master_schema.users identity table.
      */
     @Query(value = "SELECT a.* FROM accounts a " +
-            "JOIN member_addresses ma ON ma.user_id = a.user_id " +
-            "WHERE ma.primary_phone = :phoneNumber", nativeQuery = true)
+            "JOIN master_schema.users u ON u.user_id = a.user_id " +
+            "WHERE u.msisdn = :phoneNumber OR REPLACE(u.msisdn, '+', '') = REPLACE(:phoneNumber, '+', '')", nativeQuery = true)
     List<AccountEntity> findByPhoneNumber(@Param("phoneNumber") String phoneNumber);
 }
