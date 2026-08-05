@@ -59,7 +59,9 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
     private TransactionEntity toEntity(Transaction domain) {
         if (domain == null) return null;
         TransactionEntity entity = new TransactionEntity();
-        entity.setTransactionId(domain.getTransactionId());
+        if (domain.getTransactionId() != null && repository.existsById(domain.getTransactionId())) {
+            entity.setTransactionId(domain.getTransactionId());
+        }
         entity.setTransactionRef(domain.getTransactionRef());
         entity.setAccountNo(domain.getAccountNo());
         entity.setSaccoCode(domain.getSaccoCode());

@@ -34,8 +34,11 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
 
     @Override
     public void getAccountByNo(AccountNoRequest request, StreamObserver<AccountProtoResponse> responseObserver) {
-        log.debug("gRPC GetAccountByNo request received for accountNo: {}", request.getAccountNo());
+        log.debug("gRPC GetAccountByNo request received for accountNo: {}, schema: {}", request.getAccountNo(), request.getTenantSchema());
         try {
+            if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
+                com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
+            }
             Account account = accountOpeningUseCase.getAccountByNo(request.getAccountNo());
             AccountProduct product = productManagementUseCase.getProductByCode(account.getProductCode());
             BigDecimal minBalance = product != null ? product.getMinOperatingBalance() : BigDecimal.ZERO;
@@ -60,13 +63,19 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
         } catch (Exception ex) {
             log.error("gRPC GetAccountByNo failed for accountNo {}: {}", request.getAccountNo(), ex.getMessage());
             responseObserver.onError(ex);
+        } finally {
+            com.kab.qershi.account.infrastructure.config.TenantContext.clear();
         }
     }
 
     @Override
     public void validateAccountForDebit(DebitValidationProtoRequest request, StreamObserver<ValidationProtoResponse> responseObserver) {
-        log.debug("gRPC ValidateAccountForDebit request for accountNo: {}, amount: {}", request.getAccountNo(), request.getAmount());
+        log.debug("gRPC ValidateAccountForDebit request for accountNo: {}, amount: {}, schema: {}",
+                request.getAccountNo(), request.getAmount(), request.getTenantSchema());
         try {
+            if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
+                com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
+            }
             Account account = accountOpeningUseCase.getAccountByNo(request.getAccountNo());
             AccountProduct product = productManagementUseCase.getProductByCode(account.getProductCode());
             BigDecimal minBalance = product != null ? product.getMinOperatingBalance() : BigDecimal.ZERO;
@@ -93,13 +102,19 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
+        } finally {
+            com.kab.qershi.account.infrastructure.config.TenantContext.clear();
         }
     }
 
     @Override
     public void validateAccountForCredit(CreditValidationProtoRequest request, StreamObserver<ValidationProtoResponse> responseObserver) {
-        log.debug("gRPC ValidateAccountForCredit request for accountNo: {}, amount: {}", request.getAccountNo(), request.getAmount());
+        log.debug("gRPC ValidateAccountForCredit request for accountNo: {}, amount: {}, schema: {}",
+                request.getAccountNo(), request.getAmount(), request.getTenantSchema());
         try {
+            if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
+                com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
+            }
             Account account = accountOpeningUseCase.getAccountByNo(request.getAccountNo());
             BigDecimal amount = new BigDecimal(request.getAmount());
 
@@ -126,6 +141,8 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
+        } finally {
+            com.kab.qershi.account.infrastructure.config.TenantContext.clear();
         }
     }
 }

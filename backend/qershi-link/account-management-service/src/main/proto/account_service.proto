@@ -14,16 +14,19 @@ service AccountGrpcService {
 
 message AccountNoRequest {
   string account_no = 1;
+  string tenant_schema = 2;
 }
 
 message DebitValidationProtoRequest {
   string account_no = 1;
   string amount = 2;
+  string tenant_schema = 3;
 }
 
 message CreditValidationProtoRequest {
   string account_no = 1;
   string amount = 2;
+  string tenant_schema = 3;
 }
 
 message ValidationProtoResponse {

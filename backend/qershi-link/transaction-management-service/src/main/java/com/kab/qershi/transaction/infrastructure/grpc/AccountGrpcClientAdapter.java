@@ -7,6 +7,7 @@ import com.kab.qershi.account.infrastructure.grpc.CreditValidationProtoRequest;
 import com.kab.qershi.account.infrastructure.grpc.DebitValidationProtoRequest;
 import com.kab.qershi.account.infrastructure.grpc.ValidationProtoResponse;
 import com.kab.qershi.transaction.domain.ports.outbound.AccountClientPort;
+import com.kab.qershi.transaction.infrastructure.config.TenantContext;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,11 @@ public class AccountGrpcClientAdapter implements AccountClientPort {
     public AccountInfo getAccountInfo(String accountNo) {
         log.debug("Calling gRPC GetAccountByNo for accountNo: {}", accountNo);
         try {
-            AccountNoRequest request = AccountNoRequest.newBuilder().setAccountNo(accountNo).build();
+            String schema = TenantContext.getTenantSchema();
+            AccountNoRequest request = AccountNoRequest.newBuilder()
+                    .setAccountNo(accountNo)
+                    .setTenantSchema(schema != null ? schema : "")
+                    .build();
             AccountProtoResponse res = accountGrpcStub.getAccountByNo(request);
 
             return new AccountInfo(
@@ -59,9 +64,11 @@ public class AccountGrpcClientAdapter implements AccountClientPort {
     public ValidationResult validateDebit(String accountNo, BigDecimal amount) {
         log.debug("Calling gRPC ValidateAccountForDebit for accountNo: {}, amount: {}", accountNo, amount);
         try {
+            String schema = TenantContext.getTenantSchema();
             DebitValidationProtoRequest request = DebitValidationProtoRequest.newBuilder()
                     .setAccountNo(accountNo)
                     .setAmount(amount.toPlainString())
+                    .setTenantSchema(schema != null ? schema : "")
                     .build();
             ValidationProtoResponse res = accountGrpcStub.validateAccountForDebit(request);
 
@@ -80,9 +87,11 @@ public class AccountGrpcClientAdapter implements AccountClientPort {
     public ValidationResult validateCredit(String accountNo, BigDecimal amount) {
         log.debug("Calling gRPC ValidateAccountForCredit for accountNo: {}, amount: {}", accountNo, amount);
         try {
+            String schema = TenantContext.getTenantSchema();
             CreditValidationProtoRequest request = CreditValidationProtoRequest.newBuilder()
                     .setAccountNo(accountNo)
                     .setAmount(amount.toPlainString())
+                    .setTenantSchema(schema != null ? schema : "")
                     .build();
             ValidationProtoResponse res = accountGrpcStub.validateAccountForCredit(request);
 

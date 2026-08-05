@@ -43,7 +43,9 @@ public class JournalRepositoryAdapter implements JournalRepositoryPort {
     private JournalEntryEntity toEntity(JournalEntry domain) {
         if (domain == null) return null;
         JournalEntryEntity entity = new JournalEntryEntity();
-        entity.setEntryId(domain.getEntryId());
+        if (domain.getEntryId() != null && repository.existsById(domain.getEntryId())) {
+            entity.setEntryId(domain.getEntryId());
+        }
         entity.setTransactionRef(domain.getTransactionRef());
         if (domain.getPostingDate() != null) {
             entity.setPostingDate(domain.getPostingDate());
@@ -56,7 +58,7 @@ public class JournalRepositoryAdapter implements JournalRepositoryPort {
         if (domain.getLines() != null) {
             for (JournalLine lineDomain : domain.getLines()) {
                 JournalLineEntity lineEntity = new JournalLineEntity();
-                lineEntity.setLineId(lineDomain.getLineId());
+                entity.addLine(lineEntity);
                 lineEntity.setGlAccountCode(lineDomain.getGlAccountCode());
                 lineEntity.setEntryType(lineDomain.getEntryType());
                 lineEntity.setAmount(lineDomain.getAmount());

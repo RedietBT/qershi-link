@@ -77,7 +77,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     if (authoritiesClaim != null) {
                         for (Object auth : authoritiesClaim) {
                             if (auth != null && !auth.toString().isBlank()) {
-                                authorities.add(new SimpleGrantedAuthority(auth.toString().trim()));
+                                String val = auth.toString().trim();
+                                authorities.add(new SimpleGrantedAuthority(val));
+                                if (val.startsWith("ROLE_")) {
+                                    authorities.add(new SimpleGrantedAuthority(val.substring(5)));
+                                } else {
+                                    authorities.add(new SimpleGrantedAuthority("ROLE_" + val));
+                                }
                             }
                         }
                     }
@@ -86,23 +92,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     if (permissionsClaim != null) {
                         for (Object perm : permissionsClaim) {
                             if (perm != null && !perm.toString().isBlank()) {
-                                authorities.add(new SimpleGrantedAuthority(perm.toString().trim()));
+                                String val = perm.toString().trim();
+                                authorities.add(new SimpleGrantedAuthority(val));
+                                if (val.startsWith("ROLE_")) {
+                                    authorities.add(new SimpleGrantedAuthority(val.substring(5)));
+                                } else {
+                                    authorities.add(new SimpleGrantedAuthority("ROLE_" + val));
+                                }
                             }
                         }
                     }
 
                     String role = claims.get("role", String.class);
                     if (role != null && !role.isBlank()) {
-                        String roleAuth = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-                        authorities.add(new SimpleGrantedAuthority(roleAuth));
+                        String r = role.trim();
+                        authorities.add(new SimpleGrantedAuthority(r.startsWith("ROLE_") ? r : "ROLE_" + r));
+                        authorities.add(new SimpleGrantedAuthority(r.startsWith("ROLE_") ? r.substring(5) : r));
                     }
 
                     List<?> rolesClaim = claims.get("roles", List.class);
                     if (rolesClaim != null) {
                         for (Object r : rolesClaim) {
                             if (r != null && !r.toString().isBlank()) {
-                                String roleAuth = r.toString().startsWith("ROLE_") ? r.toString() : "ROLE_" + r.toString();
-                                authorities.add(new SimpleGrantedAuthority(roleAuth));
+                                String val = r.toString().trim();
+                                authorities.add(new SimpleGrantedAuthority(val.startsWith("ROLE_") ? val : "ROLE_" + val));
+                                authorities.add(new SimpleGrantedAuthority(val.startsWith("ROLE_") ? val.substring(5) : val));
                             }
                         }
                     }
