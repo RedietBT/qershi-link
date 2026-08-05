@@ -24,6 +24,7 @@
 		<module>identity-auth-service</module>
 		<module>profile-service</module>
 		<module>account-management-service</module>
+		<module>transaction-management-service</module>
 		<module>swagger-api-hub</module>
 	</modules>
 
