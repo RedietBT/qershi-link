@@ -1,4 +1,4 @@
-package com.kab.qershi.transaction.infrastructure.client;
+package com.kab.qershi.transaction.infrastructure.grpc;
 
 import com.kab.qershi.account.infrastructure.grpc.AccountGrpcServiceGrpc;
 import com.kab.qershi.account.infrastructure.grpc.AccountNoRequest;
