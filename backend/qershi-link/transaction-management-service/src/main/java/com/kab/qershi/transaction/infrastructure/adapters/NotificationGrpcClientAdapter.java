@@ -59,15 +59,18 @@ public class NotificationGrpcClientAdapter {
     }
 
     private void dispatchNotification(String recipientPhone, String templateCode, Map<String, String> parameters) {
-        String targetPhone = (recipientPhone != null && !recipientPhone.isBlank()) ? recipientPhone : "+251911223344";
+        if (recipientPhone == null || recipientPhone.isBlank()) {
+            log.warn("Cannot dispatch transaction SMS: Recipient phone is null or blank.");
+            return;
+        }
 
         try {
             String tenantSchema = TenantContext.getTenantSchema();
-            log.info("Sending transaction SMS [Template: {}] to {} via gRPC notification-service for schema: {}", templateCode, targetPhone, tenantSchema);
+            log.info("Sending transaction SMS [Template: {}] to {} via gRPC notification-service for schema: {}", templateCode, recipientPhone, tenantSchema);
 
             SendSmsProtoRequest request = SendSmsProtoRequest.newBuilder()
                     .setTenantSchema(tenantSchema != null ? tenantSchema : "master_schema")
-                    .setRecipientPhone(targetPhone)
+                    .setRecipientPhone(recipientPhone)
                     .setTemplateCode(templateCode)
                     .putAllParameters(parameters)
                     .build();

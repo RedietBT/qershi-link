@@ -5,6 +5,7 @@ import com.kab.qershi.auth.domain.ports.outbound.UserRepositoryPort;
 import com.kab.qershi.auth.infrastructure.rest.dto.SuperAdminRegistrationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.UUID;
 
+/**
+ * Service for registering platform-level Super Admin accounts into master schema.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.0.0
+ */
 @Service
 public class SuperAdminService {
 
@@ -21,7 +28,7 @@ public class SuperAdminService {
     private final MessagingPort messagingPort;
 
     public SuperAdminService(UserRepositoryPort userRepositoryPort, PasswordEncoder passwordEncoder,
-                             @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
+                             @Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
         this.userRepositoryPort = userRepositoryPort;
         this.passwordEncoder = passwordEncoder;
         this.messagingPort = messagingPort;

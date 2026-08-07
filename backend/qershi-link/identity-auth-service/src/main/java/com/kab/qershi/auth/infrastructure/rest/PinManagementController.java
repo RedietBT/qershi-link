@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +23,10 @@ import java.security.SecureRandom;
 import java.util.UUID;
 
 /**
- * Dedicated REST controller providing standalone global endpoints for initial PIN dispatches and SMS resend triggers.
+ * Standalone global endpoints for initial PIN dispatches and SMS resend triggers.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.0.0
  */
 @RestController
 @RequestMapping("/api/v1/pin")
@@ -41,7 +42,7 @@ public class PinManagementController {
     public PinManagementController(SpringDataUserRepository userRepository,
                                    SpringDataSaccoRepository saccoRepository,
                                    PasswordEncoder passwordEncoder,
-                                   @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
+                                   @Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
         this.userRepository = userRepository;
         this.saccoRepository = saccoRepository;
         this.passwordEncoder = passwordEncoder;

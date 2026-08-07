@@ -8,9 +8,19 @@ import com.kab.qershi.auth.domain.ports.outbound.UserRepositoryPort;
 import com.kab.qershi.auth.infrastructure.security.JwtTokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
+/**
+ * Enterprise Application Service driving user credential verification logic.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.0.0
+ */
+@Service
 public class AuthenticationService implements AuthenticationUseCase {
     private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
     private final UserRepositoryPort userRepositoryPort;
@@ -21,7 +31,7 @@ public class AuthenticationService implements AuthenticationUseCase {
 
     public AuthenticationService(UserRepositoryPort userRepositoryPort, SaccoRepositoryPort saccoRepositoryPort,
                                   JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder,
-                                  @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
+                                  @Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
         this.userRepositoryPort = userRepositoryPort;
         this.saccoRepositoryPort = saccoRepositoryPort;
         this.jwtTokenProvider = jwtTokenProvider;

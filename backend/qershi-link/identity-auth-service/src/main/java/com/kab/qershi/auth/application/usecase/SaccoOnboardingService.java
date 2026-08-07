@@ -4,12 +4,22 @@ import com.kab.qershi.auth.domain.model.*;
 import com.kab.qershi.auth.domain.ports.inbound.SaccoOnboardingUseCase;
 import com.kab.qershi.auth.domain.ports.outbound.*;
 import com.kab.qershi.auth.domain.service.IdentityDomainService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.UUID;
 
+/**
+ * Application service implementing SaccoOnboardingUseCase.
+ * Provisions new tenant SACCO entries into master registry and constructs isolated schemas.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.0.0
+ */
+@Service
 public class SaccoOnboardingService implements SaccoOnboardingUseCase {
 
     private final SaccoRepositoryPort saccoRepositoryPort;
@@ -26,7 +36,7 @@ public class SaccoOnboardingService implements SaccoOnboardingUseCase {
             UserRepositoryPort userRepositoryPort,
             TenantProvisioningPort tenantProvisioningPort,
             IdentityDomainService identityDomainService,
-            @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort,
+            @Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort,
             PasswordEncoder passwordEncoder) {
         this.saccoRepositoryPort = saccoRepositoryPort;
         this.userRepositoryPort = userRepositoryPort;
