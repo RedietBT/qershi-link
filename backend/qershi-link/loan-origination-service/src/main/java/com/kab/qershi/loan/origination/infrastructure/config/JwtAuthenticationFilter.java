@@ -80,8 +80,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         : Collections.emptyList();
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    String principalId = (userIdStr != null && !userIdStr.isBlank()) ? userIdStr : username;
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(username, null, grantedAuthorities);
+                            new UsernamePasswordAuthenticationToken(principalId, null, grantedAuthorities);
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
 
