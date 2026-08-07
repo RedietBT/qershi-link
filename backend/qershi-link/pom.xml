@@ -27,6 +27,7 @@
 		<module>transaction-management-service</module>
 		<module>notification-service</module>
 		<module>loan-origination-service</module>
+		<module>loan-management-service</module>
 		<module>swagger-api-hub</module>
 	</modules>
 
