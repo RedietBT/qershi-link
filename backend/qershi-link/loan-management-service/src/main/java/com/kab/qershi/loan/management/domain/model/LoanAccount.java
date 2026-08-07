@@ -5,7 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Pure Domain Aggregate representing a SACCO Member Loan Account.
+ * Pure Domain Aggregate representing a SACCO Member Loan Account (Dynamic Tier-1 Banking Standards).
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -20,8 +20,8 @@ public class LoanAccount {
     private BigDecimal principalAmount;
     private BigDecimal interestRatePct;
     private Integer termMonths;
-    private RepaymentFrequency repaymentFrequency;
-    private InterestType interestType;
+    private String repaymentFrequency;
+    private String interestType;
     private OffsetDateTime disbursementDate;
     private LoanStatus status;
     private OffsetDateTime createdAt;
@@ -31,7 +31,7 @@ public class LoanAccount {
 
     public LoanAccount(UUID accountId, String accountNo, UUID applicationId, UUID userId, UUID productId,
                        BigDecimal principalAmount, BigDecimal interestRatePct, Integer termMonths,
-                       RepaymentFrequency repaymentFrequency, InterestType interestType,
+                       String repaymentFrequency, String interestType,
                        OffsetDateTime disbursementDate, LoanStatus status,
                        OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.accountId = accountId;
@@ -114,19 +114,19 @@ public class LoanAccount {
         this.termMonths = termMonths;
     }
 
-    public RepaymentFrequency getRepaymentFrequency() {
+    public String getRepaymentFrequency() {
         return repaymentFrequency;
     }
 
-    public void setRepaymentFrequency(RepaymentFrequency repaymentFrequency) {
+    public void setRepaymentFrequency(String repaymentFrequency) {
         this.repaymentFrequency = repaymentFrequency;
     }
 
-    public InterestType getInterestType() {
+    public String getInterestType() {
         return interestType;
     }
 
-    public void setInterestType(InterestType interestType) {
+    public void setInterestType(String interestType) {
         this.interestType = interestType;
     }
 

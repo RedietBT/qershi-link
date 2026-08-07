@@ -402,6 +402,34 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 ")");
 
         // 8. Loan Management Service Tables (LMS)
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".payment_channels (" +
+                "channel_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "channel_code VARCHAR(50) NOT NULL UNIQUE, " +
+                "channel_name VARCHAR(100) NOT NULL, " +
+                "is_active BOOLEAN NOT NULL DEFAULT TRUE, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".repayment_frequencies (" +
+                "frequency_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "frequency_code VARCHAR(50) NOT NULL UNIQUE, " +
+                "frequency_name VARCHAR(100) NOT NULL, " +
+                "interval_unit VARCHAR(20) NOT NULL DEFAULT 'MONTHS', " +
+                "interval_count INT NOT NULL DEFAULT 1, " +
+                "is_active BOOLEAN NOT NULL DEFAULT TRUE, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".interest_strategies (" +
+                "strategy_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "strategy_code VARCHAR(50) NOT NULL UNIQUE, " +
+                "strategy_name VARCHAR(100) NOT NULL, " +
+                "formula_type VARCHAR(50) NOT NULL DEFAULT 'REDUCING_BALANCE', " +
+                "day_count_convention VARCHAR(30) NOT NULL DEFAULT 'ACTUAL_365', " +
+                "is_active BOOLEAN NOT NULL DEFAULT TRUE, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
+                ")");
+
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_penalty_configs (" +
                 "config_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
                 "policy_code VARCHAR(50) NOT NULL UNIQUE, " +
@@ -421,8 +449,8 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "principal_amount DECIMAL(15,2) NOT NULL, " +
                 "interest_rate_pct DECIMAL(5,2) NOT NULL, " +
                 "term_months INT NOT NULL, " +
-                "repayment_frequency VARCHAR(30) NOT NULL DEFAULT 'MONTHLY', " +
-                "interest_type VARCHAR(30) NOT NULL DEFAULT 'REDUCING_BALANCE', " +
+                "repayment_frequency VARCHAR(50) NOT NULL DEFAULT 'MONTHLY', " +
+                "interest_type VARCHAR(50) NOT NULL DEFAULT 'REDUCING_BALANCE', " +
                 "disbursement_date TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
                 "status VARCHAR(30) NOT NULL DEFAULT 'DISBURSED', " +
                 "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +

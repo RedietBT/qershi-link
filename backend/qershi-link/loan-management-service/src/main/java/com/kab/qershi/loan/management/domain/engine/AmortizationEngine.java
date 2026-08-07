@@ -1,7 +1,5 @@
 package com.kab.qershi.loan.management.domain.engine;
 
-import com.kab.qershi.loan.management.domain.model.InterestType;
-import com.kab.qershi.loan.management.domain.model.RepaymentFrequency;
 import com.kab.qershi.loan.management.domain.model.RepaymentSchedule;
 import com.kab.qershi.loan.management.domain.model.ScheduleStatus;
 
@@ -14,8 +12,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Pure Domain Amortization Engine calculating repayment schedules for
- * REDUCING_BALANCE, FLAT_RATE, and BULLET interest strategies across multiple frequencies.
+ * Pure Domain Amortization Engine calculating repayment schedules dynamically for
+ * REDUCING_BALANCE, FLAT_RATE, and BULLET interest strategies across all frequency units
+ * (Tier-1 Core Banking Standards).
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -23,23 +22,19 @@ import java.util.UUID;
 public class AmortizationEngine {
 
     public List<RepaymentSchedule> generateSchedule(UUID accountId, BigDecimal principal, BigDecimal annualInterestRatePct,
-                                                     int termMonths, RepaymentFrequency frequency, InterestType interestType,
+                                                     int termMonths, String frequency, String interestType,
                                                      LocalDate startDate) {
         List<RepaymentSchedule> schedules = new ArrayList<>();
         OffsetDateTime now = OffsetDateTime.now();
 
-        if (frequency == RepaymentFrequency.BULLET) {
+        String normalizedFreq = (frequency != null) ? frequency.trim().toUpperCase() : "MONTHLY";
+        String normalizedType = (interestType != null) ? interestType.trim().toUpperCase() : "REDUCING_BALANCE";
+
+        if ("BULLET".equals(normalizedFreq)) {
             // BULLET: Single installment at maturity containing 100% Principal + Total Interest
-            BigDecimal totalInterest;
-            if (interestType == InterestType.FLAT_RATE) {
-                totalInterest = principal.multiply(annualInterestRatePct)
-                        .multiply(BigDecimal.valueOf(termMonths))
-                        .divide(BigDecimal.valueOf(1200), 2, RoundingMode.HALF_UP);
-            } else {
-                totalInterest = principal.multiply(annualInterestRatePct)
-                        .multiply(BigDecimal.valueOf(termMonths))
-                        .divide(BigDecimal.valueOf(1200), 2, RoundingMode.HALF_UP);
-            }
+            BigDecimal totalInterest = principal.multiply(annualInterestRatePct)
+                    .multiply(BigDecimal.valueOf(termMonths))
+                    .divide(BigDecimal.valueOf(1200), 2, RoundingMode.HALF_UP);
             BigDecimal totalDue = principal.add(totalInterest);
 
             RepaymentSchedule bulletSchedule = new RepaymentSchedule(
@@ -51,11 +46,11 @@ public class AmortizationEngine {
             return schedules;
         }
 
-        // Determine installment count and month step based on frequency
-        int monthStep = switch (frequency) {
-            case QUARTERLY -> 3;
-            case SEMI_ANNUAL -> 6;
-            case ANNUAL -> 12;
+        // Determine month step based on frequency string
+        int monthStep = switch (normalizedFreq) {
+            case "QUARTERLY" -> 3;
+            case "SEMI_ANNUAL", "HALF_YEARLY" -> 6;
+            case "ANNUAL", "YEARLY" -> 12;
             default -> 1;
         };
 
@@ -64,7 +59,7 @@ public class AmortizationEngine {
                 .multiply(BigDecimal.valueOf(monthStep))
                 .divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
 
-        if (interestType == InterestType.FLAT_RATE) {
+        if ("FLAT_RATE".equals(normalizedType) || "FLAT".equals(normalizedType)) {
             BigDecimal totalInterest = principal.multiply(annualInterestRatePct)
                     .multiply(BigDecimal.valueOf(termMonths))
                     .divide(BigDecimal.valueOf(1200), 2, RoundingMode.HALF_UP);

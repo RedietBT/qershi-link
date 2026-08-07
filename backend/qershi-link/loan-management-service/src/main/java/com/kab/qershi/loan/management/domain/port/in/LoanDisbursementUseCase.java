@@ -1,14 +1,12 @@
 package com.kab.qershi.loan.management.domain.port.in;
 
-import com.kab.qershi.loan.management.domain.model.InterestType;
 import com.kab.qershi.loan.management.domain.model.LoanAccount;
-import com.kab.qershi.loan.management.domain.model.RepaymentFrequency;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * Inbound Port for Loan Disbursement & Account Activation Use Case.
+ * Inbound Port for Loan Disbursement & Account Activation Use Case (Dynamic Tier-1 Standards).
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -22,8 +20,8 @@ public interface LoanDisbursementUseCase {
             BigDecimal amount,
             BigDecimal interestRatePct,
             Integer termMonths,
-            RepaymentFrequency repaymentFrequency,
-            InterestType interestType,
+            String repaymentFrequency,
+            String interestType,
             UUID targetSavingsAccountId
     ) {}
 

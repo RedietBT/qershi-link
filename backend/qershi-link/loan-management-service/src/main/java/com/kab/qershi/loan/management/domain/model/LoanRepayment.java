@@ -5,7 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Pure Domain Entity representing a Loan Repayment Audit Transaction.
+ * Pure Domain Entity representing a Loan Repayment Audit Transaction (Dynamic Tier-1 Banking Standards).
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -20,7 +20,7 @@ public class LoanRepayment {
     private BigDecimal interestPortion;
     private BigDecimal penaltyPortion;
     private OffsetDateTime paymentDate;
-    private PaymentChannel paymentChannel;
+    private String paymentChannel;
     private String remarks;
     private OffsetDateTime createdAt;
 
@@ -28,7 +28,7 @@ public class LoanRepayment {
 
     public LoanRepayment(UUID repaymentId, UUID accountId, String transactionRef, BigDecimal amountPaid,
                          BigDecimal principalPortion, BigDecimal interestPortion, BigDecimal penaltyPortion,
-                         OffsetDateTime paymentDate, PaymentChannel paymentChannel, String remarks,
+                         OffsetDateTime paymentDate, String paymentChannel, String remarks,
                          OffsetDateTime createdAt) {
         this.repaymentId = repaymentId;
         this.accountId = accountId;
@@ -107,11 +107,11 @@ public class LoanRepayment {
         this.paymentDate = paymentDate;
     }
 
-    public PaymentChannel getPaymentChannel() {
+    public String getPaymentChannel() {
         return paymentChannel;
     }
 
-    public void setPaymentChannel(PaymentChannel paymentChannel) {
+    public void setPaymentChannel(String paymentChannel) {
         this.paymentChannel = paymentChannel;
     }
 

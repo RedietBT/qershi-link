@@ -1,8 +1,39 @@
 -- =========================================================================
--- V1: Core Loan Management Service (LMS) Schema DDL
+-- V1: Core Loan Management Service (LMS) Schema DDL (Dynamic Tier-1 Standards)
 -- =========================================================================
 
--- 1. Dynamic Loan Penalty Policies Configuration Table
+-- 1. Dynamic Payment Channels Configuration Table
+CREATE TABLE IF NOT EXISTS payment_channels (
+    channel_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_code VARCHAR(50) NOT NULL UNIQUE,
+    channel_name VARCHAR(100) NOT NULL,
+    is_active    BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 2. Dynamic Repayment Frequencies Configuration Table
+CREATE TABLE IF NOT EXISTS repayment_frequencies (
+    frequency_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    frequency_code VARCHAR(50) NOT NULL UNIQUE,
+    frequency_name VARCHAR(100) NOT NULL,
+    interval_unit  VARCHAR(20) NOT NULL DEFAULT 'MONTHS', -- DAYS, WEEKS, MONTHS, YEARS, BULLET
+    interval_count INT NOT NULL DEFAULT 1,
+    is_active      BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 3. Dynamic Interest Calculation Strategies Table
+CREATE TABLE IF NOT EXISTS interest_strategies (
+    strategy_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    strategy_code         VARCHAR(50) NOT NULL UNIQUE,
+    strategy_name         VARCHAR(100) NOT NULL,
+    formula_type          VARCHAR(50) NOT NULL DEFAULT 'REDUCING_BALANCE', -- REDUCING_BALANCE, FLAT_RATE, RULE_OF_78
+    day_count_convention  VARCHAR(30) NOT NULL DEFAULT 'ACTUAL_365',     -- ACTUAL_365, ACTUAL_360, 30_360
+    is_active             BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 4. Dynamic Loan Penalty Policies Configuration Table
 CREATE TABLE IF NOT EXISTS loan_penalty_configs (
     config_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     policy_code       VARCHAR(50) NOT NULL UNIQUE,
@@ -13,29 +44,29 @@ CREATE TABLE IF NOT EXISTS loan_penalty_configs (
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 2. Disbursed Loan Accounts Table
+-- 5. Disbursed Loan Accounts Table
 CREATE TABLE IF NOT EXISTS loan_accounts (
-    account_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_no        VARCHAR(50) NOT NULL UNIQUE,
-    application_id    UUID NOT NULL UNIQUE,
-    user_id           UUID NOT NULL,
-    product_id        UUID NOT NULL,
-    principal_amount  DECIMAL(15,2) NOT NULL,
-    interest_rate_pct DECIMAL(5,2) NOT NULL,
-    term_months       INT NOT NULL,
-    repayment_frequency VARCHAR(30) NOT NULL DEFAULT 'MONTHLY',
-    interest_type     VARCHAR(30) NOT NULL DEFAULT 'REDUCING_BALANCE',
-    disbursement_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    status            VARCHAR(30) NOT NULL DEFAULT 'DISBURSED',
-    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    account_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_no          VARCHAR(50) NOT NULL UNIQUE,
+    application_id      UUID NOT NULL UNIQUE,
+    user_id             UUID NOT NULL,
+    product_id          UUID NOT NULL,
+    principal_amount    DECIMAL(15,2) NOT NULL,
+    interest_rate_pct   DECIMAL(5,2) NOT NULL,
+    term_months         INT NOT NULL,
+    repayment_frequency VARCHAR(50) NOT NULL DEFAULT 'MONTHLY',
+    interest_type       VARCHAR(50) NOT NULL DEFAULT 'REDUCING_BALANCE',
+    disbursement_date   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    status              VARCHAR(30) NOT NULL DEFAULT 'DISBURSED',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_la_user_id ON loan_accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_la_status ON loan_accounts(status);
 CREATE INDEX IF NOT EXISTS idx_la_app_id ON loan_accounts(application_id);
 
--- 3. Amortization Repayment Schedules Table
+-- 6. Amortization Repayment Schedules Table
 CREATE TABLE IF NOT EXISTS repayment_schedules (
     schedule_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id     UUID NOT NULL,
@@ -56,7 +87,7 @@ CREATE INDEX IF NOT EXISTS idx_rs_account_id ON repayment_schedules(account_id);
 CREATE INDEX IF NOT EXISTS idx_rs_due_date ON repayment_schedules(due_date);
 CREATE INDEX IF NOT EXISTS idx_rs_status ON repayment_schedules(status);
 
--- 4. Loan Repayment Transactions Audit Table
+-- 7. Loan Repayment Transactions Audit Table
 CREATE TABLE IF NOT EXISTS loan_repayments (
     repayment_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id        UUID NOT NULL,
