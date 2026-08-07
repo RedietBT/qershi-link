@@ -325,17 +325,88 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "('LOAN_REPAYMENT_DUE', 'SMS', 'EN', 'Reminder: Dear {memberName}, your loan repayment of {amount} ETB is due on {dueDate}. Please ensure sufficient account balance.') " +
                 "ON CONFLICT (template_code) DO NOTHING");
 
-        // 7. Seed Security Data
+        // 7. Loan Origination Service Tables (LOS)
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_groups (" +
+                "group_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "group_name VARCHAR(100) NOT NULL, " +
+                "is_formal BOOLEAN NOT NULL DEFAULT FALSE, " +
+                "license_no VARCHAR(50), " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_group_members (" +
+                "group_id UUID NOT NULL, " +
+                "user_id UUID NOT NULL, " +
+                "is_leader BOOLEAN NOT NULL DEFAULT FALSE, " +
+                "joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "PRIMARY KEY (group_id, user_id), " +
+                "FOREIGN KEY (group_id) REFERENCES " + schemaName + ".loan_groups(group_id) ON DELETE CASCADE" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_applications (" +
+                "application_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "application_no VARCHAR(50) NOT NULL UNIQUE, " +
+                "user_id UUID NOT NULL, " +
+                "group_id UUID, " +
+                "product_id UUID NOT NULL, " +
+                "scoring_type VARCHAR(30) NOT NULL, " +
+                "amount_requested DECIMAL(15,2) NOT NULL, " +
+                "amount_approved DECIMAL(15,2), " +
+                "status VARCHAR(30) NOT NULL DEFAULT 'DRAFT', " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "FOREIGN KEY (group_id) REFERENCES " + schemaName + ".loan_groups(group_id) ON DELETE SET NULL" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_credit_scoring (" +
+                "scoring_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "application_id UUID NOT NULL UNIQUE, " +
+                "savings_consistency DECIMAL(5,2), " +
+                "historical_yield DECIMAL(10,2), " +
+                "projected_yield DECIMAL(10,2), " +
+                "land_size_hectares DECIMAL(8,2), " +
+                "calculated_score DECIMAL(5,2), " +
+                "passed_eligibility BOOLEAN NOT NULL DEFAULT FALSE, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "FOREIGN KEY (application_id) REFERENCES " + schemaName + ".loan_applications(application_id) ON DELETE CASCADE" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_collateral (" +
+                "collateral_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "application_id UUID NOT NULL, " +
+                "type VARCHAR(30) NOT NULL, " +
+                "estimated_value DECIMAL(15,2) NOT NULL DEFAULT 0.00, " +
+                "document_url TEXT, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "FOREIGN KEY (application_id) REFERENCES " + schemaName + ".loan_applications(application_id) ON DELETE CASCADE" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".approval_workflow_logs (" +
+                "log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "application_id UUID NOT NULL, " +
+                "action_by UUID NOT NULL, " +
+                "action_type VARCHAR(30) NOT NULL, " +
+                "remarks TEXT, " +
+                "action_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "FOREIGN KEY (application_id) REFERENCES " + schemaName + ".loan_applications(application_id) ON DELETE CASCADE" +
+                ")");
+
+        // 8. Seed Security Data
         jdbcTemplate.execute("INSERT INTO " + schemaName + ".permissions (resource, action, description) VALUES " +
-                "('MEMBER',        'CREATE',       'Authority to register and onboard new SACCO members.'), " +
-                "('MEMBER',        'VIEW_BASIC',   'Authority to view basic profiles of SACCO members.'), " +
-                "('LOAN_REQUEST',  'CREATE',       'Authority to initiate a new loan request application.'), " +
-                "('LOAN',          'APPROVE',      'Authority to review and formally approve applied loans.'), " +
-                "('CASH',          'DEPOSIT',      'Authority to process over-the-counter cash deposits.'), " +
-                "('SAVINGS',       'WITHDRAW',     'Authority to process savings withdrawal requests.'), " +
-                "('REPORT',        'VIEW_ALL',     'Authority to run and view overall SACCO financial reports.'), " +
-                "('SACCO',         'ATTACH',       'Authority to link external core modules or sub-entities.'), " +
-                "('USER',          'VIEW_ALL',     'Authority to list and view all user security accounts.') " +
+                "('MEMBER',           'CREATE',       'Authority to register and onboard new SACCO members.'), " +
+                "('MEMBER',           'VIEW_BASIC',   'Authority to view basic profiles of SACCO members.'), " +
+                "('LOAN_REQUEST',     'CREATE',       'Authority to initiate a new loan request application.'), " +
+                "('LOAN',             'APPROVE',      'Authority to review and formally approve applied loans.'), " +
+                "('LOAN_APPLICATION', 'CREATE',       'Authority to submit new individual or group loan applications.'), " +
+                "('LOAN_APPLICATION', 'VIEW',         'Authority to inspect loan applications and scoring profiles.'), " +
+                "('LOAN_APPLICATION', 'APPROVE',      'Authority to execute Maker-Checker final loan approval.'), " +
+                "('LOAN_GROUP',       'MANAGE',       'Authority to onboard and configure SACCO borrowing groups.'), " +
+                "('CASH',             'DEPOSIT',      'Authority to process over-the-counter cash deposits.'), " +
+                "('SAVINGS',          'WITHDRAW',     'Authority to process savings withdrawal requests.'), " +
+                "('REPORT',           'VIEW_ALL',     'Authority to run and view overall SACCO financial reports.'), " +
+                "('SACCO',            'ATTACH',       'Authority to link external core modules or sub-entities.'), " +
+                "('USER',             'VIEW_ALL',     'Authority to list and view all user security accounts.') " +
                 "ON CONFLICT (resource, action) DO NOTHING");
 
         jdbcTemplate.execute("INSERT INTO " + schemaName + ".roles (role_id, role_name, is_system_defined) VALUES " +
