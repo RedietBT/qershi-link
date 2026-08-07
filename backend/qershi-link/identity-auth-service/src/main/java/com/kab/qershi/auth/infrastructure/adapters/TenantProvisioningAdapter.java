@@ -509,12 +509,14 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "ON CONFLICT (resource, action) DO NOTHING");
 
         jdbcTemplate.execute("INSERT INTO " + schemaName + ".roles (role_id, role_name, is_system_defined) VALUES " +
-                "('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f', 'ADMIN', TRUE) " +
+                "('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f', 'ADMIN', TRUE), " +
+                "('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e10', 'SACCO_ADMIN', TRUE) " +
                 "ON CONFLICT (role_id) DO NOTHING");
 
         jdbcTemplate.execute("INSERT INTO " + schemaName + ".role_permissions (role_id, permission_id) " +
-                "SELECT '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f', permission_id " +
-                "FROM " + schemaName + ".permissions WHERE is_active = TRUE " +
+                "SELECT r.role_id, p.permission_id " +
+                "FROM " + schemaName + ".roles r CROSS JOIN " + schemaName + ".permissions p " +
+                "WHERE p.is_active = TRUE AND r.role_name IN ('ADMIN', 'SACCO_ADMIN') " +
                 "ON CONFLICT (role_id, permission_id) DO NOTHING");
     }
 

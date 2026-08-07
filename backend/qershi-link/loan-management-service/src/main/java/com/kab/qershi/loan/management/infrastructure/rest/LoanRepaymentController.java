@@ -29,7 +29,7 @@ public class LoanRepaymentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('LOAN_REPAYMENT:PROCESS') or hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_ADMIN', 'LOAN_REPAYMENT:PROCESS', 'LOAN_REPAYMENT_PROCESS')")
     @Operation(summary = "Process Loan Repayment", description = "Executes repayment allocation using payment waterfall and updates schedule statuses")
     public ResponseEntity<LoanRepaymentResponse> processRepayment(@Valid @RequestBody ProcessRepaymentRequest request) {
         LoanRepaymentUseCase.RepaymentCommand command = new LoanRepaymentUseCase.RepaymentCommand(

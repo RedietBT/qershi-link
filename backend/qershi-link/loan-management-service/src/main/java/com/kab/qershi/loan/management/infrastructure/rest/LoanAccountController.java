@@ -33,7 +33,7 @@ public class LoanAccountController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('LOAN_ACCOUNT:VIEW') or hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_ADMIN', 'LOAN_ACCOUNT:VIEW', 'LOAN_ACCOUNT_VIEW')")
     @Operation(summary = "Get Loan Account by ID", description = "Retrieves details of a disbursed loan account by account UUID")
     public ResponseEntity<LoanAccountResponse> getAccountById(@PathVariable("id") UUID id) {
         LoanAccount account = scheduleUseCase.getAccount(id);
@@ -41,7 +41,7 @@ public class LoanAccountController {
     }
 
     @GetMapping("/{id}/schedule")
-    @PreAuthorize("hasAuthority('LOAN_ACCOUNT:VIEW') or hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_ADMIN', 'LOAN_ACCOUNT:VIEW', 'LOAN_ACCOUNT_VIEW')")
     @Operation(summary = "Get Amortization Repayment Schedule", description = "Retrieves month-by-month repayment schedule installments for a loan account")
     public ResponseEntity<List<RepaymentScheduleResponse>> getAccountSchedule(@PathVariable("id") UUID id) {
         List<RepaymentSchedule> schedules = scheduleUseCase.getAccountSchedule(id);
@@ -52,7 +52,7 @@ public class LoanAccountController {
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAuthority('LOAN_ACCOUNT:VIEW') or hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_ADMIN', 'LOAN_ACCOUNT:VIEW', 'LOAN_ACCOUNT_VIEW')")
     @Operation(summary = "Get Loan Accounts for User", description = "Lists all active and historical loan accounts for a specific borrower member")
     public ResponseEntity<List<LoanAccountResponse>> getUserAccounts(@PathVariable("userId") UUID userId) {
         List<LoanAccount> accounts = scheduleUseCase.getUserAccounts(userId);
