@@ -29,7 +29,7 @@ public class LoanDisbursementController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'LOAN_DISBURSE:PROCESS', 'LOAN_DISBURSE_PROCESS')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_ADMIN', 'LOAN_DISBURSE:PROCESS', 'LOAN_DISBURSE_PROCESS')")
     @Operation(summary = "Disburse Loan Application", description = "Activates loan account and generates amortization schedule for an approved loan application")
     public ResponseEntity<LoanAccountResponse> disburseLoan(@Valid @RequestBody DisburseLoanRequest request) {
         LoanDisbursementUseCase.DisburseCommand command = new LoanDisbursementUseCase.DisburseCommand(
