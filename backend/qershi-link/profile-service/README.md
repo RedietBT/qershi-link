@@ -18,7 +18,7 @@ A core multi-tenant microservice built using **Spring Boot 3.4.2 (Java 21)** fol
 - **Method-Level Security**: Secured via Spring Security `@PreAuthorize("hasAuthority('...')")` enforcing granular authorities (`MEMBER_CREATE`, `MEMBER_UPDATE`, `MEMBER_APPROVE`, `KYC_SUBMIT`, `KYC_VERIFY`, `NEXT_OF_KIN_MANAGE`).
 - **PII Log Masking**: Includes `PiiMasker` log sanitization to mask sensitive phone numbers, emails, government IDs, and names in console/file logs.
 
-### 4. Core API Surface (HTTP Port 8081)
+### 4. Core API Surface (HTTP Port 8081 | gRPC Port 9081)
 - **Member Profile Lifecycle** (`POST /api/v1/profiles`, `PUT /api/v1/profiles/{userId}/demographics`, `POST /api/v1/profiles/{userId}/address`, `POST /api/v1/profiles/{userId}/employment`, `PUT /api/v1/profiles/{userId}/approve`, `PUT /api/v1/profiles/{userId}/status`, `GET /api/v1/profiles/{userId}`)
 - **KYC Verification** (`POST /api/v1/kyc/{userId}/identifications`, `GET /api/v1/kyc/{userId}/identifications`, `PUT /api/v1/kyc/identifications/{id}/verify`, `PUT /api/v1/kyc/identifications/{id}/reject`)
 - **Next of Kin Beneficiaries** (`POST /api/v1/kin/{userId}`, `GET /api/v1/kin/{userId}`, `PUT /api/v1/kin/{kinId}`, `DELETE /api/v1/kin/{kinId}`)
@@ -40,31 +40,25 @@ Before launching the cluster, ensure your local development workstation has the 
 Follow these sequential steps to compile your code, update your cluster images, and deploy safely to your infrastructure namespace.
 
 ### Step 1: Package the Microservice
-Compile and package the source application into an executable fat JAR running framework verification checks:
+Compile and package the source application into an executable fat JAR:
 ```powershell
-./mvnw clean package -pl profile-service -am
+./mvnw clean package -pl profile-service -am -DskipTests
 ```
 
 ### Step 2: Build the Container Image
-
-Build the container layer using the network host bridge. Target the root project level and map to the target Dockerfile profile:
-
+Build the container image targeting the service directory:
 ```powershell
-docker build -t profile-service:latest -f profile-service/Dockerfile .
+docker build -t profile-service:latest ./profile-service
 ```
 
 ### Step 3: Rolling Update to Kubernetes
-
-Apply a rolling restart sequence to force your local cluster to pull the newly built image layer inside the dedicated namespace:
-
+Apply a rolling restart sequence inside the `sacco-core` namespace:
 ```powershell
 kubectl rollout restart deployment/profile-service -n sacco-core
 ```
 
 ### Step 4: Monitor Pod Synchronization
-
-Watch the real-time status transitions as old container templates gracefully terminate and new ones spin up to an active state:
-
+Watch real-time pod status transitions:
 ```powershell
 kubectl get pods -n sacco-core -w
 ```
@@ -75,36 +69,25 @@ kubectl get pods -n sacco-core -w
 
 The Centralized Swagger API Hub runs as a Kubernetes `LoadBalancer` service directly accessible on port `8090`:
 
-👉 **http://localhost:8090/swagger-ui/index.html**
+👉 **http://localhost:8090/swagger-ui.html**
 
-*(Use the **"Select a Spec"** dropdown menu at the top right of the screen to switch between `2. Member Profile Service`, `1. Identity & Auth Service`, and other microservices).*
+*(Use the **"Select a Spec"** dropdown menu at the top right of the screen to switch between `2. Member Profile Service`, `1. Identity & Auth Service`, `3. Account Management Service`, `4. Transaction Management Service`, and other microservices).*
 
 ---
 
 ## 🪵 Troubleshooting & Diagnostic Runbooks
 
-If your deployment slips into a `CrashLoopBackOff` status or signals an initialization `Error`, use these exact debugging commands to surface stack traces:
-
 ### Stream Live Logs
-
-To tail and follow live application logs from the running deployment:
-
 ```powershell
 kubectl logs -f deployment/profile-service -n sacco-core
 ```
 
 ### Inspect Historical Lifecycles (The Crash Log)
-
-If a container crashes during context initialization, regular logging commands might return blank. Grab the exception trace from the *previously terminated* instance:
-
 ```powershell
 kubectl logs deployment/profile-service -n sacco-core --previous
 ```
 
 ### Track Live Pod Infrastructure Events
-
-To inspect cluster scheduler actions, failing health/readiness probes, or underlying memory constraints, describe the active pod profile:
-
 ```powershell
 kubectl describe pod -n sacco-core <pod-name-from-get-pods>
 ```

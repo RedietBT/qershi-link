@@ -6,16 +6,16 @@ A core multi-tenant microservice built using **Spring Boot 3.4.2 (Java 21)** fol
 
 ## 🏛️ Architecture & Key Features
 
-### 1. Multi-Tenant Schema Isolation
+### 1. Multi-Tenant Schema Isolation & Tenant Provisioning
 - Uses PostgreSQL **schema-per-tenant** routing dynamically via `TenantContext` (ThreadLocal), `TenantIdentifierResolver`, and `PostgresSchemaConnectionProvider`.
 - Platform registries and global user credentials live in `master_schema`.
-- Onboarding a new SACCO automatically provisions an isolated PostgreSQL schema with independent `roles`, `permissions`, `role_permissions`, and `user_roles` tables.
+- Onboarding a new SACCO automatically provisions an isolated PostgreSQL schema with independent tenant tables (`roles`, `permissions`, `role_permissions`, `user_roles`, `accounts`, `account_products`, `transactions`, `journal_entries`, `journal_lines`, and `transaction_audit_logs`).
 
 ### 2. Dual-Layer Security Model (RBAC + Global Roles)
 - **Global Roles** (`SUPER_ADMIN`, `SACCO_ADMIN`, `UNION_ADMIN`, `SACCO_USER`, `TELLER`, `MEMBER`): Governs system-wide access control via Spring Security `@PreAuthorize("hasAnyRole(...)")`.
-- **Tenant-Scoped Permissions** (`MEMBER_CREATE`, `LOAN_APPROVE`, `CASH_DEPOSIT`, `USER_VIEW_ALL`, etc.): Granular resource/action authorities assigned to tenant roles within isolated SACCO namespaces.
+- **Tenant-Scoped Permissions**: Granular resource/action authorities (`MEMBER_CREATE`, `MEMBER_APPROVE`, `CASH_DEPOSIT`, `SAVINGS_WITHDRAW`, `TRANSACTION_TRANSFER`, `TRANSACTION_VIEW`, `USER_VIEW_ALL`, etc.) assigned to tenant roles within isolated SACCO namespaces.
 
-### 3. Core API Surface
+### 3. Core API Surface (HTTP Port 8080)
 - **Public Entrypoints** (`/api/v1/auth/login`, `/api/v1/platform/register-admin`, `/api/v1/sacco/onboard`)
 - **Authentication Engine** (`POST /api/v1/auth/login`, `POST /api/v1/auth/change-password`)
 - **SACCO Onboarding & Management** (`POST /api/v1/sacco/onboard`, `GET /api/v1/saccos`, `GET /api/v1/saccos/{id}`)
@@ -41,29 +41,23 @@ Follow these sequential steps to compile your code, update your cluster images, 
 ### Step 1: Package the Microservice
 Compile and package the source application into an executable fat JAR running framework verification checks:
 ```powershell
-./mvnw clean package -pl identity-auth-service -am
+./mvnw clean package -pl identity-auth-service -am -DskipTests
 ```
 
 ### Step 2: Build the Container Image
-
-Build the container layer using the network host bridge. Target the root project level and map to the target Dockerfile profile:
-
+Build the container layer targeting the Dockerfile:
 ```powershell
-docker build -t identity-auth-service:latest -f identity-auth-service/Dockerfile .
+docker build -t identity-auth-service:latest ./identity-auth-service
 ```
 
 ### Step 3: Rolling Update to Kubernetes
-
-Apply a rolling restart sequence to force your local cluster to pull the newly built image layer inside the dedicated namespace:
-
+Apply a rolling restart sequence inside the `sacco-core` namespace:
 ```powershell
 kubectl rollout restart deployment/identity-auth-service -n sacco-core
 ```
 
 ### Step 4: Monitor Pod Synchronization
-
-Watch the real-time status transitions as old container templates gracefully terminate and new ones spin up to an active state:
-
+Watch real-time pod status transitions:
 ```powershell
 kubectl get pods -n sacco-core -w
 ```
@@ -74,36 +68,25 @@ kubectl get pods -n sacco-core -w
 
 The Centralized Swagger API Hub runs as a Kubernetes `LoadBalancer` service directly accessible on port `8090`:
 
-👉 **http://localhost:8090/swagger-ui/index.html**
+👉 **http://localhost:8090/swagger-ui.html**
 
-*(Use the **"Select a Spec"** dropdown menu at the top right of the screen to switch between `1. Identity & Auth Service`, `2. Member Profile Service`, and other microservices).*
+*(Use the **"Select a Spec"** dropdown menu at the top right of the screen to switch between `1. Identity & Auth Service`, `2. Member Profile Service`, `3. Account Management Service`, `4. Transaction Management Service`, and other microservices).*
 
 ---
 
 ## 🪵 Troubleshooting & Diagnostic Runbooks
 
-If your deployment slips into a `CrashLoopBackOff` status or signals an initialization `Error`, use these exact debugging commands to surface stack traces:
-
 ### Stream Live Logs
-
-To tail and follow live application logs from the running deployment:
-
 ```powershell
 kubectl logs -f deployment/identity-auth-service -n sacco-core
 ```
 
 ### Inspect Historical Lifecycles (The Crash Log)
-
-If a container crashes during context initialization, regular logging commands might return blank. Grab the exception trace from the *previously terminated* instance:
-
 ```powershell
 kubectl logs deployment/identity-auth-service -n sacco-core --previous
 ```
 
 ### Track Live Pod Infrastructure Events
-
-To inspect cluster scheduler actions, failing health/readiness probes, or underlying memory constraints, describe the active pod profile:
-
 ```powershell
 kubectl describe pod -n sacco-core <pod-name-from-get-pods>
 ```
