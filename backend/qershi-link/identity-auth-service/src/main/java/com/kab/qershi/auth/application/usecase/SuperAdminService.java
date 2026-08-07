@@ -20,7 +20,8 @@ public class SuperAdminService {
     private final PasswordEncoder passwordEncoder;
     private final MessagingPort messagingPort;
 
-    public SuperAdminService(UserRepositoryPort userRepositoryPort, PasswordEncoder passwordEncoder, MessagingPort messagingPort) {
+    public SuperAdminService(UserRepositoryPort userRepositoryPort, PasswordEncoder passwordEncoder,
+                             @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
         this.userRepositoryPort = userRepositoryPort;
         this.passwordEncoder = passwordEncoder;
         this.messagingPort = messagingPort;

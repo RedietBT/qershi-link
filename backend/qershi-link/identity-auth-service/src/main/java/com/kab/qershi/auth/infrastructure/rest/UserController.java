@@ -53,7 +53,7 @@ public class UserController {
                           SpringDataSaccoRepository saccoRepository,
                           ProfileServiceClient profileServiceClient,
                           PasswordEncoder passwordEncoder,
-                          MessagingPort messagingPort) {
+                          @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
         this.userRepository = userRepository;
         this.saccoRepository = saccoRepository;
         this.profileServiceClient = profileServiceClient;

@@ -27,7 +27,9 @@ public interface AccountClientPort {
             BigDecimal lienHoldAmount,
             BigDecimal availableBalance,
             String status,
-            String freezeStatus
+            String freezeStatus,
+            String phoneNumber,
+            String fullName
     ) {}
 
     record ValidationResult(

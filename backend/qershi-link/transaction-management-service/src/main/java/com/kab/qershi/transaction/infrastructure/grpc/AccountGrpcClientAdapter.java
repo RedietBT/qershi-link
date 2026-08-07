@@ -52,7 +52,9 @@ public class AccountGrpcClientAdapter implements AccountClientPort {
                     parseDecimal(res.getLienHoldAmount()),
                     parseDecimal(res.getAvailableBalance()),
                     res.getStatus(),
-                    res.getFreezeStatus()
+                    res.getFreezeStatus(),
+                    res.getPhoneNumber(),
+                    res.getFullName()
             );
         } catch (Exception ex) {
             log.error("gRPC call GetAccountByNo failed for accountNo {}: {}", accountNo, ex.getMessage());

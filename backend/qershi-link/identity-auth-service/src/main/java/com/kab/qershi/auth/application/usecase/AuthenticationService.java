@@ -20,7 +20,8 @@ public class AuthenticationService implements AuthenticationUseCase {
     private final MessagingPort messagingPort;
 
     public AuthenticationService(UserRepositoryPort userRepositoryPort, SaccoRepositoryPort saccoRepositoryPort,
-                                  JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder, MessagingPort messagingPort) {
+                                  JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder,
+                                  @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
         this.userRepositoryPort = userRepositoryPort;
         this.saccoRepositoryPort = saccoRepositoryPort;
         this.jwtTokenProvider = jwtTokenProvider;

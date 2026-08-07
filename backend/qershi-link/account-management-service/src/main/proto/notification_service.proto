@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package com.kab.qershi.notification.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.kab.qershi.notification.infrastructure.grpc";
+option java_outer_classname = "NotificationServiceProto";
+
+service NotificationGrpcService {
+  rpc SendSmsNotification (SendSmsProtoRequest) returns (SendSmsProtoResponse);
+}
+
+message SendSmsProtoRequest {
+  string tenant_schema = 1;
+  string recipient_phone = 2;
+  string template_code = 3;
+  string raw_message = 4;
+  map<string, string> parameters = 5;
+  string provider_bean_name = 6;
+}
+
+message SendSmsProtoResponse {
+  bool success = 1;
+  string log_id = 2;
+  string status = 3;
+  string message = 4;
+}

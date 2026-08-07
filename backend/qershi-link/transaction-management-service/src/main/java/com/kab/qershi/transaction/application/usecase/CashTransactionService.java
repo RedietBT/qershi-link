@@ -40,13 +40,16 @@ public class CashTransactionService implements CashTransactionUseCase {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final JournalRepositoryPort journalRepositoryPort;
     private final AccountClientPort accountClientPort;
+    private final com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
 
     public CashTransactionService(TransactionRepositoryPort transactionRepositoryPort,
                                   JournalRepositoryPort journalRepositoryPort,
-                                  AccountClientPort accountClientPort) {
+                                  AccountClientPort accountClientPort,
+                                  com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter) {
         this.transactionRepositoryPort = transactionRepositoryPort;
         this.journalRepositoryPort = journalRepositoryPort;
         this.accountClientPort = accountClientPort;
+        this.notificationAdapter = notificationAdapter;
     }
 
     @Override
@@ -125,6 +128,13 @@ public class CashTransactionService implements CashTransactionUseCase {
 
         journalEntry.setLines(List.of(debitLine, creditLine));
         journalRepositoryPort.save(journalEntry);
+
+        try {
+            BigDecimal newBal = accountInfo.availableBalance() != null ? accountInfo.availableBalance().add(amount) : amount;
+            notificationAdapter.sendCashDepositNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
+        } catch (Exception ex) {
+            log.warn("Failed dispatching cash deposit SMS: {}", ex.getMessage());
+        }
 
         log.info("Cash Deposit COMPLETED successfully: txRef={}, accountNo={}, amount={}", txRef, accountNo, amount);
         return savedTx;
@@ -206,6 +216,13 @@ public class CashTransactionService implements CashTransactionUseCase {
 
         journalEntry.setLines(List.of(debitLine, creditLine));
         journalRepositoryPort.save(journalEntry);
+
+        try {
+            BigDecimal newBal = accountInfo.availableBalance() != null ? accountInfo.availableBalance().subtract(amount) : BigDecimal.ZERO;
+            notificationAdapter.sendCashWithdrawalNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
+        } catch (Exception ex) {
+            log.warn("Failed dispatching cash withdrawal SMS: {}", ex.getMessage());
+        }
 
         log.info("Cash Withdrawal COMPLETED successfully: txRef={}, accountNo={}, amount={}", txRef, accountNo, amount);
         return savedTx;

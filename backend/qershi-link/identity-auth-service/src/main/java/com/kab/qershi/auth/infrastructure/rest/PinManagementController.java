@@ -41,7 +41,7 @@ public class PinManagementController {
     public PinManagementController(SpringDataUserRepository userRepository,
                                    SpringDataSaccoRepository saccoRepository,
                                    PasswordEncoder passwordEncoder,
-                                   MessagingPort messagingPort) {
+                                   @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
         this.userRepository = userRepository;
         this.saccoRepository = saccoRepository;
         this.passwordEncoder = passwordEncoder;

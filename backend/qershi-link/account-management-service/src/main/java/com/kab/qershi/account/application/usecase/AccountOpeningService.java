@@ -33,15 +33,18 @@ public class AccountOpeningService implements AccountOpeningUseCase {
     private final ProductRepositoryPort productRepositoryPort;
     private final ProfileValidationPort profileValidationPort;
     private final AccountNumberGenerator accountNumberGenerator;
+    private final com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
 
     public AccountOpeningService(AccountRepositoryPort accountRepositoryPort,
                                  ProductRepositoryPort productRepositoryPort,
                                  ProfileValidationPort profileValidationPort,
-                                 AccountNumberGenerator accountNumberGenerator) {
+                                 AccountNumberGenerator accountNumberGenerator,
+                                 com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter) {
         this.accountRepositoryPort = accountRepositoryPort;
         this.productRepositoryPort = productRepositoryPort;
         this.profileValidationPort = profileValidationPort;
         this.accountNumberGenerator = accountNumberGenerator;
+        this.notificationAdapter = notificationAdapter;
     }
 
     @Override
@@ -95,7 +98,17 @@ public class AccountOpeningService implements AccountOpeningUseCase {
     public Account approveAccount(String accountNo, UUID checkerUserId) {
         Account account = getAccountByNo(accountNo);
         account.approveAccount(checkerUserId);
-        return accountRepositoryPort.save(account);
+        Account approved = accountRepositoryPort.save(account);
+
+        try {
+            AccountProduct product = productRepositoryPort.findByProductCode(approved.getProductCode()).orElse(null);
+            String prodName = product != null ? product.getProductName() : approved.getProductCode();
+            notificationAdapter.sendAccountOpenedNotification("", "Member " + approved.getUserId().toString().substring(0, 8), approved.getAccountNo(), prodName);
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Failed dispatching account opened SMS: {}", ex.getMessage());
+        }
+
+        return approved;
     }
 
     @Override

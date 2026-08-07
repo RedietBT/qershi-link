@@ -56,6 +56,8 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
                     .setAvailableBalance(available.toPlainString())
                     .setStatus(account.getStatus().name())
                     .setFreezeStatus(account.getFreezeStatus().name())
+                    .setPhoneNumber("")
+                    .setFullName("Member " + account.getUserId().toString().substring(0, 8))
                     .build();
 
             responseObserver.onNext(response);

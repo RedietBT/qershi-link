@@ -47,4 +47,6 @@ message AccountProtoResponse {
   string available_balance = 9;
   string status = 10;
   string freeze_status = 11;
+  string phone_number = 12;
+  string full_name = 13;
 }

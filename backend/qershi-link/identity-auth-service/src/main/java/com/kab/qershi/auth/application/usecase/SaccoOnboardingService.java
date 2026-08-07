@@ -26,7 +26,7 @@ public class SaccoOnboardingService implements SaccoOnboardingUseCase {
             UserRepositoryPort userRepositoryPort,
             TenantProvisioningPort tenantProvisioningPort,
             IdentityDomainService identityDomainService,
-            MessagingPort messagingPort,
+            @org.springframework.beans.factory.annotation.Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort,
             PasswordEncoder passwordEncoder) {
         this.saccoRepositoryPort = saccoRepositoryPort;
         this.userRepositoryPort = userRepositoryPort;
