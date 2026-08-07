@@ -1,4 +1,4 @@
-package com.kab.qershi.notification.infrastructure.rest.exception;
+package com.kab.qershi.notification.infrastructure.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global REST Exception Handler producing standardized API error responses.
+ * Global Exception Handler producing standardized API error responses for notification-service.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
