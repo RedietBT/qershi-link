@@ -1,0 +1,50 @@
+package com.kab.qershi.loan.management.infrastructure.rest;
+
+import com.kab.qershi.loan.management.domain.model.LoanAccount;
+import com.kab.qershi.loan.management.domain.port.in.LoanDisbursementUseCase;
+import com.kab.qershi.loan.management.infrastructure.rest.dto.DisburseLoanRequest;
+import com.kab.qershi.loan.management.infrastructure.rest.dto.LoanAccountResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * REST Controller for Loan Disbursement & Account Activation.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.0.0
+ */
+@RestController
+@RequestMapping("/api/v1/loan-mgmt/disburse")
+@Tag(name = "Loan Disbursement & Account Lifecycle", description = "Disburses funds for approved loan applications, activates loan accounts, and generates repayment schedules")
+public class LoanDisbursementController {
+
+    private final LoanDisbursementUseCase disbursementUseCase;
+
+    public LoanDisbursementController(LoanDisbursementUseCase disbursementUseCase) {
+        this.disbursementUseCase = disbursementUseCase;
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAuthority('LOAN_DISBURSE:PROCESS') or hasAuthority('ADMIN')")
+    @Operation(summary = "Disburse Loan Application", description = "Activates loan account and generates amortization schedule for an approved loan application")
+    public ResponseEntity<LoanAccountResponse> disburseLoan(@Valid @RequestBody DisburseLoanRequest request) {
+        LoanDisbursementUseCase.DisburseCommand command = new LoanDisbursementUseCase.DisburseCommand(
+                request.applicationId(),
+                request.userId(),
+                request.productId(),
+                request.amount(),
+                request.interestRatePct(),
+                request.termMonths(),
+                request.repaymentFrequency(),
+                request.interestType(),
+                request.targetSavingsAccountId()
+        );
+
+        LoanAccount account = disbursementUseCase.disburseLoan(command);
+        return ResponseEntity.ok(LoanAccountResponse.fromDomain(account));
+    }
+}
