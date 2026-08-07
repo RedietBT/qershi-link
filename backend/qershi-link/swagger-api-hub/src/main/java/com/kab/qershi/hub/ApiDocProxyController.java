@@ -49,6 +49,11 @@ public class ApiDocProxyController {
         return fetchApiDocs("transaction-management-service", 8083);
     }
 
+    @GetMapping(value = "/notification", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getNotificationApiDocs() {
+        return fetchApiDocs("notification-service", 8086);
+    }
+
     private ResponseEntity<String> fetchApiDocs(String serviceName, int port) {
         String[] candidateUrls = new String[]{
                 "http://" + serviceName + ":" + (serviceName.contains("identity") ? 8080 : port) + "/v3/api-docs",
