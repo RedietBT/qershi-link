@@ -294,6 +294,37 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
                 ")");
 
+        // 6. Notification Service Tables
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".notification_templates (" +
+                "template_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "template_code VARCHAR(50) NOT NULL UNIQUE, " +
+                "channel VARCHAR(20) NOT NULL DEFAULT 'SMS', " +
+                "language VARCHAR(10) NOT NULL DEFAULT 'EN', " +
+                "content TEXT NOT NULL, " +
+                "is_active BOOLEAN NOT NULL DEFAULT TRUE, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
+                ")");
+
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".notification_logs (" +
+                "log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "recipient_phone VARCHAR(20) NOT NULL, " +
+                "channel VARCHAR(20) NOT NULL DEFAULT 'SMS', " +
+                "template_code VARCHAR(50) NOT NULL, " +
+                "rendered_message TEXT NOT NULL, " +
+                "status VARCHAR(20) NOT NULL DEFAULT 'PENDING', " +
+                "vendor_response TEXT, " +
+                "sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
+                ")");
+
+        jdbcTemplate.execute("INSERT INTO " + schemaName + ".notification_templates (template_code, channel, language, content) VALUES " +
+                "('OTP_CODE', 'SMS', 'EN', 'Your Qershi Link security OTP is {otpCode}. It expires in 5 minutes.'), " +
+                "('CASH_DEPOSIT_ALERT', 'SMS', 'EN', 'Dear {memberName}, {amount} ETB has been deposited into your account {accountNo}. Available balance: {balance} ETB.'), " +
+                "('CASH_WITHDRAWAL_ALERT', 'SMS', 'EN', 'Dear {memberName}, {amount} ETB has been withdrawn from your account {accountNo}. Remaining balance: {balance} ETB.'), " +
+                "('TRANSFER_SENT_ALERT', 'SMS', 'EN', 'Dear {memberName}, you transferred {amount} ETB to {receiverName} ({receiverAccountNo}). Remaining balance: {balance} ETB.'), " +
+                "('LOAN_APPLICATION_APPROVED', 'SMS', 'EN', 'Dear {memberName}, your loan application {appNo} for {amount} ETB has been APPROVED by the Credit Committee.'), " +
+                "('LOAN_REPAYMENT_DUE', 'SMS', 'EN', 'Reminder: Dear {memberName}, your loan repayment of {amount} ETB is due on {dueDate}. Please ensure sufficient account balance.') " +
+                "ON CONFLICT (template_code) DO NOTHING");
+
         // 7. Seed Security Data
         jdbcTemplate.execute("INSERT INTO " + schemaName + ".permissions (resource, action, description) VALUES " +
                 "('MEMBER',        'CREATE',       'Authority to register and onboard new SACCO members.'), " +
