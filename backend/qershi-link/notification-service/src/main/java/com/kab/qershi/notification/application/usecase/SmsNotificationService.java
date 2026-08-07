@@ -50,7 +50,7 @@ public class SmsNotificationService implements SendNotificationUseCase {
 
         log.info("Sending direct SMS to recipient phone: {}", maskPhone(recipientPhone));
 
-        NotificationProviderPort provider = providerFactory.getProvider("afroMessageSmsAdapter");
+        NotificationProviderPort provider = providerFactory.getProvider(null);
         String vendorResponse = provider.sendSms(recipientPhone, message);
 
         NotificationStatus status = (vendorResponse != null && vendorResponse.contains("ERROR"))
@@ -111,7 +111,7 @@ public class SmsNotificationService implements SendNotificationUseCase {
 
         String renderedMessage = template.render(request.getParameters());
 
-        NotificationProviderPort provider = providerFactory.getProvider("afroMessageSmsAdapter");
+        NotificationProviderPort provider = providerFactory.getProvider(request.getProviderBeanName());
         String vendorResponse = provider.sendSms(request.getRecipientPhone(), renderedMessage);
 
         NotificationStatus status = (vendorResponse != null && vendorResponse.contains("ERROR"))
