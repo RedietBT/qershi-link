@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS loan_accounts (
     principal_amount  DECIMAL(15,2) NOT NULL,
     interest_rate_pct DECIMAL(5,2) NOT NULL,
     term_months       INT NOT NULL,
+    repayment_frequency VARCHAR(30) NOT NULL DEFAULT 'MONTHLY',
     interest_type     VARCHAR(30) NOT NULL DEFAULT 'REDUCING_BALANCE',
     disbursement_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     status            VARCHAR(30) NOT NULL DEFAULT 'DISBURSED',
