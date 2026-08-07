@@ -335,15 +335,6 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
                 ")");
 
-        jdbcTemplate.execute("INSERT INTO " + schemaName + ".collateral_types (type_code, type_name, min_coverage_pct) VALUES " +
-                "('LAND',               'Agricultural / Urban Land Title Deed', 120.00), " +
-                "('CROP',               'Standing Crop / Farm Yield Pledge',     100.00), " +
-                "('VEHICLE',            'Motor Vehicle / Farm Machinery',       130.00), " +
-                "('GUARANTOR',          'Personal Member Guarantor Agreement',   100.00), " +
-                "('GOLD',               'Gold & Precious Metals Deposit',        110.00), " +
-                "('SALARY_ASSIGNMENT',  'Employer Payroll Salary Assignment',    100.00) " +
-                "ON CONFLICT (type_code) DO NOTHING");
-
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_groups (" +
                 "group_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
                 "group_name VARCHAR(100) NOT NULL, " +

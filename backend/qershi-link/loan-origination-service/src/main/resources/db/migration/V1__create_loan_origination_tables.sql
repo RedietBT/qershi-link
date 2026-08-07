@@ -12,15 +12,6 @@ CREATE TABLE IF NOT EXISTS collateral_types (
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-INSERT INTO collateral_types (type_code, type_name, min_coverage_pct) VALUES
-    ('LAND',               'Agricultural / Urban Land Title Deed', 120.00),
-    ('CROP',               'Standing Crop / Farm Yield Pledge',     100.00),
-    ('VEHICLE',            'Motor Vehicle / Farm Machinery',       130.00),
-    ('GUARANTOR',          'Personal Member Guarantor Agreement',   100.00),
-    ('GOLD',               'Gold & Precious Metals Deposit',        110.00),
-    ('SALARY_ASSIGNMENT',  'Employer Payroll Salary Assignment',    100.00)
-ON CONFLICT (type_code) DO NOTHING;
-
 -- 2. Borrowing Groups Table
 CREATE TABLE IF NOT EXISTS loan_groups (
     group_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
