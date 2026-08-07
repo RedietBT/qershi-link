@@ -326,6 +326,24 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "ON CONFLICT (template_code) DO NOTHING");
 
         // 7. Loan Origination Service Tables (LOS)
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".collateral_types (" +
+                "type_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "type_code VARCHAR(50) NOT NULL UNIQUE, " +
+                "type_name VARCHAR(100) NOT NULL, " +
+                "min_coverage_pct DECIMAL(5,2) NOT NULL DEFAULT 100.00, " +
+                "is_active BOOLEAN NOT NULL DEFAULT TRUE, " +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
+                ")");
+
+        jdbcTemplate.execute("INSERT INTO " + schemaName + ".collateral_types (type_code, type_name, min_coverage_pct) VALUES " +
+                "('LAND',               'Agricultural / Urban Land Title Deed', 120.00), " +
+                "('CROP',               'Standing Crop / Farm Yield Pledge',     100.00), " +
+                "('VEHICLE',            'Motor Vehicle / Farm Machinery',       130.00), " +
+                "('GUARANTOR',          'Personal Member Guarantor Agreement',   100.00), " +
+                "('GOLD',               'Gold & Precious Metals Deposit',        110.00), " +
+                "('SALARY_ASSIGNMENT',  'Employer Payroll Salary Assignment',    100.00) " +
+                "ON CONFLICT (type_code) DO NOTHING");
+
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_groups (" +
                 "group_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
                 "group_name VARCHAR(100) NOT NULL, " +
@@ -375,7 +393,7 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".loan_collateral (" +
                 "collateral_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
                 "application_id UUID NOT NULL, " +
-                "type VARCHAR(30) NOT NULL, " +
+                "type VARCHAR(50) NOT NULL, " +
                 "estimated_value DECIMAL(15,2) NOT NULL DEFAULT 0.00, " +
                 "document_url TEXT, " +
                 "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
