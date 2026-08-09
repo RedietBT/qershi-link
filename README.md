@@ -76,7 +76,7 @@ Calculates precise financial schedules with compounding options:
 
 ### 3. Payment Waterfall Allocation Engine
 Strict Tier-1 Core Banking repayment distribution sequence for overdue and current installments:
-$$\text{1. Late Fees \& Penalties} \longrightarrow \text{2. Accrued Interest Due} \longrightarrow \text{3. Principal Balance}$$
+$$\text{1. Late Fees and Penalties} \longrightarrow \text{2. Accrued Interest Due} \longrightarrow \text{3. Outstanding Principal Balance}$$
 
 ### 4. Enterprise Security & Multi-Tenancy
 - **Physical Schema Isolation**: Per-thread dynamic PostgreSQL schema resolution (`SET search_path TO {tenant_schema}, public`).
