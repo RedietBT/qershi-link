@@ -9,11 +9,14 @@ import com.kab.qershi.account.domain.ports.outbound.AccountRepositoryPort;
 import com.kab.qershi.account.domain.ports.outbound.ProductRepositoryPort;
 import com.kab.qershi.account.domain.ports.outbound.ProfileValidationPort;
 import com.kab.qershi.account.domain.service.AccountNumberGenerator;
+import com.kab.qershi.account.infrastructure.persistence.AccountAuditLogEntity;
+import com.kab.qershi.account.infrastructure.persistence.SpringDataAccountAuditLogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,17 +37,20 @@ public class AccountOpeningService implements AccountOpeningUseCase {
     private final ProfileValidationPort profileValidationPort;
     private final AccountNumberGenerator accountNumberGenerator;
     private final com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
+    private final SpringDataAccountAuditLogRepository auditLogRepository;
 
     public AccountOpeningService(AccountRepositoryPort accountRepositoryPort,
                                  ProductRepositoryPort productRepositoryPort,
                                  ProfileValidationPort profileValidationPort,
                                  AccountNumberGenerator accountNumberGenerator,
-                                 com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter) {
+                                 com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
+                                 SpringDataAccountAuditLogRepository auditLogRepository) {
         this.accountRepositoryPort = accountRepositoryPort;
         this.productRepositoryPort = productRepositoryPort;
         this.profileValidationPort = profileValidationPort;
         this.accountNumberGenerator = accountNumberGenerator;
         this.notificationAdapter = notificationAdapter;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @Override
@@ -91,7 +97,25 @@ public class AccountOpeningService implements AccountOpeningUseCase {
                 LocalDateTime.now()
         );
 
-        return accountRepositoryPort.save(account);
+        Account saved = accountRepositoryPort.save(account);
+
+        try {
+            auditLogRepository.save(new AccountAuditLogEntity(
+                    null,
+                    saved.getAccountNo(),
+                    saved.getUserId(),
+                    userId,
+                    "ACCOUNT_OPENED",
+                    "status",
+                    null,
+                    "PENDING_APPROVAL",
+                    OffsetDateTime.now()
+            ));
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Failed writing account open audit log: {}", ex.getMessage());
+        }
+
+        return saved;
     }
 
     @Override
@@ -99,6 +123,22 @@ public class AccountOpeningService implements AccountOpeningUseCase {
         Account account = getAccountByNo(accountNo);
         account.approveAccount(checkerUserId);
         Account approved = accountRepositoryPort.save(account);
+
+        try {
+            auditLogRepository.save(new AccountAuditLogEntity(
+                    null,
+                    approved.getAccountNo(),
+                    approved.getUserId(),
+                    checkerUserId,
+                    "ACCOUNT_APPROVED",
+                    "status",
+                    "PENDING_APPROVAL",
+                    "ACTIVE",
+                    OffsetDateTime.now()
+            ));
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Failed writing account approval audit log: {}", ex.getMessage());
+        }
 
         try {
             AccountProduct product = productRepositoryPort.findByProductCode(approved.getProductCode()).orElse(null);
