@@ -31,6 +31,30 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
+import com.kab.qershi.transaction.infrastructure.persistence.SpringDataTransactionAuditLogRepository;
+import com.kab.qershi.transaction.infrastructure.persistence.TransactionAuditLogEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * Use case service implementing Member-to-Member internal transfers.
+ * Performs atomic debit/credit validations and posts General Ledger entries.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.0.0
+ */
 @Service
 public class TransferService implements TransferUseCase {
 
@@ -40,13 +64,16 @@ public class TransferService implements TransferUseCase {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final JournalRepositoryPort journalRepositoryPort;
     private final AccountClientPort accountClientPort;
+    private final SpringDataTransactionAuditLogRepository auditLogRepository;
 
     public TransferService(TransactionRepositoryPort transactionRepositoryPort,
                            JournalRepositoryPort journalRepositoryPort,
-                           AccountClientPort accountClientPort) {
+                           AccountClientPort accountClientPort,
+                           SpringDataTransactionAuditLogRepository auditLogRepository) {
         this.transactionRepositoryPort = transactionRepositoryPort;
         this.journalRepositoryPort = journalRepositoryPort;
         this.accountClientPort = accountClientPort;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @Override
@@ -106,6 +133,20 @@ public class TransferService implements TransferUseCase {
                 Instant.now()
         );
         Transaction savedTx = transactionRepositoryPort.save(tx);
+
+        try {
+            auditLogRepository.save(new TransactionAuditLogEntity(
+                    null,
+                    txRef,
+                    senderAccountNo,
+                    processedByUserId,
+                    "MEMBER_TRANSFER",
+                    "Transfer Amount: ETB " + amount + " | To Account: " + receiverAccountNo + " | Narration: " + narration,
+                    OffsetDateTime.now()
+            ));
+        } catch (Exception ex) {
+            log.warn("Failed writing transfer transaction audit log: {}", ex.getMessage());
+        }
 
         // 6. Create & Post Balanced General Ledger Journal Entry
         JournalEntry journalEntry = new JournalEntry(

@@ -31,6 +31,30 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
+import com.kab.qershi.transaction.infrastructure.persistence.SpringDataTransactionAuditLogRepository;
+import com.kab.qershi.transaction.infrastructure.persistence.TransactionAuditLogEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * Use case service implementing over-the-counter Cash Deposits and Cash Withdrawals.
+ * Enforces idempotency, balance safeguards, and General Ledger double-entry postings.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 1.0.0
+ */
 @Service
 public class CashTransactionService implements CashTransactionUseCase {
 
@@ -41,15 +65,18 @@ public class CashTransactionService implements CashTransactionUseCase {
     private final JournalRepositoryPort journalRepositoryPort;
     private final AccountClientPort accountClientPort;
     private final com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
+    private final SpringDataTransactionAuditLogRepository auditLogRepository;
 
     public CashTransactionService(TransactionRepositoryPort transactionRepositoryPort,
                                   JournalRepositoryPort journalRepositoryPort,
                                   AccountClientPort accountClientPort,
-                                  com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter) {
+                                  com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
+                                  SpringDataTransactionAuditLogRepository auditLogRepository) {
         this.transactionRepositoryPort = transactionRepositoryPort;
         this.journalRepositoryPort = journalRepositoryPort;
         this.accountClientPort = accountClientPort;
         this.notificationAdapter = notificationAdapter;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @Override
@@ -98,6 +125,20 @@ public class CashTransactionService implements CashTransactionUseCase {
                 Instant.now()
         );
         Transaction savedTx = transactionRepositoryPort.save(tx);
+
+        try {
+            auditLogRepository.save(new TransactionAuditLogEntity(
+                    null,
+                    txRef,
+                    accountNo,
+                    processedByUserId,
+                    "CASH_DEPOSIT",
+                    "Deposit Amount: ETB " + amount + " | Narration: " + narration,
+                    OffsetDateTime.now()
+            ));
+        } catch (Exception ex) {
+            log.warn("Failed writing deposit transaction audit log: {}", ex.getMessage());
+        }
 
         // 5. Create & Post Balanced General Ledger Journal Entry
         JournalEntry journalEntry = new JournalEntry(
@@ -186,6 +227,20 @@ public class CashTransactionService implements CashTransactionUseCase {
                 Instant.now()
         );
         Transaction savedTx = transactionRepositoryPort.save(tx);
+
+        try {
+            auditLogRepository.save(new TransactionAuditLogEntity(
+                    null,
+                    txRef,
+                    accountNo,
+                    processedByUserId,
+                    "CASH_WITHDRAWAL",
+                    "Withdrawal Amount: ETB " + amount + " | Narration: " + narration,
+                    OffsetDateTime.now()
+            ));
+        } catch (Exception ex) {
+            log.warn("Failed writing withdrawal transaction audit log: {}", ex.getMessage());
+        }
 
         // 5. Create & Post Balanced General Ledger Journal Entry
         JournalEntry journalEntry = new JournalEntry(
