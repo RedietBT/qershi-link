@@ -20,9 +20,15 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
+
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, TokenBlacklistService tokenBlacklistService) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenBlacklistService = tokenBlacklistService;
+    }
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
-        this.jwtTokenProvider = jwtTokenProvider;
+        this(jwtTokenProvider, null);
     }
 
     @Override
@@ -41,6 +47,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         .build()
                         .parseClaimsJws(token)
                         .getBody();
+
+                // 1b. Check Redis blacklist for token revocation
+                String jti = claims.getId();
+                if (jti != null && tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(jti)) {
+                    SecurityContextHolder.clearContext();
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
 
                 String msisdn = claims.getSubject();
                 String saccoId = claims.get("saccoId", String.class);

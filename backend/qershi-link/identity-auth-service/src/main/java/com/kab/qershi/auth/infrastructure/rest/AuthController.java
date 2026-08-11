@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kab.qershi.auth.infrastructure.security.JwtTokenProvider;
+import com.kab.qershi.auth.infrastructure.security.TokenBlacklistService;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Date;
+
 /**
  * Inbound Edge Adapter exposing RESTful identity context and verification endpoints.
  *
@@ -28,9 +34,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthenticationUseCase authenticationUseCase;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public AuthController(AuthenticationUseCase authenticationUseCase) {
+    public AuthController(AuthenticationUseCase authenticationUseCase,
+                          JwtTokenProvider jwtTokenProvider,
+                          TokenBlacklistService tokenBlacklistService) {
         this.authenticationUseCase = authenticationUseCase;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @PostMapping("/login")
@@ -47,5 +59,30 @@ public class AuthController {
         LoginCommand command = new LoginCommand(request.msisdn(), request.pin());
         LoginResult result = authenticationUseCase.login(command);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/logout")
+    @Operation(
+            summary = "Execute Session Logout",
+            description = "Revokes the active Bearer JWT token by adding its unique token ID (jti) to the Redis revocation blacklist."
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully logged out and session token revoked.")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                Claims claims = jwtTokenProvider.parseClaims(token);
+                String jti = claims.getId();
+                Date expiration = claims.getExpiration();
+                if (jti != null && expiration != null) {
+                    long remainingMillis = expiration.getTime() - System.currentTimeMillis();
+                    tokenBlacklistService.blacklistToken(jti, remainingMillis);
+                }
+            } catch (Exception ignored) {
+                // Token invalid or already expired
+            }
+        }
+        return ResponseEntity.ok("Successfully logged out.");
     }
 }

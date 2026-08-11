@@ -25,10 +25,14 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RateLimitingFilter rateLimitingFilter;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, RateLimitingFilter rateLimitingFilter) {
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider,
+                          RateLimitingFilter rateLimitingFilter,
+                          TokenBlacklistService tokenBlacklistService) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.rateLimitingFilter = rateLimitingFilter;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Bean
@@ -59,9 +63,9 @@ public class SecurityConfig {
                 )
                 // Filter chain order:
                 // 1. RateLimitingFilter — reject excess requests immediately (public endpoint protection)
-                // 2. JwtAuthenticationFilter — validate token on all remaining requests
+                // 2. JwtAuthenticationFilter — validate token and check Redis blacklist on all remaining requests
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, tokenBlacklistService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

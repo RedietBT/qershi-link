@@ -1,5 +1,6 @@
 package com.kab.qershi.auth.infrastructure.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -27,7 +29,9 @@ public class JwtTokenProvider {
     }
 
     public String createToken(String msisdn, String userId, String saccoId, List<String> permissions) {
+        String jti = UUID.randomUUID().toString();
         return Jwts.builder()
+                .setId(jti)
                 .setSubject(msisdn)
                 .claim("userId", userId)
                 .claim("saccoId", saccoId)
@@ -36,6 +40,14 @@ public class JwtTokenProvider {
                 .setExpiration(new Date(System.currentTimeMillis() + validityInMilliseconds))
                 .signWith(key) // Uses the injected secret key
                 .compact();
+    }
+
+    public Claims parseClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     // Overload for backward compatibility if invoked without userId
