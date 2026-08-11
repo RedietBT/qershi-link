@@ -24,9 +24,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final RateLimitingFilter rateLimitingFilter;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider) {
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider, RateLimitingFilter rateLimitingFilter) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.rateLimitingFilter = rateLimitingFilter;
     }
 
     @Bean
@@ -55,7 +57,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/platform/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                // Filter chain: Check JWT before standard Username/Password processing
+                // Filter chain order:
+                // 1. RateLimitingFilter — reject excess requests immediately (public endpoint protection)
+                // 2. JwtAuthenticationFilter — validate token on all remaining requests
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
