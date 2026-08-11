@@ -15,6 +15,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.kab.qershi.auth.application.usecase.SystemAuditService;
+
 @Configuration
 public class BeanConfig {
 
@@ -36,8 +38,9 @@ public class BeanConfig {
             SaccoRepositoryPort saccoRepositoryPort,
             JwtTokenProvider jwtTokenProvider,
             PasswordEncoder passwordEncoder,
-            MessagingPort messagingPort) { // Ensure this is available in your config
-        return new AuthenticationService(userRepositoryPort, saccoRepositoryPort, jwtTokenProvider, passwordEncoder, messagingPort);
+            MessagingPort messagingPort,
+            SystemAuditService systemAuditService) { // Ensure this is available in your config
+        return new AuthenticationService(userRepositoryPort, saccoRepositoryPort, jwtTokenProvider, passwordEncoder, messagingPort, systemAuditService);
     }
 
     @Bean

@@ -13,13 +13,16 @@ public class PasswordService {
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordEncoder passwordEncoder;
     private final PinValidator pinValidator;
+    private final SystemAuditService systemAuditService;
 
     public PasswordService(UserRepositoryPort userRepositoryPort,
                            PasswordEncoder passwordEncoder,
-                           PinValidator pinValidator) {
+                           PinValidator pinValidator,
+                           SystemAuditService systemAuditService) {
         this.userRepositoryPort = userRepositoryPort;
         this.passwordEncoder = passwordEncoder;
         this.pinValidator = pinValidator;
+        this.systemAuditService = systemAuditService;
     }
 
     @Transactional
@@ -31,11 +34,14 @@ public class PasswordService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         if (!passwordEncoder.matches(oldPin, user.getCredentialHash())) {
+            systemAuditService.recordAuditLog(user.getUserId(), user.getSaccoId(), "PIN_ROTATION_FAILED", "USER", "FAILURE", null, "Current PIN validation failed");
             throw new IllegalArgumentException("Current PIN is incorrect.");
         }
 
         user.setCredentialHash(passwordEncoder.encode(newPin));
         user.setStatus(UserStatus.ACTIVE);
         userRepositoryPort.save(user);
+
+        systemAuditService.recordAuditLog(user.getUserId(), user.getSaccoId(), "PIN_ROTATED", "USER", "SUCCESS", null, "User PIN successfully rotated");
     }
 }
