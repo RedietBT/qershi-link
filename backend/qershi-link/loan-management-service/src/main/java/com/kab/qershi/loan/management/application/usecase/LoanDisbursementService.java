@@ -120,4 +120,50 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
 
         return savedAccount;
     }
+
+    @Override
+    @Transactional
+    public LoanAccount approveDisbursement(UUID accountId, UUID checkerUserId) {
+        log.info("Executing Maker-Checker dual control approval for loan account ID: {} by checker: {}", accountId, checkerUserId);
+
+        LoanAccount account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("Loan account not found with ID: " + accountId));
+
+        if (account.getStatus() == LoanStatus.DISBURSED || account.getStatus() == LoanStatus.ACTIVE) {
+            log.info("Loan account {} is already in status {}. Returning account.", account.getAccountNo(), account.getStatus());
+            return account;
+        }
+
+        // Maker-Checker Self-Approval Security Guard
+        if (checkerUserId != null && checkerUserId.equals(account.getUserId())) {
+            throw new IllegalArgumentException("Maker-Checker Guard Violation: Operator who initiated disbursement cannot self-approve disbursement.");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        account.setStatus(LoanStatus.DISBURSED);
+        account.setDisbursementDate(now);
+        account.setUpdatedAt(now);
+
+        LoanAccount savedAccount = accountRepository.save(account);
+
+        // Generate & persist Amortization Repayment Schedule on Checker Approval if not present
+        List<RepaymentSchedule> existingSchedules = scheduleRepository.findByAccountIdOrderByInstallmentNoAsc(savedAccount.getAccountId());
+        if (existingSchedules.isEmpty()) {
+            List<RepaymentSchedule> schedules = amortizationEngine.generateSchedule(
+                    savedAccount.getAccountId(),
+                    savedAccount.getPrincipalAmount(),
+                    savedAccount.getInterestRatePct(),
+                    savedAccount.getTermMonths(),
+                    savedAccount.getRepaymentFrequency(),
+                    savedAccount.getInterestType(),
+                    LocalDate.now()
+            );
+
+            scheduleRepository.saveAll(schedules);
+            log.info("Generated {} schedule installments for account {}", schedules.size(), savedAccount.getAccountNo());
+        }
+
+        log.info("Maker-Checker APPROVED disbursement for Loan Account {}. Status: DISBURSED", savedAccount.getAccountNo());
+        return savedAccount;
+    }
 }

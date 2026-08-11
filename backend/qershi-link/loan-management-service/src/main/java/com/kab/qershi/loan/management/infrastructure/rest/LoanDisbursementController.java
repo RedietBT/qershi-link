@@ -11,6 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+
+import java.util.UUID;
+
 /**
  * REST Controller for Loan Disbursement & Account Activation.
  *
@@ -50,5 +55,29 @@ public class LoanDisbursementController {
 
         LoanAccount account = disbursementUseCase.disburseLoan(command);
         return ResponseEntity.ok(LoanAccountResponse.fromDomain(account));
+    }
+
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('LOAN_DISBURSE_APPROVE', 'LOAN_APPROVE')")
+    @Operation(summary = "Maker-Checker Disbursement Approval", description = "Executes dual-control Checker approval for a loan disbursement. Rejects self-approval attempts.")
+    public ResponseEntity<LoanAccountResponse> approveDisbursement(
+            @PathVariable("id") UUID accountId,
+            Authentication authentication) {
+        UUID checkerUserId = extractCurrentUserId(authentication);
+        LoanAccount account = disbursementUseCase.approveDisbursement(accountId, checkerUserId);
+        return ResponseEntity.ok(LoanAccountResponse.fromDomain(account));
+    }
+
+    private UUID extractCurrentUserId(Authentication auth) {
+        if (auth != null && auth.isAuthenticated()) {
+            Object principal = auth.getPrincipal();
+            if (principal instanceof UUID uuid) {
+                return uuid;
+            }
+            try {
+                return UUID.fromString(principal.toString());
+            } catch (Exception ignored) {}
+        }
+        throw new AccessDeniedException("Operator identity could not be resolved for Maker-Checker approval.");
     }
 }

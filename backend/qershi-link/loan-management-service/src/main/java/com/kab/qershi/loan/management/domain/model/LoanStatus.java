@@ -7,6 +7,7 @@ package com.kab.qershi.loan.management.domain.model;
  * @version 1.0.0
  */
 public enum LoanStatus {
+    PENDING_DISBURSEMENT,
     DISBURSED,
     ACTIVE,
     CLOSED,

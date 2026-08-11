@@ -28,4 +28,6 @@ public interface LoanDisbursementUseCase {
     ) {}
 
     LoanAccount disburseLoan(DisburseCommand command);
+
+    LoanAccount approveDisbursement(UUID accountId, UUID checkerUserId);
 }
