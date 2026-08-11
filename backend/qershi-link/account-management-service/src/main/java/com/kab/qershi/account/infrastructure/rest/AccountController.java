@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -97,16 +98,30 @@ public class AccountController {
         return ResponseEntity.ok(ApiResponse.success(accounts, "Retrieved " + accounts.size() + " accounts."));
     }
 
+    /**
+     * Resolves the authenticated operator's user ID from the JWT security context.
+     * Throws AccessDeniedException if the identity cannot be resolved — this prevents
+     * account operations from being recorded with a random or fabricated operator ID,
+     * which would break the audit trail integrity required by Core Banking standards.
+     *
+     * @param auth The Spring Security Authentication object.
+     * @return UUID The verified operator user ID.
+     * @throws AccessDeniedException if the operator identity cannot be determined.
+     */
     private UUID parseUserId(Authentication auth) {
-        if (auth == null) return UUID.randomUUID();
-        Object principal = auth.getPrincipal();
-        if (principal instanceof UUID) {
-            return (UUID) principal;
+        if (auth != null && auth.isAuthenticated()) {
+            Object principal = auth.getPrincipal();
+            if (principal instanceof UUID uuid) {
+                return uuid;
+            }
+            try {
+                return UUID.fromString(principal.toString());
+            } catch (Exception ignored) {}
         }
-        try {
-            return UUID.fromString(principal.toString());
-        } catch (Exception ex) {
-            return UUID.randomUUID();
-        }
+        // Audit trail integrity guard: refuse the operation rather than record it anonymously.
+        throw new AccessDeniedException(
+            "Operator identity could not be resolved from the authentication token. " +
+            "Account operation aborted to preserve audit trail integrity."
+        );
     }
 }

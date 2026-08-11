@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -65,9 +66,18 @@ public class TransferController {
                 .body(ApiResponse.success(TransactionResponse.fromDomain(tx), "Internal member transfer processed successfully."));
     }
 
+    /**
+     * Resolves the authenticated operator's user ID from the JWT security context.
+     * Throws AccessDeniedException if the identity cannot be resolved — this prevents
+     * fund transfers from being recorded with an anonymous or fabricated operator ID,
+     * which would break the audit trail integrity required by Core Banking standards.
+     *
+     * @return UUID The verified operator user ID.
+     * @throws AccessDeniedException if the operator identity cannot be determined.
+     */
     private UUID extractCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
+        if (auth != null && auth.isAuthenticated()) {
             if (auth.getPrincipal() instanceof UUID uuid) {
                 return uuid;
             }
@@ -80,6 +90,10 @@ public class TransferController {
                 return UUID.fromString(auth.getName());
             } catch (Exception ignored) {}
         }
-        return UUID.fromString("00000000-0000-0000-0000-000000000001");
+        // Audit trail integrity guard: refuse the transfer rather than record it anonymously.
+        throw new AccessDeniedException(
+            "Operator identity could not be resolved from the authentication token. " +
+            "Transfer aborted to preserve audit trail integrity."
+        );
     }
 }
