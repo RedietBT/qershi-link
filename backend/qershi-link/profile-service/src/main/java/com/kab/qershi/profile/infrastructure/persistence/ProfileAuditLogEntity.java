@@ -1,42 +1,35 @@
 package com.kab.qershi.profile.infrastructure.persistence;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
-
-import java.time.Instant;
+import jakarta.persistence.*;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * JPA Entity mapping for profile_audit_logs database table.
+ * JPA Entity mapping sacco_xxx.profile_audit_logs database table.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
 @Entity
 @Table(name = "profile_audit_logs")
-@Getter
-@Setter
 public class ProfileAuditLogEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "log_id", nullable = false, updatable = false)
     private UUID logId;
 
-    @Column(name = "user_id", nullable = false, updatable = false)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "modified_by_user_id", nullable = false, updatable = false)
-    private UUID modifiedByUserId;
+    @Column(name = "performed_by_user_id", nullable = false)
+    private UUID performedByUserId;
 
     @Column(name = "action", nullable = false, length = 100)
     private String action;
 
-    @Column(name = "field_changed", length = 100)
-    private String fieldChanged;
+    @Column(name = "field_name", length = 100)
+    private String fieldName;
 
     @Column(name = "old_value", columnDefinition = "TEXT")
     private String oldValue;
@@ -44,44 +37,91 @@ public class ProfileAuditLogEntity {
     @Column(name = "new_value", columnDefinition = "TEXT")
     private String newValue;
 
-    @Column(name = "timestamp", nullable = false, updatable = false)
-    private Instant timestamp;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now();
+        }
+    }
 
     public ProfileAuditLogEntity() {}
 
-    public ProfileAuditLogEntity(UUID logId, UUID userId, UUID modifiedByUserId, String action,
-                                String fieldChanged, String oldValue, String newValue, Instant timestamp) {
+    public ProfileAuditLogEntity(UUID logId, UUID userId, UUID performedByUserId, String action,
+                                 String fieldName, String oldValue, String newValue, OffsetDateTime createdAt) {
         this.logId = logId;
         this.userId = userId;
-        this.modifiedByUserId = modifiedByUserId;
+        this.performedByUserId = performedByUserId;
         this.action = action;
-        this.fieldChanged = fieldChanged;
+        this.fieldName = fieldName;
         this.oldValue = oldValue;
         this.newValue = newValue;
-        this.timestamp = timestamp;
+        this.createdAt = createdAt;
     }
 
-    public UUID getLogId() { return logId; }
-    public void setLogId(UUID logId) { this.logId = logId; }
+    public UUID getLogId() {
+        return logId;
+    }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setLogId(UUID logId) {
+        this.logId = logId;
+    }
 
-    public UUID getModifiedByUserId() { return modifiedByUserId; }
-    public void setModifiedByUserId(UUID modifiedByUserId) { this.modifiedByUserId = modifiedByUserId; }
+    public UUID getUserId() {
+        return userId;
+    }
 
-    public String getAction() { return action; }
-    public void setAction(String action) { this.action = action; }
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
 
-    public String getFieldChanged() { return fieldChanged; }
-    public void setFieldChanged(String fieldChanged) { this.fieldChanged = fieldChanged; }
+    public UUID getPerformedByUserId() {
+        return performedByUserId;
+    }
 
-    public String getOldValue() { return oldValue; }
-    public void setOldValue(String oldValue) { this.oldValue = oldValue; }
+    public void setPerformedByUserId(UUID performedByUserId) {
+        this.performedByUserId = performedByUserId;
+    }
 
-    public String getNewValue() { return newValue; }
-    public void setNewValue(String newValue) { this.newValue = newValue; }
+    public String getAction() {
+        return action;
+    }
 
-    public Instant getTimestamp() { return timestamp; }
-    public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+    public void setAction(String action) {
+        this.action = action;
+    }
+
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
+    }
+
+    public String getOldValue() {
+        return oldValue;
+    }
+
+    public void setOldValue(String oldValue) {
+        this.oldValue = oldValue;
+    }
+
+    public String getNewValue() {
+        return newValue;
+    }
+
+    public void setNewValue(String newValue) {
+        this.newValue = newValue;
+    }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }

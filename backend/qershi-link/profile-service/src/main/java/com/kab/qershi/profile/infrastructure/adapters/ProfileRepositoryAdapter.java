@@ -255,6 +255,9 @@ public class ProfileRepositoryAdapter implements ProfileRepositoryPort {
 
     private ProfileAuditLogEntity toEntity(ProfileAuditLog domain) {
         if (domain == null) return null;
+        java.time.OffsetDateTime createdAt = domain.getTimestamp() != null
+                ? domain.getTimestamp().atOffset(java.time.ZoneOffset.UTC)
+                : java.time.OffsetDateTime.now();
         return new ProfileAuditLogEntity(
                 domain.getLogId(),
                 domain.getUserId(),
@@ -263,7 +266,7 @@ public class ProfileRepositoryAdapter implements ProfileRepositoryPort {
                 domain.getFieldChanged(),
                 domain.getOldValue(),
                 domain.getNewValue(),
-                domain.getTimestamp()
+                createdAt
         );
     }
 
@@ -272,9 +275,9 @@ public class ProfileRepositoryAdapter implements ProfileRepositoryPort {
         return new ProfileAuditLog(
                 entity.getLogId(),
                 entity.getUserId(),
-                entity.getModifiedByUserId(),
+                entity.getPerformedByUserId(),
                 entity.getAction(),
-                entity.getFieldChanged(),
+                entity.getFieldName(),
                 entity.getOldValue(),
                 entity.getNewValue()
         );
