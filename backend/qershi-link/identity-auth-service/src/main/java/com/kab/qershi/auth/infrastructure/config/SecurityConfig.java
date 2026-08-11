@@ -2,6 +2,8 @@ package com.kab.qershi.auth.infrastructure.config;
 
 import com.kab.qershi.auth.infrastructure.security.JwtAuthenticationFilter;
 import com.kab.qershi.auth.infrastructure.security.JwtTokenProvider;
+import com.kab.qershi.auth.infrastructure.security.RateLimitingFilter;
+import com.kab.qershi.auth.infrastructure.security.TokenBlacklistService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
