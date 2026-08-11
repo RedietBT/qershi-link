@@ -47,6 +47,15 @@
 				<version>${spring-doc.version}</version>
 			</dependency>
 
+			<!-- Force consistent gRPC version across all microservices -->
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-bom</artifactId>
+				<version>1.63.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
 			<!-- PostgreSQL Driver locked for all services -->
 			<dependency>
 				<groupId>org.postgresql</groupId>

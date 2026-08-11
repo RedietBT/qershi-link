@@ -38,7 +38,7 @@ spec:
             - name: JWT_SECRET
               value: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
             - name: AFROMESSAGE_API_KEY
-              value: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoiVFNZTmRnMWNFUHBKOTFRdvA0SmxnaDZKQXVUdnk5cW8iLCJleHAiOjE5NDE0ODAyNjQsImlhdCI6MTc4MzcxMzg2NCwianRpIjoiMjEzZjViM2MtZjg4Ni00ZTE1LWEyOWItNjliYTZiOTJmNjYzIn0.Hles6dcDwf-1vLTfyD8_xWP31rDgx80tknZPoqN6iCs"
+              value: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoiMmZIMjdweTJZampWMWlYNVJxMHhFeGZaZnNjd1UxM2QiLCJleHAiOjE5NDQyNDM4MzQsImlhdCI6MTc4NjQ3NzQzNCwianRpIjoiOTM5Y2MxM2EtNjQ1My00NjBlLWFhMDQtMmViZTVjY2M0ZjZlIn0.JToav9-Hvhg5VjUdFeNtBdceG-UYX0Sx7W1-7ugQTXo"
             - name: AFROMESSAGE_API_URL
               value: "https://api.afromessage.com/api/send"
           resources:
@@ -60,7 +60,7 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8086
-            initialDelaySeconds: 180
+            initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

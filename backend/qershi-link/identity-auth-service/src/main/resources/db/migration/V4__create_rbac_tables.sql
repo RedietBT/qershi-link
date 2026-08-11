@@ -7,7 +7,7 @@
 
 -- 1. Roles — named bundles of permissions
 --    system_defined = TRUE means this role cannot be modified by tenant admins.
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     role_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_name        VARCHAR(50) NOT NULL,
     is_system_defined BOOLEAN    NOT NULL DEFAULT FALSE,
@@ -16,7 +16,7 @@ CREATE TABLE roles (
 
 -- 2. Permissions — atomic capability units (resource + action pairs)
 --    e.g. resource='MEMBER', action='CREATE' → authority string 'MEMBER_CREATE'
-CREATE TABLE permissions (
+CREATE TABLE IF NOT EXISTS permissions (
     permission_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     resource      VARCHAR(50)  NOT NULL,
     action        VARCHAR(50)  NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE permissions (
 );
 
 -- 3. Role → Permission mapping bridge table
-CREATE TABLE role_permissions (
+CREATE TABLE IF NOT EXISTS role_permissions (
     role_id       UUID NOT NULL,
     permission_id UUID NOT NULL,
     PRIMARY KEY (role_id, permission_id),
@@ -40,7 +40,7 @@ CREATE TABLE role_permissions (
 -- 4. User → Role assignment bridge table
 --    sacco_id scopes the role assignment to a specific tenant context.
 --    This is the authoritative source queried by findAuthoritiesByUserIdAndSaccoId.
-CREATE TABLE user_roles (
+CREATE TABLE IF NOT EXISTS user_roles (
     user_id  UUID NOT NULL,
     role_id  UUID NOT NULL,
     sacco_id UUID NOT NULL,

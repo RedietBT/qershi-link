@@ -60,21 +60,20 @@ public class AfroMessageSmsAdapter implements NotificationProviderPort {
         Map<String, String> payload = new HashMap<>();
         payload.put("to", recipientPhone);
         payload.put("message", message);
-        payload.put("sender", "");
 
         HttpEntity<Map<String, String>> request = new HttpEntity<>(payload, headers);
 
         try {
             if (apiUrl != null && !apiUrl.isBlank() && !apiUrl.contains("example.com")) {
                 ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, request, String.class);
-                log.info("SMS notification successfully dispatched via AfroMessage gateway");
+                log.info("SMS notification dispatched via AfroMessage gateway to {}. Response: {}", recipientPhone, response.getBody());
                 return response.getBody() != null ? response.getBody() : "{\"status\":\"SUCCESS\"}";
             } else {
                 log.warn("AfroMessage API URL unconfigured. SMS notification simulated.");
                 return "{\"status\":\"SIMULATED_UNCONFIGURED\",\"detail\":\"AfroMessage URL missing\"}";
             }
         } catch (Exception e) {
-            log.error("Failed to send SMS notification via AfroMessage: {}", e.getMessage());
+            log.error("Failed to send SMS notification via AfroMessage to {}: {}", recipientPhone, e.getMessage());
             return "{\"status\":\"ERROR\",\"error\":\"" + e.getMessage() + "\"}";
         }
     }

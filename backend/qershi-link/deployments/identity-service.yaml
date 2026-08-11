@@ -32,6 +32,28 @@ spec:
               value: "redis-service"
             - name: SPRING_DATA_REDIS_PORT
               value: "6379"
+            - name: GRPC_CLIENT_NOTIFICATION_SERVICE_ADDRESS
+              value: "static://notification-service:9086"
+            - name: AFROMESSAGE_API_KEY
+              value: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoiMmZIMjdweTJZampWMWlYNVJxMHhFeGZaZnNjd1UxM2QiLCJleHAiOjE5NDQyNDM4MzQsImlhdCI6MTc4NjQ3NzQzNCwianRpIjoiOTM5Y2MxM2EtNjQ1My00NjBlLWFhMDQtMmViZTVjY2M0ZjZlIn0.JToav9-Hvhg5VjUdFeNtBdceG-UYX0Sx7W1-7ugQTXo"
+            - name: AFROMESSAGE_API_URL
+              value: "https://api.afromessage.com/api/send"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 180
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
 ---
 apiVersion: v1
 kind: Service

@@ -6,7 +6,7 @@
 
 -- 1. SACCO Registry — the tenant directory
 --    Every user, every role assignment, every schema belongs to a SACCO entry.
-CREATE TABLE sacco_registry (
+CREATE TABLE IF NOT EXISTS sacco_registry (
     sacco_id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     parent_union_id      UUID,
     sacco_name           VARCHAR(255) NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE sacco_registry (
 -- 2. Global User Identity Table
 --    Stores authentication credentials and global role for every user in the system.
 --    Demographic profile data lives in the separate profile-service.
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     msisdn               VARCHAR(15)  NOT NULL UNIQUE,
     sacco_id             UUID         NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE users (
 
 -- 3. Session Refresh Token Store
 --    Tracks active JWT refresh sessions per user.
-CREATE TABLE refresh_tokens (
+CREATE TABLE IF NOT EXISTS refresh_tokens (
     token_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id     UUID         NOT NULL,
     token_value TEXT         NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE refresh_tokens (
 
 -- 4. Audit Trail Log
 --    Records key security and administrative actions for compliance.
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
     log_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id           UUID,
     action            VARCHAR(255) NOT NULL,

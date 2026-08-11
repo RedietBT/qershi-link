@@ -6,31 +6,46 @@
 
 -- User account lifecycle states
 -- PASSWORD_CHANGE_REQUIRED: forces a PIN rotation on first login
-CREATE TYPE master_schema_user_status AS ENUM (
-    'PENDING',
-    'PENDING_APPROVAL',
-    'PENDING_SHARE',
-    'PASSWORD_CHANGE_REQUIRED',
-    'ACTIVE',
-    'BLOCKED',
-    'DEACTIVATED'
-);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'master_schema_user_status') THEN
+        CREATE TYPE master_schema_user_status AS ENUM (
+            'PENDING',
+            'PENDING_APPROVAL',
+            'PENDING_SHARE',
+            'PASSWORD_CHANGE_REQUIRED',
+            'ACTIVE',
+            'BLOCKED',
+            'DEACTIVATED'
+        );
+    END IF;
+END $$;
 
 -- Global platform role identifiers (system-wide, not tenant-scoped)
-CREATE TYPE master_schema_global_role AS ENUM (
-    'SUPER_ADMIN',
-    'SACCO_ADMIN',
-    'UNION_ADMIN',
-    'SACCO_USER',
-    'TELLER',
-    'MEMBER'
-);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'master_schema_global_role') THEN
+        CREATE TYPE master_schema_global_role AS ENUM (
+            'SUPER_ADMIN',
+            'SACCO_ADMIN',
+            'UNION_ADMIN',
+            'SACCO_USER',
+            'TELLER',
+            'MEMBER'
+        );
+    END IF;
+END $$;
 
 -- SACCO workspace lifecycle states
-CREATE TYPE master_schema_sacco_status AS ENUM (
-    'PENDING_SETUP',
-    'PENDING',
-    'ACTIVE',
-    'SUSPENDED',
-    'INACTIVE'
-);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'master_schema_sacco_status') THEN
+        CREATE TYPE master_schema_sacco_status AS ENUM (
+            'PENDING_SETUP',
+            'PENDING',
+            'ACTIVE',
+            'SUSPENDED',
+            'INACTIVE'
+        );
+    END IF;
+END $$;
