@@ -9,6 +9,7 @@ import com.kab.qershi.auth.infrastructure.persistence.SpringDataUserRepository;
 import com.kab.qershi.auth.infrastructure.persistence.UserEntity;
 import com.kab.qershi.auth.infrastructure.rest.dto.CreateUserRequest;
 import com.kab.qershi.auth.infrastructure.rest.dto.UpdateUserRequest;
+import com.kab.qershi.auth.infrastructure.rest.dto.UserResponse;
 import com.kab.qershi.auth.infrastructure.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -65,27 +66,35 @@ public class UserController {
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
     @Operation(summary = "Fetch user accounts", description = "Retrieves user accounts. SUPER_ADMIN can view all platform users or filter by saccoId. SACCO_ADMIN is automatically restricted to users within their SACCO via JWT claims.")
-    public ResponseEntity<List<UserEntity>> getAllUsers(
+    public ResponseEntity<List<UserResponse>> getAllUsers(
             @RequestParam(required = false) UUID saccoId,
             Authentication authentication) {
 
+        List<UserEntity> users;
         if (SecurityUtils.isSuperAdmin(authentication)) {
             if (saccoId != null) {
                 log.info("SUPER_ADMIN retrieving user accounts for SACCO: {}", saccoId);
-                return ResponseEntity.ok(userRepository.findBySaccoId(saccoId));
+                users = userRepository.findBySaccoId(saccoId);
+            } else {
+                log.info("SUPER_ADMIN retrieving all user accounts across platform");
+                users = userRepository.findAll();
             }
-            log.info("SUPER_ADMIN retrieving all user accounts across platform");
-            return ResponseEntity.ok(userRepository.findAll());
+        } else {
+            // SACCO_ADMIN or tenant user: MUST use saccoId extracted from their JWT token
+            UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
+            if (tenantSaccoId == null) {
+                log.warn("Forbidden attempt to fetch users: SACCO_ADMIN token missing saccoId claim");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            log.info("Tenant admin retrieving user accounts scoped to SACCO: {}", tenantSaccoId);
+            users = userRepository.findBySaccoId(tenantSaccoId);
         }
 
-        // SACCO_ADMIN or tenant user: MUST use saccoId extracted from their JWT token
-        UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
-        if (tenantSaccoId == null) {
-            log.warn("Forbidden attempt to fetch users: SACCO_ADMIN token missing saccoId claim");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        log.info("Tenant admin retrieving user accounts scoped to SACCO: {}", tenantSaccoId);
-        return ResponseEntity.ok(userRepository.findBySaccoId(tenantSaccoId));
+        List<UserResponse> response = users.stream()
+                .map(UserResponse::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
@@ -142,7 +151,7 @@ public class UserController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
     @Operation(summary = "Get user account details by ID", description = "SUPER_ADMIN can access any user. SACCO_ADMIN is restricted to users within their SACCO.")
-    public ResponseEntity<UserEntity> getUserById(@PathVariable UUID id, Authentication authentication) {
+    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id, Authentication authentication) {
         Optional<UserEntity> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -157,13 +166,13 @@ public class UserController {
             }
         }
 
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
     @Operation(summary = "Update user security parameters", description = "Updates mobile phone registration handles and status switches dynamically.")
-    public ResponseEntity<UserEntity> updateUser(
+    public ResponseEntity<UserResponse> updateUser(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateUserRequest request,
             Authentication authentication) {
@@ -186,7 +195,7 @@ public class UserController {
         userEntity.setStatus(request.status());
 
         UserEntity savedEntity = userRepository.save(userEntity);
-        return ResponseEntity.ok(savedEntity);
+        return ResponseEntity.ok(UserResponse.fromEntity(savedEntity));
     }
 
     @DeleteMapping("/{id}")

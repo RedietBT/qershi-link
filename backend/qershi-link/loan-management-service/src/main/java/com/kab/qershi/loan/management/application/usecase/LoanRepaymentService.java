@@ -74,8 +74,8 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
 
         // Generate unique transaction reference
         String datePrefix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        int randomSuffix = ThreadLocalRandom.current().nextInt(10000, 99999);
-        String txRef = "TXN-PMT-" + datePrefix + "-" + randomSuffix;
+        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String txRef = "TXN-PMT-" + datePrefix + "-" + uniqueSuffix;
 
         OffsetDateTime now = OffsetDateTime.now();
 

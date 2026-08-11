@@ -59,10 +59,10 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
                     throw new IllegalStateException("Loan application " + command.applicationId() + " is already disbursed under Account No: " + existing.getAccountNo());
                 });
 
-        // 2. Generate unique loan account number: LN-YYYYMMDD-XXXXXX
+        // 2. Generate unique loan account number: LN-YYYYMMDD-XXXXXXXX
         String datePrefix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        int randomSuffix = ThreadLocalRandom.current().nextInt(100000, 999999);
-        String accountNo = "LN-" + datePrefix + "-" + randomSuffix;
+        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String accountNo = "LN-" + datePrefix + "-" + uniqueSuffix;
 
         OffsetDateTime now = OffsetDateTime.now();
 

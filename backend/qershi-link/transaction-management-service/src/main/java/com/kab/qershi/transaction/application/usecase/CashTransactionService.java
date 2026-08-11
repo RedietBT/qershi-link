@@ -230,7 +230,7 @@ public class CashTransactionService implements CashTransactionUseCase {
 
     private String generateTransactionRef(String prefix) {
         String dateStr = DATE_FORMATTER.format(Instant.now());
-        int randomNum = ThreadLocalRandom.current().nextInt(100000, 999999);
-        return "TX-" + prefix + "-" + dateStr + "-" + randomNum;
+        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        return "TX-" + prefix + "-" + dateStr + "-" + uniqueSuffix;
     }
 }
