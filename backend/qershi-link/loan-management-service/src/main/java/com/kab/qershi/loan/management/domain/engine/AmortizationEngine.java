@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.stereotype.Component;
+
 /**
  * Pure Domain Amortization Engine calculating repayment schedules dynamically for
  * REDUCING_BALANCE, FLAT_RATE, and BULLET interest strategies across all frequency units
@@ -19,6 +21,7 @@ import java.util.UUID;
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
+@Component
 public class AmortizationEngine {
 
     public List<RepaymentSchedule> generateSchedule(UUID accountId, BigDecimal principal, BigDecimal annualInterestRatePct,

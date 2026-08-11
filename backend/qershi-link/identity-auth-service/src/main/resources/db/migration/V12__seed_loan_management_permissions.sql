@@ -19,9 +19,10 @@ INSERT INTO role_permissions (role_id, permission_id) VALUES
     ('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f', '018f3b23-9999-7c3d-be4f-000000000042')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- 3. Assign Loan Management Permissions to SACCO_ADMIN Role
+-- 3. Assign Loan Management Permissions to SUPER_ADMIN Role
 INSERT INTO role_permissions (role_id, permission_id) VALUES
-    ('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e10', '018f3b23-9999-7c3d-be4f-000000000040'),
-    ('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e10', '018f3b23-9999-7c3d-be4f-000000000041'),
-    ('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e10', '018f3b23-9999-7c3d-be4f-000000000042')
+    ('b0e1f3a2-4c5d-6e7f-8a9b-0c1d2e3f4a5b', '018f3b23-9999-7c3d-be4f-000000000040'),
+    ('b0e1f3a2-4c5d-6e7f-8a9b-0c1d2e3f4a5b', '018f3b23-9999-7c3d-be4f-000000000041'),
+    ('b0e1f3a2-4c5d-6e7f-8a9b-0c1d2e3f4a5b', '018f3b23-9999-7c3d-be4f-000000000042')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
+

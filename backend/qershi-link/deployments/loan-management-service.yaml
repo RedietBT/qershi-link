@@ -37,6 +37,10 @@ spec:
               value: "static://notification-service:9086"
             - name: GRPC_CLIENT_ACCOUNT_SERVICE_ADDRESS
               value: "static://account-management-service:9082"
+            - name: SPRING_DATA_REDIS_HOST
+              value: "redis-service"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
           resources:
             requests:
               memory: "256Mi"
@@ -48,14 +52,14 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8085
-            initialDelaySeconds: 40
+            initialDelaySeconds: 180
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8085
-            initialDelaySeconds: 90
+            initialDelaySeconds: 300
             periodSeconds: 15
             timeoutSeconds: 5
 ---
