@@ -23,7 +23,8 @@ public interface LoanDisbursementUseCase {
             String repaymentFrequency,
             String interestType,
             UUID targetSavingsAccountId,
-            String memberPhone
+            String memberPhone,
+            String idempotencyKey
     ) {}
 
     LoanAccount disburseLoan(DisburseCommand command);

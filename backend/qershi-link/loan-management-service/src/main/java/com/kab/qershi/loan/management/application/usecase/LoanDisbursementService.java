@@ -19,11 +19,11 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Business logic service managing Loan Account Activation & Amortization Schedule Generation upon Disbursement.
+ * Business logic service managing Loan Disbursement & Account Activation.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -35,29 +35,32 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
 
     private final LoanAccountRepositoryPort accountRepository;
     private final RepaymentScheduleRepositoryPort scheduleRepository;
-    private final NotificationGrpcClientAdapter notificationAdapter;
     private final AmortizationEngine amortizationEngine;
+    private final NotificationGrpcClientAdapter notificationAdapter;
 
     public LoanDisbursementService(LoanAccountRepositoryPort accountRepository,
                                    RepaymentScheduleRepositoryPort scheduleRepository,
+                                   AmortizationEngine amortizationEngine,
                                    NotificationGrpcClientAdapter notificationAdapter) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
+        this.amortizationEngine = amortizationEngine;
         this.notificationAdapter = notificationAdapter;
-        this.amortizationEngine = new AmortizationEngine();
     }
 
     @Override
     @Transactional
     public LoanAccount disburseLoan(DisburseCommand command) {
-        log.info("Processing loan disbursement for application ID: {}, User ID: {}, Amount: {}",
-                command.applicationId(), command.userId(), command.amount());
+        log.info("Processing loan disbursement for application ID: {}, User ID: {}, Amount: {}, IdempotencyKey: {}",
+                command.applicationId(), command.userId(), command.amount(), command.idempotencyKey());
 
-        // 1. Guard against duplicate disbursement
-        accountRepository.findByApplicationId(command.applicationId())
-                .ifPresent(existing -> {
-                    throw new IllegalStateException("Loan application " + command.applicationId() + " is already disbursed under Account No: " + existing.getAccountNo());
-                });
+        // 1. Idempotency Check: Return existing account if application was already disbursed
+        Optional<LoanAccount> existing = accountRepository.findByApplicationId(command.applicationId());
+        if (existing.isPresent()) {
+            log.info("Idempotent disbursement request detected for application ID {}. Returning existing account {}",
+                    command.applicationId(), existing.get().getAccountNo());
+            return existing.get();
+        }
 
         // 2. Generate unique loan account number: LN-YYYYMMDD-XXXXXXXX
         String datePrefix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));

@@ -31,7 +31,9 @@ public class LoanDisbursementController {
     @PostMapping
     @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_ADMIN', 'LOAN_DISBURSE:PROCESS', 'LOAN_DISBURSE_PROCESS')")
     @Operation(summary = "Disburse Loan Application", description = "Activates loan account and generates amortization schedule for an approved loan application")
-    public ResponseEntity<LoanAccountResponse> disburseLoan(@Valid @RequestBody DisburseLoanRequest request) {
+    public ResponseEntity<LoanAccountResponse> disburseLoan(
+            @Valid @RequestBody DisburseLoanRequest request,
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
         LoanDisbursementUseCase.DisburseCommand command = new LoanDisbursementUseCase.DisburseCommand(
                 request.applicationId(),
                 request.userId(),
@@ -42,7 +44,8 @@ public class LoanDisbursementController {
                 request.repaymentFrequency(),
                 request.interestType(),
                 request.targetSavingsAccountId(),
-                request.memberPhone()
+                request.memberPhone(),
+                idempotencyKey
         );
 
         LoanAccount account = disbursementUseCase.disburseLoan(command);
