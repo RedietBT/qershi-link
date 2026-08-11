@@ -8,6 +8,8 @@ import com.kab.qershi.loan.management.domain.port.in.LoanDisbursementUseCase;
 import com.kab.qershi.loan.management.domain.port.out.LoanAccountRepositoryPort;
 import com.kab.qershi.loan.management.domain.port.out.RepaymentScheduleRepositoryPort;
 import com.kab.qershi.loan.management.infrastructure.adapters.NotificationGrpcClientAdapter;
+import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAuditLogEntity;
+import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAuditLogRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -37,15 +39,18 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
     private final RepaymentScheduleRepositoryPort scheduleRepository;
     private final AmortizationEngine amortizationEngine;
     private final NotificationGrpcClientAdapter notificationAdapter;
+    private final SpringDataLoanAuditLogRepository auditLogRepository;
 
     public LoanDisbursementService(LoanAccountRepositoryPort accountRepository,
                                    RepaymentScheduleRepositoryPort scheduleRepository,
                                    AmortizationEngine amortizationEngine,
-                                   NotificationGrpcClientAdapter notificationAdapter) {
+                                   NotificationGrpcClientAdapter notificationAdapter,
+                                   SpringDataLoanAuditLogRepository auditLogRepository) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.amortizationEngine = amortizationEngine;
         this.notificationAdapter = notificationAdapter;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @Override
@@ -88,6 +93,22 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
         );
 
         LoanAccount savedAccount = accountRepository.save(account);
+
+        try {
+            auditLogRepository.save(new LoanAuditLogEntity(
+                    null,
+                    savedAccount.getAccountNo(),
+                    savedAccount.getUserId(),
+                    command.userId(),
+                    "LOAN_DISBURSEMENT_INITIATED",
+                    "status",
+                    null,
+                    savedAccount.getStatus().name(),
+                    OffsetDateTime.now()
+            ));
+        } catch (Exception ex) {
+            log.warn("Failed writing loan disbursement audit log: {}", ex.getMessage());
+        }
 
         // 4. Generate & persist Amortization Repayment Schedule
         List<RepaymentSchedule> schedules = amortizationEngine.generateSchedule(
@@ -145,6 +166,22 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
         account.setUpdatedAt(now);
 
         LoanAccount savedAccount = accountRepository.save(account);
+
+        try {
+            auditLogRepository.save(new LoanAuditLogEntity(
+                    null,
+                    savedAccount.getAccountNo(),
+                    savedAccount.getUserId(),
+                    checkerUserId != null ? checkerUserId : savedAccount.getUserId(),
+                    "LOAN_DISBURSEMENT_APPROVED",
+                    "status",
+                    LoanStatus.PENDING_DISBURSEMENT.name(),
+                    LoanStatus.DISBURSED.name(),
+                    OffsetDateTime.now()
+            ));
+        } catch (Exception ex) {
+            log.warn("Failed writing loan approval audit log: {}", ex.getMessage());
+        }
 
         // Generate & persist Amortization Repayment Schedule on Checker Approval if not present
         List<RepaymentSchedule> existingSchedules = scheduleRepository.findByAccountIdOrderByInstallmentNoAsc(savedAccount.getAccountId());
