@@ -36,7 +36,8 @@ public class LoanRepaymentController {
                 request.accountId(),
                 request.amountPaid(),
                 request.paymentChannel(),
-                request.remarks()
+                request.remarks(),
+                request.memberPhone()
         );
 
         LoanRepayment repayment = repaymentUseCase.processRepayment(command);

@@ -101,15 +101,19 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
 
         log.info("Disbursed Loan Account {} with {} repayment installments", savedAccount.getAccountNo(), schedules.size());
 
-        // 5. Trigger SMS Notification via gRPC
-        notificationAdapter.sendNotification(
-                "0911000000", // Fallback member phone placeholder
-                "LOAN_DISBURSED",
-                Map.of(
-                        "accountNo", savedAccount.getAccountNo(),
-                        "amount", savedAccount.getPrincipalAmount().toPlainString()
-                )
-        );
+        // 5. Trigger SMS Notification via gRPC — send to the actual member's phone
+        if (command.memberPhone() != null && !command.memberPhone().isBlank()) {
+            notificationAdapter.sendNotification(
+                    command.memberPhone(),
+                    "LOAN_DISBURSED",
+                    Map.of(
+                            "accountNo", savedAccount.getAccountNo(),
+                            "amount", savedAccount.getPrincipalAmount().toPlainString()
+                    )
+            );
+        } else {
+            log.warn("Loan disbursement SMS skipped: memberPhone not provided for account {}", savedAccount.getAccountNo());
+        }
 
         return savedAccount;
     }

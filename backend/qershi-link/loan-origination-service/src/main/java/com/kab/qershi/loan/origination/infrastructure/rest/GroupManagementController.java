@@ -37,7 +37,7 @@ public class GroupManagementController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN', 'LOAN_GROUP_MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('LOAN_GROUP_MANAGE')")
     @Operation(summary = "Create Borrowing Group", description = "Onboards a formal or informal borrowing group with at least 2 members")
     public ResponseEntity<GroupResponse> createGroup(@Valid @RequestBody CreateGroupRequest request) {
         CreateGroupCommand command = new CreateGroupCommand(
@@ -53,7 +53,7 @@ public class GroupManagementController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN', 'LOAN_GROUP_MANAGE', 'LOAN_APPLICATION_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('LOAN_GROUP_MANAGE', 'LOAN_APPLICATION_VIEW')")
     @Operation(summary = "Get Borrowing Group by ID", description = "Retrieves group roster and details by group UUID")
     public ResponseEntity<GroupResponse> getGroupById(@PathVariable("id") UUID groupId) {
         LoanGroup group = groupManagementUseCase.getGroupById(groupId);
@@ -61,7 +61,7 @@ public class GroupManagementController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN', 'LOAN_GROUP_MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('LOAN_GROUP_MANAGE')")
     @Operation(summary = "List Borrowing Groups", description = "Lists all registered borrowing groups within active tenant schema")
     public ResponseEntity<List<GroupResponse>> listGroups() {
         List<GroupResponse> response = groupManagementUseCase.listGroups().stream()

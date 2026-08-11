@@ -41,7 +41,8 @@ public class LoanDisbursementController {
                 request.termMonths(),
                 request.repaymentFrequency(),
                 request.interestType(),
-                request.targetSavingsAccountId()
+                request.targetSavingsAccountId(),
+                request.memberPhone()
         );
 
         LoanAccount account = disbursementUseCase.disburseLoan(command);

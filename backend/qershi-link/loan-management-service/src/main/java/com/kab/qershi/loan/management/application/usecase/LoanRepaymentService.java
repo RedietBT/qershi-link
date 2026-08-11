@@ -108,16 +108,20 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
             accountRepository.save(account);
         }
 
-        // Trigger SMS Confirmation Notification
-        notificationAdapter.sendNotification(
-                "0911000000",
-                "LOAN_REPAYMENT_CONFIRMATION",
-                Map.of(
-                        "accountNo", account.getAccountNo(),
-                        "amount", command.amount().toPlainString(),
-                        "txRef", txRef
-                )
-        );
+        // Trigger SMS Confirmation Notification — send to the actual member's phone
+        if (command.memberPhone() != null && !command.memberPhone().isBlank()) {
+            notificationAdapter.sendNotification(
+                    command.memberPhone(),
+                    "LOAN_REPAYMENT_CONFIRMATION",
+                    Map.of(
+                            "accountNo", account.getAccountNo(),
+                            "amount", command.amount().toPlainString(),
+                            "txRef", txRef
+                    )
+            );
+        } else {
+            log.warn("Repayment SMS skipped: memberPhone not provided for account {}", account.getAccountNo());
+        }
 
         return savedRepayment;
     }

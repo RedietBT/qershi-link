@@ -2,6 +2,7 @@ package com.kab.qershi.loan.management.infrastructure.rest.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -22,5 +23,8 @@ public record ProcessRepaymentRequest(
 
         String paymentChannel,
 
-        String remarks
+        String remarks,
+
+        @Pattern(regexp = "^\\+?[0-9]{9,15}$", message = "Member phone number must be a valid phone number")
+        String memberPhone
 ) {}

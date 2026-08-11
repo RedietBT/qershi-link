@@ -17,7 +17,8 @@ public interface LoanRepaymentUseCase {
             UUID accountId,
             BigDecimal amount,
             String paymentChannel,
-            String remarks
+            String remarks,
+            String memberPhone
     ) {}
 
     LoanRepayment processRepayment(RepaymentCommand command);

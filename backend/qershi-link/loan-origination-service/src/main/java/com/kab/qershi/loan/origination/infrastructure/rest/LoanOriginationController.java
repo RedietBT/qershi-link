@@ -44,7 +44,7 @@ public class LoanOriginationController {
     }
 
     @PostMapping("/apply")
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN', 'LOAN_APPLICATION_CREATE', 'LOAN_REQUEST_CREATE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('LOAN_APPLICATION_CREATE', 'LOAN_REQUEST_CREATE')")
     @Operation(summary = "Submit Loan Application", description = "Submits individual or group loan application and triggers automated multi-factor credit scoring")
     public ResponseEntity<LoanApplicationResponse> submitApplication(@Valid @RequestBody LoanApplicationRequest request) {
         SubmitApplicationCommand command = new SubmitApplicationCommand(
@@ -65,7 +65,7 @@ public class LoanOriginationController {
     }
 
     @GetMapping("/applications/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN', 'LOAN_APPLICATION_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('LOAN_APPLICATION_VIEW')")
     @Operation(summary = "Get Application by ID", description = "Retrieves loan application, credit scoring, collateral, and approval audit trail")
     public ResponseEntity<LoanApplicationResponse> getApplicationById(@PathVariable("id") UUID applicationId) {
         LoanApplication application = loanApplicationUseCase.getApplicationById(applicationId);
@@ -73,7 +73,7 @@ public class LoanOriginationController {
     }
 
     @GetMapping("/applications/user/{userId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN', 'LOAN_APPLICATION_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('LOAN_APPLICATION_VIEW')")
     @Operation(summary = "List User Applications", description = "Retrieves all loan applications submitted by a specific borrower user ID")
     public ResponseEntity<List<LoanApplicationResponse>> listApplicationsForUser(@PathVariable("userId") UUID userId) {
         List<LoanApplicationResponse> response = loanApplicationUseCase.listApplicationsForUser(userId).stream()
@@ -83,7 +83,7 @@ public class LoanOriginationController {
     }
 
     @PatchMapping("/approve/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN', 'LOAN_APPLICATION_APPROVE', 'LOAN_APPROVE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('LOAN_APPLICATION_APPROVE', 'LOAN_APPROVE')")
     @Operation(summary = "Maker-Checker Final Approval", description = "Executes dual-control decision (APPROVE/REJECT). Rejects self-approval attempts by applicant (403 Forbidden).")
     public ResponseEntity<LoanApplicationResponse> processApproval(@PathVariable("id") UUID applicationId,
                                                                    @Valid @RequestBody ApprovalRequest request,
