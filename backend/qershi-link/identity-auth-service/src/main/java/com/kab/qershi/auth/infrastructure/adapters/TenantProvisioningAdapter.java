@@ -537,6 +537,7 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "('CASH',             'DEPOSIT',      'Authority to process over-the-counter cash deposits.'), " +
                 "('SAVINGS',          'WITHDRAW',     'Authority to process savings withdrawal requests.'), " +
                 "('REPORT',           'VIEW_ALL',     'Authority to run and view overall SACCO financial reports.'), " +
+                "('AUDIT_LOG',        'VIEW',         'Authority to inspect security and core banking audit trail logs.'), " +
                 "('SACCO',            'ATTACH',       'Authority to link external core modules or sub-entities.'), " +
                 "('USER',             'VIEW_ALL',     'Authority to list and view all user security accounts.') " +
                 "ON CONFLICT (resource, action) DO NOTHING");
