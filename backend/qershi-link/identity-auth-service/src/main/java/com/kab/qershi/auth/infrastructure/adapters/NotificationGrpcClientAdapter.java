@@ -43,15 +43,19 @@ public class NotificationGrpcClientAdapter implements MessagingPort {
             String tenantSchema = TenantContext.getTenantSchema();
             log.info("Dispatching SMS via gRPC to notification-service for schema: {}", tenantSchema);
 
-            SendSmsProtoRequest request = SendSmsProtoRequest.newBuilder()
+            SendSmsProtoRequest.Builder requestBuilder = SendSmsProtoRequest.newBuilder()
                     .setTenantSchema(tenantSchema != null ? tenantSchema : "master_schema")
                     .setRecipientPhone(msisdn)
-                    .setRawMessage(message != null ? message : "")
-                    .setTemplateCode("OTP_CODE")
-                    .putParameters("otpCode", extractOtpCode(message))
-                    .build();
+                    .setRawMessage(message != null ? message : "");
 
-            SendSmsProtoResponse response = notificationStub.sendSmsNotification(request);
+            if (message != null && message.contains("Super Admin PIN")) {
+                requestBuilder.setTemplateCode("OTP_CODE")
+                              .putParameters("otpCode", extractOtpCode(message));
+            } else {
+                requestBuilder.setTemplateCode("");
+            }
+
+            SendSmsProtoResponse response = notificationStub.sendSmsNotification(requestBuilder.build());
             if (response.getSuccess()) {
                 log.info("Successfully dispatched SMS via gRPC notification-service. Log ID: {}", response.getLogId());
             } else {
