@@ -39,6 +39,7 @@ public class AccountOpeningService implements AccountOpeningUseCase {
     private final com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
     private final SpringDataAccountAuditLogRepository auditLogRepository;
     private final com.kab.qershi.account.infrastructure.persistence.SpringDataSaccoConfigRepository saccoConfigRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public AccountOpeningService(AccountRepositoryPort accountRepositoryPort,
                                  ProductRepositoryPort productRepositoryPort,
@@ -46,7 +47,8 @@ public class AccountOpeningService implements AccountOpeningUseCase {
                                  AccountNumberGenerator accountNumberGenerator,
                                  com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
                                  SpringDataAccountAuditLogRepository auditLogRepository,
-                                 com.kab.qershi.account.infrastructure.persistence.SpringDataSaccoConfigRepository saccoConfigRepository) {
+                                 com.kab.qershi.account.infrastructure.persistence.SpringDataSaccoConfigRepository saccoConfigRepository,
+                                 org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
         this.accountRepositoryPort = accountRepositoryPort;
         this.productRepositoryPort = productRepositoryPort;
         this.profileValidationPort = profileValidationPort;
@@ -54,6 +56,7 @@ public class AccountOpeningService implements AccountOpeningUseCase {
         this.notificationAdapter = notificationAdapter;
         this.auditLogRepository = auditLogRepository;
         this.saccoConfigRepository = saccoConfigRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -154,7 +157,46 @@ public class AccountOpeningService implements AccountOpeningUseCase {
         try {
             AccountProduct product = productRepositoryPort.findByProductCode(approved.getProductCode()).orElse(null);
             String prodName = product != null ? product.getProductName() : approved.getProductCode();
-            notificationAdapter.sendAccountOpenedNotification("", "Member " + approved.getUserId().toString().substring(0, 8), approved.getAccountNo(), prodName);
+
+            // Fetch member phone number (msisdn) from master_schema.users
+            String recipientPhone = null;
+            try {
+                recipientPhone = jdbcTemplate.queryForObject(
+                        "SELECT msisdn FROM master_schema.users WHERE user_id = ?",
+                        String.class,
+                        approved.getUserId()
+                );
+            } catch (Exception ex) {
+                org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Could not resolve msisdn for user {}: {}", approved.getUserId(), ex.getMessage());
+            }
+
+            // Fetch member full name from member_profiles
+            String memberName = "Valued Member";
+            try {
+                String fullName = jdbcTemplate.queryForObject(
+                        "SELECT CONCAT(first_name, ' ', last_name) FROM member_profiles WHERE user_id = ?",
+                        String.class,
+                        approved.getUserId()
+                );
+                if (fullName != null && !fullName.isBlank()) {
+                    memberName = fullName.trim();
+                }
+            } catch (Exception ignored) {}
+
+            // Fetch SACCO Name from sacco_configs
+            String saccoName = "SACCO";
+            try {
+                com.kab.qershi.account.infrastructure.persistence.SaccoConfigEntity saccoConfig = saccoConfigRepository.findFirstByOrderByCreatedAtAsc().orElse(null);
+                if (saccoConfig != null && saccoConfig.getSaccoName() != null && !saccoConfig.getSaccoName().isBlank()) {
+                    saccoName = saccoConfig.getSaccoName().trim();
+                }
+            } catch (Exception ignored) {}
+
+            if (recipientPhone != null && !recipientPhone.isBlank()) {
+                notificationAdapter.sendAccountOpenedNotification(recipientPhone, memberName, approved.getAccountNo(), prodName, saccoName);
+            } else {
+                org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Skipping account opening SMS dispatch for user {}: Recipient phone number not found.", approved.getUserId());
+            }
         } catch (Exception ex) {
             org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Failed dispatching account opened SMS: {}", ex.getMessage());
         }

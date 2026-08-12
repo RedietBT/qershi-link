@@ -26,7 +26,7 @@ public class NotificationGrpcClientAdapter {
     @GrpcClient("notification-service")
     private NotificationGrpcServiceGrpc.NotificationGrpcServiceBlockingStub notificationStub;
 
-    public void sendAccountOpenedNotification(String recipientPhone, String memberName, String accountNo, String productName) {
+    public void sendAccountOpenedNotification(String recipientPhone, String memberName, String accountNo, String productName, String saccoName) {
         if (recipientPhone == null || recipientPhone.isBlank()) {
             log.warn("Cannot dispatch account opened SMS: Recipient phone is null or blank.");
             return;
@@ -40,6 +40,7 @@ public class NotificationGrpcClientAdapter {
             params.put("memberName", memberName != null ? memberName : "Valued Member");
             params.put("accountNo", accountNo);
             params.put("productName", productName != null ? productName : "Deposit Account");
+            params.put("saccoName", saccoName != null && !saccoName.isBlank() ? saccoName : "SACCO");
 
             SendSmsProtoRequest request = SendSmsProtoRequest.newBuilder()
                     .setTenantSchema(tenantSchema != null ? tenantSchema : "master_schema")
