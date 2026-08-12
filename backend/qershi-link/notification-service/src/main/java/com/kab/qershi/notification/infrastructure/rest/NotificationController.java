@@ -42,6 +42,7 @@ public class NotificationController {
     }
 
     @PostMapping("/sms/send")
+    @PreAuthorize("hasAnyAuthority('NOTIFICATION_SEND', 'CASH_DEPOSIT', 'SAVINGS_WITHDRAW', 'TRANSACTION_TRANSFER', 'ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN')")
     @Operation(summary = "Send SMS Notification", description = "Dispatches direct text or templated SMS to a member phone number.")
     public ResponseEntity<NotificationResponse> sendSms(@Valid @RequestBody SendSmsRequest dto) {
         NotificationLog resultLog;
