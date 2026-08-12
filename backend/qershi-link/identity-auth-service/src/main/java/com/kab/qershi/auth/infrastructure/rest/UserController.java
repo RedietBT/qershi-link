@@ -102,16 +102,20 @@ public class UserController {
     @Operation(summary = "Register a new user", description = "Creates a new user account within a specific SACCO and dispatches an initial PIN via SMS.")
     public ResponseEntity<String> createUser(@Valid @RequestBody CreateUserRequest request, Authentication authentication) {
         
-        // Enforce tenant boundary for SACCO_ADMIN creates
+        UUID targetSaccoId;
         if (!SecurityUtils.isSuperAdmin(authentication)) {
-            UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
-            if (tenantSaccoId != null && !tenantSaccoId.equals(request.saccoId())) {
-                log.warn("SACCO admin attempted to create user for different SACCO: {}", request.saccoId());
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("SACCO administrators can only create users within their own SACCO.");
+            targetSaccoId = SecurityUtils.extractSaccoId(authentication);
+            if (targetSaccoId == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("SACCO tenant context missing from JWT token.");
+            }
+        } else {
+            targetSaccoId = request.saccoId() != null ? request.saccoId() : SecurityUtils.extractSaccoId(authentication);
+            if (targetSaccoId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("saccoId is required for Super Admin user registration.");
             }
         }
 
-        log.info("Registering new user for SACCO: {} with phone: {}", request.saccoId(), request.msisdn());
+        log.info("Registering new user for SACCO: {} with phone: {}", targetSaccoId, request.msisdn());
 
         if (userRepository.findByMsisdn(request.msisdn()).isPresent()) {
             throw new IllegalArgumentException("User with phone number " + request.msisdn() + " is already registered.");
@@ -123,7 +127,7 @@ public class UserController {
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(UUID.randomUUID());
         userEntity.setMsisdn(request.msisdn());
-        userEntity.setSaccoId(request.saccoId());
+        userEntity.setSaccoId(targetSaccoId);
         userEntity.setGlobalRole(request.globalRole());
         userEntity.setStatus(UserStatus.PASSWORD_CHANGE_REQUIRED);
         userEntity.setCredentialHash(passwordEncoder.encode(rawPin));
@@ -131,8 +135,12 @@ public class UserController {
 
         userRepository.save(userEntity);
 
+        // Automatically assign default role permissions in master_schema.user_roles
+        UUID defaultRoleId = UUID.fromString("018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f"); // ADMIN role
+        userRepository.insertUserRole(userEntity.getUserId(), defaultRoleId, targetSaccoId);
+
         // Fetch SACCO name to welcome user under their SACCO identity
-        String saccoName = saccoRepository.findById(request.saccoId())
+        String saccoName = saccoRepository.findById(targetSaccoId)
                 .map(SaccoEntity::getSaccoName)
                 .orElse("your SACCO");
 

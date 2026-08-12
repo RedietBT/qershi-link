@@ -36,10 +36,9 @@ public record CreateUserRequest(
         GlobalRole globalRole,
 
         @Schema(
-                description = "UUID identifier of the target SACCO workspace entity",
+                description = "UUID identifier of the target SACCO workspace entity (optional for SACCO_ADMIN as it is extracted from JWT)",
                 example = "5fe71c52-7a7b-4a66-8087-48de9cd798b5",
-                requiredMode = Schema.RequiredMode.REQUIRED
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
-        @NotNull(message = "Target saccoId cannot be null.")
         UUID saccoId
 ) {}
