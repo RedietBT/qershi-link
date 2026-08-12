@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Request payload for configuring SACCO identification code and branch settings.
+ * Request payload for configuring SACCO identification code.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -17,9 +17,6 @@ public record SaccoConfigRequest(
         @Size(max = 20, message = "SACCO code must not exceed 20 characters.")
         String saccoCode,
 
-        @Schema(description = "Legal SACCO name", example = "Awach SACCO")
-        String saccoName,
-
-        @Schema(description = "Default branch code", example = "0001")
-        String branchCode
+        @Schema(description = "Legal SACCO name (Optional)", example = "Awach SACCO")
+        String saccoName
 ) {}
