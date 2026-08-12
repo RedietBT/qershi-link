@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    /* Mapped from your custom deep cyan/teal palette + white/light base */
+    --bdae-primary: #007B84;      /* Mid-tone professional teal */
+    --bdae-secondary: #00CDDB;    /* Vibrant cyan accent */
+    --bdae-tertiary: #003236;     /* Deep dark teal for strong contrast text */
+    --bdae-success: #22c55e;
+    --bdae-warning: #f59e0b;
+    --bdae-danger: #ef4444;
+    --bdae-bg: #f8fafc;           /* Clean crisp light background */
+    --bdae-surface: #ffffff;      /* Pure white cards/surfaces */
+    --bdae-text-primary: #001416; /* Deepest shade from your palette for text */
+    --bdae-text-secondary: #00555C;/* Muted teal for secondary text */
+    --bdae-border: #7FF2FF33;     /* Light translucent tint of your brightest accent */
+    
+    /* Sidebar Specific (Light Mode) */
+    --bdae-sidebar-bg: #ffffff;
+    --bdae-sidebar-text: #003236;
+  }
+
+  .dark {
+    /* Dark mode mapped to the deepest tones of your palette */
+    --bdae-primary: #007B84;
+    --bdae-secondary: #00CDDB;
+    --bdae-tertiary: #7FF2FF;
+    --bdae-success: #34d399;
+    --bdae-warning: #fbbf24;
+    --bdae-danger: #f87171;
+    --bdae-bg: #001416;           /* Darkest shade from your image as canvas */
+    --bdae-surface: #002326;      /* Slightly lifted deep teal for cards */
+    --bdae-text-primary: #7FF2FF; /* Bright cyan-tinted white for top legibility */
+    --bdae-text-secondary: #00A3AE;
+    --bdae-border: #00555C;       /* Deep teal border */
+
+    /* Sidebar Specific (Dark Mode) */
+    --bdae-sidebar-bg: #001A1D;
+    --bdae-sidebar-text: #7FF2FF;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    background-color: var(--bdae-bg);
+    color: var(--bdae-text-primary);
+    @apply transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .bdae-surface {
+    background-color: var(--bdae-surface);
+    color: var(--bdae-text-primary);
+    border: 1px solid var(--bdae-border);
+    @apply transition-colors duration-300;
+  }
+
+  .bdae-input {
+    background-color: var(--bdae-surface);
+    color: var(--bdae-text-primary);
+    border: 1px solid var(--bdae-border);
+    @apply rounded-md px-3 py-2 text-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--bdae-secondary)];
+  }
+
+  .bdae-btn-primary {
+    background: linear-gradient(to right, var(--bdae-primary), var(--bdae-secondary));
+    color: #ffffff;
+    @apply rounded-md px-5 py-2.5 text-sm font-semibold tracking-wide shadow-lg transition-all duration-300 ease-in-out hover:opacity-90 hover:-translate-y-0.5;
+  }
+
+  .bdae-btn-outline {
+    border: 1px solid var(--bdae-border);
+    color: var(--bdae-text-primary);
+    background-color: color-mix(in srgb, var(--bdae-surface) 60%, transparent);
+    @apply rounded-md px-5 py-2.5 text-sm font-semibold tracking-wide transition-all duration-300 ease-in-out hover:border-[var(--bdae-secondary)] hover:text-[var(--bdae-secondary)];
+  }
+
+  .bdae-card {
+    border: 1px solid var(--bdae-border);
+    background-color: var(--bdae-surface);
+    @apply rounded-xl shadow-md transition-all duration-300 ease-in-out;
+  }
+
+  /* Sidebar Navigation Interactive Hover & Active Styles */
+  .sidebar-nav-btn {
+    transition: all 0.2s ease-in-out;
+  }
+  .sidebar-nav-btn:hover {
+    background-color: rgba(0, 205, 219, 0.1) !important;
+    color: var(--bdae-secondary) !important;
+  }
+
+  .sidebar-nav-btn-active {
+    background-color: var(--bdae-primary) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(0, 123, 132, 0.25);
+  }
+}
