@@ -42,7 +42,7 @@ public class NotificationController {
     }
 
     @PostMapping("/sms/send")
-    @PreAuthorize("hasAnyAuthority('NOTIFICATION_SEND', 'CASH_DEPOSIT', 'SAVINGS_WITHDRAW', 'TRANSACTION_TRANSFER', 'ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_SEND')")
     @Operation(summary = "Send SMS Notification", description = "Dispatches direct text or templated SMS to a member phone number.")
     public ResponseEntity<NotificationResponse> sendSms(@Valid @RequestBody SendSmsRequest dto) {
         NotificationLog resultLog;
@@ -64,7 +64,7 @@ public class NotificationController {
     }
 
     @GetMapping("/logs")
-    @PreAuthorize("hasAnyAuthority('NOTIFICATION_LOG_VIEW', 'ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_LOG_VIEW')")
     @Operation(summary = "Get Notification Logs", description = "Retrieves complete audit trail of sent SMS notifications for the tenant.")
     public ResponseEntity<List<NotificationResponse>> getLogs() {
         List<NotificationLog> logs = notificationAuditUseCase.getNotificationLogs();
@@ -75,7 +75,7 @@ public class NotificationController {
     }
 
     @GetMapping("/logs/recipient/{phone}")
-    @PreAuthorize("hasAnyAuthority('NOTIFICATION_LOG_VIEW', 'ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_LOG_VIEW')")
     @Operation(summary = "Get Logs by Recipient Phone", description = "Retrieves SMS delivery logs for a specific recipient phone number.")
     public ResponseEntity<List<NotificationResponse>> getLogsByPhone(@PathVariable String phone) {
         List<NotificationLog> logs = notificationAuditUseCase.getLogsByRecipient(phone);

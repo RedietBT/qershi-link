@@ -39,7 +39,7 @@ public class TemplateController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('NOTIFICATION_TEMPLATE_MANAGE', 'ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_TEMPLATE_MANAGE')")
     @Operation(summary = "Create Notification Template", description = "Creates a new multi-language message template with dynamic placeholders.")
     public ResponseEntity<TemplateResponse> createTemplate(@Valid @RequestBody CreateTemplateRequest dto) {
         NotificationTemplate created = templateManagementUseCase.createTemplate(
@@ -52,7 +52,7 @@ public class TemplateController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('NOTIFICATION_TEMPLATE_MANAGE', 'ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_TEMPLATE_MANAGE')")
     @Operation(summary = "List All Templates", description = "Lists all notification templates for the active tenant schema.")
     public ResponseEntity<List<TemplateResponse>> listTemplates() {
         List<NotificationTemplate> templates = templateManagementUseCase.getAllTemplates();
@@ -63,7 +63,7 @@ public class TemplateController {
     }
 
     @GetMapping("/{code}")
-    @PreAuthorize("hasAnyAuthority('NOTIFICATION_TEMPLATE_MANAGE', 'ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_TEMPLATE_MANAGE')")
     @Operation(summary = "Get Template by Code", description = "Retrieves a specific notification template by code (e.g. CASH_DEPOSIT_ALERT).")
     public ResponseEntity<TemplateResponse> getTemplateByCode(@PathVariable String code) {
         NotificationTemplate template = templateManagementUseCase.getTemplateByCode(code);
@@ -71,7 +71,7 @@ public class TemplateController {
     }
 
     @PutMapping("/{code}")
-    @PreAuthorize("hasAnyAuthority('NOTIFICATION_TEMPLATE_MANAGE', 'ROLE_SACCO_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_TEMPLATE_MANAGE')")
     @Operation(summary = "Update Template", description = "Updates content text or active status of a notification template.")
     public ResponseEntity<TemplateResponse> updateTemplate(
             @PathVariable String code,
