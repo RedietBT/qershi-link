@@ -34,6 +34,6 @@ public interface SpringDataUserRepository extends JpaRepository<UserEntity, UUID
             "FROM master_schema.permissions p " +
             "JOIN master_schema.role_permissions rp ON p.permission_id = rp.permission_id " +
             "JOIN master_schema.user_roles ur ON rp.role_id = ur.role_id " +
-            "WHERE ur.user_id = :userId AND ur.sacco_id = :saccoId", nativeQuery = true)
+            "WHERE ur.user_id = :userId", nativeQuery = true)
     List<String> findAuthoritiesByUserIdAndSaccoId(@Param("userId") UUID userId, @Param("saccoId") UUID saccoId);
 }

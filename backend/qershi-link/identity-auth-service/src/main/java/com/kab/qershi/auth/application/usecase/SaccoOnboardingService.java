@@ -75,6 +75,7 @@ public class SaccoOnboardingService implements SaccoOnboardingUseCase {
             Role defaultAdminRole = new Role(SYSTEM_ADMIN_ROLE_ID, "ADMIN", true);
             adminUser.assignLocalRole(defaultAdminRole);
             userRepositoryPort.save(adminUser);
+            userRepositoryPort.assignRole(adminUser.getUserId().toString(), SYSTEM_ADMIN_ROLE_ID.toString(), saccoId.toString());
 
             // Trigger SMS notification welcoming SACCO onboard to Qershi Link platform
             String smsBody = String.format(

@@ -90,10 +90,19 @@ public class AuthenticationService implements AuthenticationUseCase {
         Sacco parentSacco = saccoRepositoryPort.findById(user.getSaccoId())
                 .orElseThrow(() -> new IllegalStateException("SACCO registry entry missing."));
 
-        // 1. Load permissions directly from DB — the authoritative source
-        //    (user.getLocalRoles() is a domain object that is never populated from the entity mapper)
         List<String> permissions = userRepositoryPort.findPermissions(
                 user.getUserId(), user.getSaccoId());
+
+        if (permissions == null || permissions.isEmpty()) {
+            if (user.getGlobalRole() == com.kab.qershi.auth.domain.model.GlobalRole.SUPER_ADMIN) {
+                userRepositoryPort.assignRole(user.getUserId().toString(), "b0e1f3a2-4c5d-6e7f-8a9b-0c1d2e3f4a5b", user.getSaccoId().toString());
+                permissions = userRepositoryPort.findPermissions(user.getUserId(), user.getSaccoId());
+            } else if (user.getGlobalRole() == com.kab.qershi.auth.domain.model.GlobalRole.SACCO_ADMIN ||
+                       user.getGlobalRole() == com.kab.qershi.auth.domain.model.GlobalRole.UNION_ADMIN) {
+                userRepositoryPort.assignRole(user.getUserId().toString(), "018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f", user.getSaccoId().toString());
+                permissions = userRepositoryPort.findPermissions(user.getUserId(), user.getSaccoId());
+            }
+        }
 
         // 2. Build JWT authorities: global role (ROLE_ prefixed) + tenant permissions
         List<String> jwtAuthorities = new java.util.ArrayList<>();
