@@ -2,6 +2,7 @@ package com.kab.qershi.notification.infrastructure.rest;
 
 import com.kab.qershi.notification.domain.model.NotificationLog;
 import com.kab.qershi.notification.domain.model.NotificationRequest;
+import com.kab.qershi.notification.domain.model.NotificationTemplate;
 import com.kab.qershi.notification.domain.ports.inbound.NotificationAuditUseCase;
 import com.kab.qershi.notification.domain.ports.inbound.SendNotificationUseCase;
 import com.kab.qershi.notification.infrastructure.rest.dto.NotificationResponse;
@@ -58,7 +59,12 @@ public class NotificationController {
             );
             resultLog = sendNotificationUseCase.sendTemplatedNotification(domainRequest);
         } else {
-            resultLog = sendNotificationUseCase.sendDirectSms(dto.getRecipientPhone(), dto.getRawMessage());
+            String message = dto.getRawMessage();
+            if (message != null && dto.getParameters() != null && !dto.getParameters().isEmpty()) {
+                NotificationTemplate temp = new NotificationTemplate(null, "DIRECT", dto.getChannel(), dto.getLanguage(), message, true, null);
+                message = temp.render(dto.getParameters());
+            }
+            resultLog = sendNotificationUseCase.sendDirectSms(dto.getRecipientPhone(), message);
         }
         return ResponseEntity.ok(NotificationResponse.fromDomain(resultLog));
     }
