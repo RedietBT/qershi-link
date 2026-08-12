@@ -1,0 +1,8 @@
+-- Update notification templates to support {saccoName} and clean message formatting
+UPDATE master_schema.notification_templates SET content = 'Dear {memberName}, welcome to {saccoName}! Account {accountNo} ({productName}) is now ACTIVE.' WHERE template_code = 'ACCOUNT_OPENED_ALERT';
+UPDATE master_schema.notification_templates SET content = 'Dear {memberName}, {amount} ETB has been deposited to account {accountNo} at {saccoName}. New balance: {balance} ETB.' WHERE template_code = 'CASH_DEPOSIT_ALERT';
+UPDATE master_schema.notification_templates SET content = 'Dear {memberName}, {amount} ETB has been withdrawn from account {accountNo} at {saccoName}. New balance: {balance} ETB.' WHERE template_code = 'CASH_WITHDRAWAL_ALERT';
+UPDATE master_schema.notification_templates SET content = 'Dear {memberName}, transferred {amount} ETB to {receiverName} ({receiverAccountNo}) at {saccoName}. New balance: {balance} ETB.' WHERE template_code = 'TRANSFER_SENT_ALERT';
+UPDATE master_schema.notification_templates SET content = 'Dear {memberName}, your loan application of {amount} ETB at {saccoName} has been APPROVED.' WHERE template_code = 'LOAN_APPLICATION_APPROVED';
+UPDATE master_schema.notification_templates SET content = 'Dear {memberName}, your loan of {amount} ETB at {saccoName} has been DISBURSED to your account.' WHERE template_code = 'LOAN_DISBURSED';
+UPDATE master_schema.notification_templates SET content = 'Dear {memberName}, repayment of {amount} ETB received for loan {loanId} at {saccoName}. Remaining balance: {remainingBalance} ETB.' WHERE template_code = 'LOAN_REPAYMENT_CONFIRMATION';

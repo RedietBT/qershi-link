@@ -60,6 +60,7 @@ public class AfroMessageSmsAdapter implements NotificationProviderPort {
         Map<String, String> payload = new HashMap<>();
         payload.put("to", recipientPhone);
         payload.put("message", message);
+        payload.put("sender", "");
 
         HttpEntity<Map<String, String>> request = new HttpEntity<>(payload, headers);
 
