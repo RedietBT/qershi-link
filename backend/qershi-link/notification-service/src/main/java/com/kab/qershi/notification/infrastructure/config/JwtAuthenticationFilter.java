@@ -180,8 +180,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String lookupSaccoSchema(UUID saccoId) {
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT schema_name FROM master_schema.sacco_registry WHERE sacco_id = ?")) {
-            ps.setObject(1, saccoId);
+             PreparedStatement ps = conn.prepareStatement("SELECT schema_name FROM master_schema.sacco_registry WHERE sacco_id = ?::uuid")) {
+            ps.setString(1, saccoId.toString());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String schema = rs.getString("schema_name");

@@ -32,14 +32,15 @@ public class TenantContextFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         if (request instanceof HttpServletRequest httpRequest) {
-            String tenantId = httpRequest.getHeader(TENANT_HEADER);
+            String tenantId = httpRequest.getHeader("X-Tenant-Schema");
+            if (tenantId == null || tenantId.isBlank()) {
+                tenantId = httpRequest.getHeader(TENANT_HEADER);
+            }
 
             if (tenantId != null && !tenantId.isBlank()) {
                 String sanitizedTenantSchema = tenantId.trim().toLowerCase().replaceAll("[^a-z0-9_]", "");
                 TenantContext.setTenantSchema(sanitizedTenantSchema);
                 log.debug("Tenant context bound to schema: {}", sanitizedTenantSchema);
-            } else {
-                TenantContext.setTenantSchema(TenantContext.DEFAULT_TENANT);
             }
         }
 

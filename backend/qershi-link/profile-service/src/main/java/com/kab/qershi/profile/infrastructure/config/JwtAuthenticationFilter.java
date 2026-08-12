@@ -122,29 +122,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.debug("Populated SecurityContext for principal {} with authorities: {}", principal, authorities);
 
                     // 4. Resolve Tenant Context schema from JWT Claims (saccoSchema or saccoId)
-                    String saccoSchema = claims.get("saccoSchema", String.class);
-                    if (saccoSchema != null && !saccoSchema.isBlank()) {
-                        TenantContext.setTenantSchema(saccoSchema.trim());
+                    // 4. Resolve Tenant Context schema (Header > saccoSchema claim > saccoId claim)
+                    String tenantHeader = request.getHeader("X-Tenant-Schema");
+                    if (tenantHeader == null || tenantHeader.isBlank()) {
+                        tenantHeader = request.getHeader("X-Tenant-ID");
+                    }
+
+                    if (tenantHeader != null && !tenantHeader.isBlank()) {
+                        TenantContext.setTenantSchema(tenantHeader.trim());
                     } else {
-                        String saccoIdStr = claims.get("saccoId", String.class);
-                        if (saccoIdStr != null && !saccoIdStr.isBlank()) {
-                            try {
-                                UUID saccoId = UUID.fromString(saccoIdStr.trim());
-                                String resolvedSchema = saccoSchemaCache.computeIfAbsent(saccoId, this::lookupSaccoSchema);
-                                if (resolvedSchema != null && !resolvedSchema.isBlank()) {
-                                    TenantContext.setTenantSchema(resolvedSchema);
+                        String saccoSchema = claims.get("saccoSchema", String.class);
+                        if (saccoSchema != null && !saccoSchema.isBlank()) {
+                            TenantContext.setTenantSchema(saccoSchema.trim());
+                        } else {
+                            String saccoIdStr = claims.get("saccoId", String.class);
+                            if (saccoIdStr != null && !saccoIdStr.isBlank()) {
+                                try {
+                                    UUID saccoId = UUID.fromString(saccoIdStr.trim());
+                                    String resolvedSchema = saccoSchemaCache.computeIfAbsent(saccoId, this::lookupSaccoSchema);
+                                    if (resolvedSchema != null && !resolvedSchema.isBlank()) {
+                                        TenantContext.setTenantSchema(resolvedSchema);
+                                    }
+                                } catch (Exception ex) {
+                                    log.warn("Failed parsing saccoId claim: {}", ex.getMessage());
                                 }
-                            } catch (Exception ex) {
-                                log.warn("Failed parsing saccoId claim: {}", ex.getMessage());
                             }
                         }
                     }
                 }
             }
 
-            // 5. Fallback check for X-Tenant-ID header if TenantContext not set yet
+            // 5. Final fallback check for headers if TenantContext not set yet
             if (TenantContext.getTenantSchema() == null || TenantContext.getTenantSchema().equals(TenantContext.DEFAULT_TENANT)) {
-                String tenantHeader = request.getHeader("X-Tenant-ID");
+                String tenantHeader = request.getHeader("X-Tenant-Schema");
+                if (tenantHeader == null || tenantHeader.isBlank()) {
+                    tenantHeader = request.getHeader("X-Tenant-ID");
+                }
                 if (tenantHeader != null && !tenantHeader.isBlank()) {
                     TenantContext.setTenantSchema(tenantHeader.trim());
                 }
@@ -172,8 +185,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String lookupSaccoSchema(UUID saccoId) {
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT schema_name FROM master_schema.sacco_registry WHERE sacco_id = ?")) {
-            ps.setObject(1, saccoId);
+             PreparedStatement ps = conn.prepareStatement("SELECT schema_name FROM master_schema.sacco_registry WHERE sacco_id = ?::uuid")) {
+            ps.setString(1, saccoId.toString());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String schema = rs.getString("schema_name");

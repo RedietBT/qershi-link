@@ -100,7 +100,10 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
     @Operation(summary = "Register a new user", description = "Creates a new user account within a specific SACCO and dispatches an initial PIN via SMS.")
-    public ResponseEntity<String> createUser(@Valid @RequestBody CreateUserRequest request, Authentication authentication) {
+    public ResponseEntity<String> createUser(
+            @Valid @RequestBody CreateUserRequest request,
+            @RequestParam(required = false) UUID saccoId,
+            Authentication authentication) {
         
         UUID targetSaccoId;
         if (!SecurityUtils.isSuperAdmin(authentication)) {
@@ -109,7 +112,7 @@ public class UserController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("SACCO tenant context missing from JWT token.");
             }
         } else {
-            targetSaccoId = request.saccoId() != null ? request.saccoId() : SecurityUtils.extractSaccoId(authentication);
+            targetSaccoId = saccoId != null ? saccoId : SecurityUtils.extractSaccoId(authentication);
             if (targetSaccoId == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("saccoId is required for Super Admin user registration.");
             }
