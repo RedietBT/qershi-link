@@ -350,12 +350,14 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 ")");
 
         jdbcTemplate.execute("INSERT INTO " + schemaName + ".notification_templates (template_code, channel, language, content) VALUES " +
-                "('OTP_CODE', 'SMS', 'EN', 'Your Qershi Link security OTP is {otpCode}. It expires in 5 minutes.'), " +
-                "('CASH_DEPOSIT_ALERT', 'SMS', 'EN', 'Dear {memberName}, {amount} ETB has been deposited into your account {accountNo}. Available balance: {balance} ETB.'), " +
-                "('CASH_WITHDRAWAL_ALERT', 'SMS', 'EN', 'Dear {memberName}, {amount} ETB has been withdrawn from your account {accountNo}. Remaining balance: {balance} ETB.'), " +
-                "('TRANSFER_SENT_ALERT', 'SMS', 'EN', 'Dear {memberName}, you transferred {amount} ETB to {receiverName} ({receiverAccountNo}). Remaining balance: {balance} ETB.'), " +
-                "('LOAN_APPLICATION_APPROVED', 'SMS', 'EN', 'Dear {memberName}, your loan application {appNo} for {amount} ETB has been APPROVED by the Credit Committee.'), " +
-                "('LOAN_REPAYMENT_DUE', 'SMS', 'EN', 'Reminder: Dear {memberName}, your loan repayment of {amount} ETB is due on {dueDate}. Please ensure sufficient account balance.') " +
+                "('OTP_CODE', 'SMS', 'EN', 'Welcome to System Platform! Your Super Admin PIN is: {otpCode}'), " +
+                "('ACCOUNT_OPENED_ALERT', 'SMS', 'EN', 'Dear {memberName}, your {productName} account {accountNo} has been successfully opened.'), " +
+                "('CASH_DEPOSIT_ALERT', 'SMS', 'EN', 'Dear {memberName}, {amount} ETB has been deposited to account {accountNo}. New balance: {balance} ETB.'), " +
+                "('CASH_WITHDRAWAL_ALERT', 'SMS', 'EN', 'Dear {memberName}, {amount} ETB has been withdrawn from account {accountNo}. New balance: {balance} ETB.'), " +
+                "('TRANSFER_SENT_ALERT', 'SMS', 'EN', 'Dear {memberName}, you transferred {amount} ETB to {receiverName} ({receiverAccountNo}). New balance: {balance} ETB.'), " +
+                "('LOAN_APPLICATION_APPROVED', 'SMS', 'EN', 'Dear {memberName}, your loan application of {amount} ETB has been APPROVED.'), " +
+                "('LOAN_DISBURSED', 'SMS', 'EN', 'Dear {memberName}, your loan of {amount} ETB has been DISBURSED to your account.'), " +
+                "('LOAN_REPAYMENT_CONFIRMATION', 'SMS', 'EN', 'Dear {memberName}, repayment of {amount} ETB received for loan {loanId}. Remaining balance: {remainingBalance} ETB.') " +
                 "ON CONFLICT (template_code) DO NOTHING");
 
         // 7. Loan Origination Service Tables (LOS)

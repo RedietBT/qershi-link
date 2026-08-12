@@ -151,6 +151,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             String tenantHeader = request.getHeader("X-Tenant-ID");
+            if (tenantHeader == null || tenantHeader.isBlank()) {
+                tenantHeader = request.getHeader("X-Tenant-Schema");
+            }
             if (tenantHeader != null && !tenantHeader.isBlank()) {
                 TenantContext.setTenantSchema(tenantHeader.trim());
             }

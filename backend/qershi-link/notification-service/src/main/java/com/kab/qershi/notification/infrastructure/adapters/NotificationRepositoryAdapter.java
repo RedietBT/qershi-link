@@ -41,7 +41,11 @@ public class NotificationRepositoryAdapter implements NotificationRepositoryPort
 
     @Override
     public Optional<NotificationTemplate> findTemplateByCode(String templateCode) {
-        return templateRepository.findByTemplateCode(templateCode).map(this::toDomain);
+        Optional<NotificationTemplateEntity> tenantOpt = templateRepository.findByTemplateCode(templateCode);
+        if (tenantOpt.isPresent() && tenantOpt.get().isActive()) {
+            return tenantOpt.map(this::toDomain);
+        }
+        return templateRepository.findMasterFallbackTemplate(templateCode).map(this::toDomain);
     }
 
     @Override

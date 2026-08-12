@@ -22,5 +22,12 @@ CREATE TABLE IF NOT EXISTS master_schema.notification_logs (
 -- Seed default notification templates
 INSERT INTO master_schema.notification_templates (template_code, channel, language, content, is_active)
 VALUES 
-    ('OTP_CODE', 'SMS', 'EN', 'Welcome to System Platform! Your Super Admin PIN is: {otpCode}', TRUE)
+    ('OTP_CODE', 'SMS', 'EN', 'Welcome to System Platform! Your Super Admin PIN is: {otpCode}', TRUE),
+    ('ACCOUNT_OPENED_ALERT', 'SMS', 'EN', 'Dear {memberName}, your {productName} account {accountNo} has been successfully opened.', TRUE),
+    ('CASH_DEPOSIT_ALERT', 'SMS', 'EN', 'Dear {memberName}, {amount} ETB has been deposited to account {accountNo}. New balance: {balance} ETB.', TRUE),
+    ('CASH_WITHDRAWAL_ALERT', 'SMS', 'EN', 'Dear {memberName}, {amount} ETB has been withdrawn from account {accountNo}. New balance: {balance} ETB.', TRUE),
+    ('TRANSFER_SENT_ALERT', 'SMS', 'EN', 'Dear {memberName}, you transferred {amount} ETB to {receiverName} ({receiverAccountNo}). New balance: {balance} ETB.', TRUE),
+    ('LOAN_APPLICATION_APPROVED', 'SMS', 'EN', 'Dear {memberName}, your loan application of {amount} ETB has been APPROVED.', TRUE),
+    ('LOAN_DISBURSED', 'SMS', 'EN', 'Dear {memberName}, your loan of {amount} ETB has been DISBURSED to your account.', TRUE),
+    ('LOAN_REPAYMENT_CONFIRMATION', 'SMS', 'EN', 'Dear {memberName}, repayment of {amount} ETB received for loan {loanId}. Remaining balance: {remainingBalance} ETB.', TRUE)
 ON CONFLICT (template_code) DO NOTHING;

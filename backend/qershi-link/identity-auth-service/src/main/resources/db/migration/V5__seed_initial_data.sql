@@ -20,7 +20,8 @@ INSERT INTO permissions (permission_id, resource, action, description, is_active
 ('d7a8b9c0-e1f2-0a1b-4c5d-6e7f8a9b0c1d', 'SAVINGS',       'WITHDRAW',     'Authority to process savings withdrawal requests.', TRUE),
 ('d8a9b0c1-e2f3-1a2b-5c6d-7e8f9a0b1c2d', 'REPORT',        'VIEW_ALL',     'Authority to run and view overall SACCO financial reports.', TRUE),
 ('d9a0b1c2-e3f4-2a3b-6c7d-8e9f0a1b2c3d', 'SACCO',         'ATTACH',       'Authority to link external core modules or sub-entities.', TRUE),
-('e0a1b2c3-f4a5-3b4c-7d8e-9f0a1b2c3d4e', 'USER',          'VIEW_ALL',     'Authority to list and view all user security accounts.', TRUE)
+('e0a1b2c3-f4a5-3b4c-7d8e-9f0a1b2c3d4e', 'USER',          'VIEW_ALL',     'Authority to list and view all user security accounts.', TRUE),
+('f1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5e', 'NOTIFICATION_TEMPLATE', 'MANAGE', 'Authority to configure and manage SACCO notification templates.', TRUE)
 ON CONFLICT (resource, action) DO NOTHING;
 
 -- 3. Seed System-Defined Roles

@@ -17,5 +17,8 @@ public interface SpringDataNotificationTemplateRepository extends JpaRepository<
 
     Optional<NotificationTemplateEntity> findByTemplateCode(String templateCode);
 
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM master_schema.notification_templates WHERE template_code = :templateCode AND is_active = true LIMIT 1", nativeQuery = true)
+    Optional<NotificationTemplateEntity> findMasterFallbackTemplate(@org.springframework.data.repository.query.Param("templateCode") String templateCode);
+
     boolean existsByTemplateCode(String templateCode);
 }
