@@ -1,197 +1,164 @@
-# Qershi Link - Multi-Tenant Notification End-to-End Test Guide
+# Qershi Link - SACCO Notification Template Customization & Test Guide
 
-This guide provides step-by-step cURL commands and JSON payloads to test the Qershi Link multi-tenant notification system using `@` placeholder syntax (e.g. `@Name_of_the_user`, `@SACCO_NAME`, `@AMOUNT`, `@balance`).
-
----
-
-## 1. How Template Placeholder Filling Works
-
-SACCO Admins define custom templates **ONCE** using `@` placeholders. The system automatically fills in these placeholders with real-time transaction data when an action occurs.
-
-### Supported Placeholders:
-| Placeholder | Description | System Parameter Name |
-| :--- | :--- | :--- |
-| `@Name_of_the_user` / `@memberName` | Full name of the member/user | `memberName` |
-| `@SACCO_NAME` / `@saccoName` | Official name of the SACCO | `saccoName` |
-| `@AMOUNT` / `@Amount` | Transaction or loan amount | `amount` |
-| `@balance` / `@Balance` | Updated account balance | `balance` |
-| `@accountNo` | Member bank/savings account number | `accountNo` |
-| `@productName` | Savings product type (e.g. Regular Savings) | `productName` |
-| `@receiverName` | Recipient name for transfers | `receiverName` |
-| `@receiverAccountNo` | Recipient account number for transfers | `receiverAccountNo` |
-| `@loanId` | Active loan identifier | `loanId` |
-| `@remainingBalance` | Remaining loan balance | `remainingBalance` |
+This guide demonstrates how SACCO Admins configure custom message templates using `@` placeholders (without needing to supply parameter values when creating/updating templates), and how the platform automatically connects them to service actions.
 
 ---
 
-## Step 1: Register Super Admin (Platform Administration)
-Registers a new platform-wide Super Admin. Sends an SMS with the initial security PIN (`OTP_CODE`).
+## 1. SACCO Admin Template Management Concept
 
-- **HTTP Method**: `POST`
-- **URL**: `http://localhost:8080/api/v1/platform/register-admin`
-- **Headers**:
-  ```http
-  Content-Type: application/json
-  ```
-- **Request Body**:
-  ```json
-  {
-    "msisdn": "+251947990257"
-  }
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X POST 'http://localhost:8080/api/v1/platform/register-admin' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "msisdn": "+251947990257"
-    }'
-  ```
-- **Expected SMS Delivery**:
-  `"Welcome to System Platform! Your Super Admin PIN is: <PIN>"`
+1. **SACCO Admin Action**: The SACCO Admin writes custom message text using `@` placeholders for each system action.
+2. **Storage**: The template is stored in the SACCO's isolated database schema (`sacco_<name>.notification_templates`).
+3. **Automated System Trigger**: When a transaction, loan approval, or account opening occurs, the system automatically fetches the SACCO's custom template, extracts real-time database values, and replaces the `@` placeholders before sending the SMS.
 
 ---
 
-## Step 2: Onboard New SACCO & Register SACCO Admin
-Onboards a new SACCO tenant, provisions database schema (`sacco_awash_savings_sacco`), seeds default templates, and registers the SACCO Admin.
+## 2. Complete Catalog of SACCO Custom Template Configuration APIs
 
-- **HTTP Method**: `POST`
-- **URL**: `http://localhost:8080/api/v1/sacco/onboard`
-- **Headers**:
-  ```http
-  Content-Type: application/json
-  ```
-- **Request Body**:
-  ```json
-  {
-    "saccoName": "Awash Savings SACCO",
-    "adminName": "Dawit Tefera",
-    "adminMsisdn": "+251911223344",
-    "adminEmail": "dawit@awashsacco.com",
-    "region": "Oromia",
-    "licenseNumber": "AWS-2026-001",
-    "isUnion": false,
-    "minShareRequirement": 500.0
-  }
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X POST 'http://localhost:8080/api/v1/sacco/onboard' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "saccoName": "Awash Savings SACCO",
-      "adminName": "Dawit Tefera",
-      "adminMsisdn": "+251911223344",
-      "adminEmail": "dawit@awashsacco.com",
-      "region": "Oromia",
-      "licenseNumber": "AWS-2026-001",
-      "isUnion": false,
-      "minShareRequirement": 500.0
-    }'
-  ```
-- **Expected SMS Delivery**:
-  `"Welcome to Qershi Link! Your admin account for Awash Savings SACCO is ready. Use PIN: <PIN> to log in. Please change your PIN immediately after your first login."`
+SACCO Admins configure custom templates for each action using:
+`PUT http://localhost:8086/api/v1/notifications/templates/{templateCode}`
+
+Headers required:
+```http
+Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>
+X-Tenant-Schema: sacco_awash_savings_sacco
+```
 
 ---
 
-## Step 3: Login as SACCO Admin & Obtain JWT Access Token
-Authenticates the SACCO Admin using phone number and received PIN to obtain the JWT token for tenant management.
+### Action 1: Account Opening Notification (`ACCOUNT_OPENED_ALERT`)
 
-- **HTTP Method**: `POST`
-- **URL**: `http://localhost:8080/api/v1/auth/login`
-- **Headers**:
-  ```http
-  Content-Type: application/json
-  ```
-- **Request Body**:
-  ```json
-  {
-    "msisdn": "+251911223344",
-    "pin": "<PIN_FROM_STEP_2>"
-  }
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X POST 'http://localhost:8080/api/v1/auth/login' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "msisdn": "+251911223344",
-      "pin": "<PIN_FROM_STEP_2>"
-    }'
-  ```
+#### SACCO Custom Message Template Wording:
+> `"Welcome to @SACCO_NAME! Dear @Name_of_the_user, your @productName account @accountNo has been successfully opened. Thank you for choosing our SACCO!"`
 
----
-
-## Step 4: Customize SACCO Notification Template Using `@` Placeholders
-Updates the text for template `CASH_DEPOSIT_ALERT` in the tenant schema `sacco_awash_savings_sacco` using `@Name_of_the_user`, `@SACCO_NAME`, `@AMOUNT`, `@balance`.
-
+#### Update Template API Request:
 - **HTTP Method**: `PUT`
-- **URL**: `http://localhost:8086/api/v1/notifications/templates/CASH_DEPOSIT_ALERT?content=Dear%20@Name_of_the_user,%20your%20account%20@accountNo%20at%20@SACCO_NAME%20has%20been%20credited%20with%20@AMOUNT%20ETB.%20Your%20current%20balance%20is%20@balance%20ETB.%20Thanks%20for%20using%20our%20service.&active=true`
-- **Headers**:
-  ```http
-  Authorization: Bearer <JWT_TOKEN_FROM_STEP_3>
-  X-Tenant-Schema: sacco_awash_savings_sacco
-  ```
+- **URL**: `http://localhost:8086/api/v1/notifications/templates/ACCOUNT_OPENED_ALERT?content=Welcome%20to%20@SACCO_NAME!%20Dear%20@Name_of_the_user,%20your%20@productName%20account%20@accountNo%20has%20been%20successfully%20opened.%20Thank%20you%20for%20choosing%20our%20SACCO!&active=true`
 - **cURL Command**:
   ```bash
-  curl -X PUT 'http://localhost:8086/api/v1/notifications/templates/CASH_DEPOSIT_ALERT?content=Dear%20@Name_of_the_user,%20your%20account%20@accountNo%20at%20@SACCO_NAME%20has%20been%20credited%20with%20@AMOUNT%20ETB.%20Your%20current%20balance%20is%20@balance%20ETB.%20Thanks%20for%20using%20our%20service.&active=true' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
+  curl -X PUT 'http://localhost:8086/api/v1/notifications/templates/ACCOUNT_OPENED_ALERT?content=Welcome%20to%20@SACCO_NAME!%20Dear%20@Name_of_the_user,%20your%20@productName%20account%20@accountNo%20has%20been%20successfully%20opened.%20Thank%20you%20for%20choosing%20our%20SACCO!&active=true' \
+    -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
     -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
   ```
 
 ---
 
-## Step 5: Test Notification Dispatch Payloads for All Platform Actions
+### Action 2: Cash Deposit Notification (`CASH_DEPOSIT_ALERT`)
 
-Dispatches test notifications using `POST http://localhost:8086/api/v1/notifications/sms/send`.
+#### SACCO Custom Message Template Wording:
+> `"Dear @Name_of_the_user, your account @accountNo at @SACCO_NAME has been credited with @AMOUNT ETB. Your current balance is @balance ETB. Thanks for your service."`
 
-### 1. Account Opening Notification (`ACCOUNT_OPENED_ALERT`)
-- **Template Code**: `ACCOUNT_OPENED_ALERT`
-- **JSON Payload**:
-  ```json
-  {
-    "recipientPhone": "+251911223344",
-    "templateCode": "ACCOUNT_OPENED_ALERT",
-    "parameters": {
-      "memberName": "Dawit Tefera",
-      "saccoName": "Awash Savings SACCO",
-      "productName": "Regular Savings",
-      "accountNo": "AWS-10002001"
-    }
-  }
-  ```
+#### Update Template API Request:
+- **HTTP Method**: `PUT`
+- **URL**: `http://localhost:8086/api/v1/notifications/templates/CASH_DEPOSIT_ALERT?content=Dear%20@Name_of_the_user,%20your%20account%20@accountNo%20at%20@SACCO_NAME%20has%20been%20credited%20with%20@AMOUNT%20ETB.%20Your%20current%20balance%20is%20@balance%20ETB.%20Thanks%20for%20your%20service.&active=true`
 - **cURL Command**:
   ```bash
-  curl -X POST 'http://localhost:8086/api/v1/notifications/sms/send' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
-    -H 'X-Tenant-Schema: sacco_awash_savings_sacco' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "recipientPhone": "+251911223344",
-      "templateCode": "ACCOUNT_OPENED_ALERT",
-      "parameters": {
-        "memberName": "Dawit Tefera",
-        "saccoName": "Awash Savings SACCO",
-        "productName": "Regular Savings",
-        "accountNo": "AWS-10002001"
-      }
-    }'
+  curl -X PUT 'http://localhost:8086/api/v1/notifications/templates/CASH_DEPOSIT_ALERT?content=Dear%20@Name_of_the_user,%20your%20account%20@accountNo%20at%20@SACCO_NAME%20has%20been%20credited%20with%20@AMOUNT%20ETB.%20Your%20current%20balance%20is%20@balance%20ETB.%20Thanks%20for%20your%20service.&active=true' \
+    -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
+    -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
   ```
 
 ---
 
-### 2. Cash Deposit Notification (`CASH_DEPOSIT_ALERT`)
-- **Template Code**: `CASH_DEPOSIT_ALERT`
-- **JSON Payload**:
+### Action 3: Cash Withdrawal Notification (`CASH_WITHDRAWAL_ALERT`)
+
+#### SACCO Custom Message Template Wording:
+> `"Dear @Name_of_the_user, @AMOUNT ETB has been withdrawn from your account @accountNo at @SACCO_NAME. Your remaining balance is @balance ETB."`
+
+#### Update Template API Request:
+- **HTTP Method**: `PUT`
+- **URL**: `http://localhost:8086/api/v1/notifications/templates/CASH_WITHDRAWAL_ALERT?content=Dear%20@Name_of_the_user,%20@AMOUNT%20ETB%20has%20been%20withdrawn%20from%20your%20account%20@accountNo%20at%20@SACCO_NAME.%20Your%20remaining%20balance%20is%20@balance%20ETB.&active=true`
+- **cURL Command**:
+  ```bash
+  curl -X PUT 'http://localhost:8086/api/v1/notifications/templates/CASH_WITHDRAWAL_ALERT?content=Dear%20@Name_of_the_user,%20@AMOUNT%20ETB%20has%20been%20withdrawn%20from%20your%20account%20@accountNo%20at%20@SACCO_NAME.%20Your%20remaining%20balance%20is%20@balance%20ETB.&active=true' \
+    -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
+    -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
+  ```
+
+---
+
+### Action 4: Transfer Sent Notification (`TRANSFER_SENT_ALERT`)
+
+#### SACCO Custom Message Template Wording:
+> `"Dear @Name_of_the_user, you have transferred @AMOUNT ETB to @receiverName (@receiverAccountNo) via @SACCO_NAME. Your new balance is @balance ETB."`
+
+#### Update Template API Request:
+- **HTTP Method**: `PUT`
+- **URL**: `http://localhost:8086/api/v1/notifications/templates/TRANSFER_SENT_ALERT?content=Dear%20@Name_of_the_user,%20you%20have%20transferred%20@AMOUNT%20ETB%20to%20@receiverName%20(@receiverAccountNo)%20via%20@SACCO_NAME.%20Your%20new%20balance%20is%20@balance%20ETB.&active=true`
+- **cURL Command**:
+  ```bash
+  curl -X PUT 'http://localhost:8086/api/v1/notifications/templates/TRANSFER_SENT_ALERT?content=Dear%20@Name_of_the_user,%20you%20have%20transferred%20@AMOUNT%20ETB%20to%20@receiverName%20(@receiverAccountNo)%20via%20@SACCO_NAME.%20Your%20new%20balance%20is%20@balance%20ETB.&active=true' \
+    -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
+    -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
+  ```
+
+---
+
+### Action 5: Loan Application Approval (`LOAN_APPLICATION_APPROVED`)
+
+#### SACCO Custom Message Template Wording:
+> `"Congratulations @Name_of_the_user! Your loan application for @AMOUNT ETB has been APPROVED by @SACCO_NAME credit committee."`
+
+#### Update Template API Request:
+- **HTTP Method**: `PUT`
+- **URL**: `http://localhost:8086/api/v1/notifications/templates/LOAN_APPLICATION_APPROVED?content=Congratulations%20@Name_of_the_user!%20Your%20loan%20application%20for%20@AMOUNT%20ETB%20has%20been%20APPROVED%20by%20@SACCO_NAME%20credit%20committee.&active=true`
+- **cURL Command**:
+  ```bash
+  curl -X PUT 'http://localhost:8086/api/v1/notifications/templates/LOAN_APPLICATION_APPROVED?content=Congratulations%20@Name_of_the_user!%20Your%20loan%20application%20for%20@AMOUNT%20ETB%20has%20been%20APPROVED%20by%20@SACCO_NAME%20credit%20committee.&active=true' \
+    -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
+    -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
+  ```
+
+---
+
+### Action 6: Loan Amount Disbursed (`LOAN_DISBURSED`)
+
+#### SACCO Custom Message Template Wording:
+> `"Dear @Name_of_the_user, your approved loan of @AMOUNT ETB from @SACCO_NAME has been successfully DISBURSED to your savings account."`
+
+#### Update Template API Request:
+- **HTTP Method**: `PUT`
+- **URL**: `http://localhost:8086/api/v1/notifications/templates/LOAN_DISBURSED?content=Dear%20@Name_of_the_user,%20your%20approved%20loan%20of%20@AMOUNT%20ETB%20from%20@SACCO_NAME%20has%20been%20successfully%20DISBURSED%20to%20your%20savings%20account.&active=true`
+- **cURL Command**:
+  ```bash
+  curl -X PUT 'http://localhost:8086/api/v1/notifications/templates/LOAN_DISBURSED?content=Dear%20@Name_of_the_user,%20your%20approved%20loan%20of%20@AMOUNT%20ETB%20from%20@SACCO_NAME%20has%20been%20successfully%20DISBURSED%20to%20your%20savings%20account.&active=true' \
+    -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
+    -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
+  ```
+
+---
+
+### Action 7: Loan Repayment Confirmation (`LOAN_REPAYMENT_CONFIRMATION`)
+
+#### SACCO Custom Message Template Wording:
+> `"Dear @Name_of_the_user, repayment of @AMOUNT ETB received for loan @loanId at @SACCO_NAME. Remaining loan balance: @remainingBalance ETB. Thank you!"`
+
+#### Update Template API Request:
+- **HTTP Method**: `PUT`
+- **URL**: `http://localhost:8086/api/v1/notifications/templates/LOAN_REPAYMENT_CONFIRMATION?content=Dear%20@Name_of_the_user,%20repayment%20of%20@AMOUNT%20ETB%20received%20for%20loan%20@loanId%20at%20@SACCO_NAME.%20Remaining%20loan%20balance:%20@remainingBalance%20ETB.%20Thank%20you!&active=true`
+- **cURL Command**:
+  ```bash
+  curl -X PUT 'http://localhost:8086/api/v1/notifications/templates/LOAN_REPAYMENT_CONFIRMATION?content=Dear%20@Name_of_the_user,%20repayment%20of%20@AMOUNT%20ETB%20received%20for%20loan%20@loanId%20at%20@SACCO_NAME.%20Remaining%20loan%20balance:%20@remainingBalance%20ETB.%20Thank%20you!&active=true' \
+    -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
+    -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
+  ```
+
+---
+
+## 3. How the System Tests Dispatch & Placeholder Substitution
+
+Once the SACCO Admin saves any of the custom templates above, you can test dispatching an alert using `POST http://localhost:8086/api/v1/notifications/sms/send`.
+
+### Test Cash Deposit Dispatch (`CASH_DEPOSIT_ALERT`)
+- **JSON Body**:
   ```json
   {
-    "recipientPhone": "+251911223344",
+    "recipientPhone": "+251947990257",
     "templateCode": "CASH_DEPOSIT_ALERT",
     "parameters": {
       "memberName": "Abebe Bikila",
       "saccoName": "Awash Savings SACCO",
-      "amount": "5000",
       "accountNo": "AWS-10001001",
+      "amount": "5000",
       "balance": "15000"
     }
   }
@@ -199,218 +166,31 @@ Dispatches test notifications using `POST http://localhost:8086/api/v1/notificat
 - **cURL Command**:
   ```bash
   curl -X POST 'http://localhost:8086/api/v1/notifications/sms/send' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
+    -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
     -H 'X-Tenant-Schema: sacco_awash_savings_sacco' \
     -H 'Content-Type: application/json' \
     -d '{
-      "recipientPhone": "+251911223344",
+      "recipientPhone": "+251947990257",
       "templateCode": "CASH_DEPOSIT_ALERT",
       "parameters": {
         "memberName": "Abebe Bikila",
         "saccoName": "Awash Savings SACCO",
-        "amount": "5000",
         "accountNo": "AWS-10001001",
+        "amount": "5000",
         "balance": "15000"
       }
     }'
   ```
-- **Resulting Rendered SMS Message**:
-  `"Dear Abebe Bikila, your account AWS-10001001 at Awash Savings SACCO has been credited with 5000 ETB. Your current balance is 15000 ETB. Thanks for using our service."`
+- **Resulting Rendered SMS Output**:
+  `"Dear Abebe Bikila, your account AWS-10001001 at Awash Savings SACCO has been credited with 5000 ETB. Your current balance is 15000 ETB. Thanks for your service."`
 
 ---
 
-### 3. Cash Withdrawal Notification (`CASH_WITHDRAWAL_ALERT`)
-- **Template Code**: `CASH_WITHDRAWAL_ALERT`
-- **JSON Payload**:
-  ```json
-  {
-    "recipientPhone": "+251911223344",
-    "templateCode": "CASH_WITHDRAWAL_ALERT",
-    "parameters": {
-      "memberName": "Abebe Bikila",
-      "saccoName": "Awash Savings SACCO",
-      "amount": "2000",
-      "accountNo": "AWS-10001001",
-      "balance": "13000"
-    }
-  }
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X POST 'http://localhost:8086/api/v1/notifications/sms/send' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
-    -H 'X-Tenant-Schema: sacco_awash_savings_sacco' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "recipientPhone": "+251911223344",
-      "templateCode": "CASH_WITHDRAWAL_ALERT",
-      "parameters": {
-        "memberName": "Abebe Bikila",
-        "saccoName": "Awash Savings SACCO",
-        "amount": "2000",
-        "accountNo": "AWS-10001001",
-        "balance": "13000"
-      }
-    }'
-  ```
+## 4. Inspecting Audit Logs
 
----
-
-### 4. Transfer Sent Notification (`TRANSFER_SENT_ALERT`)
-- **Template Code**: `TRANSFER_SENT_ALERT`
-- **JSON Payload**:
-  ```json
-  {
-    "recipientPhone": "+251911223344",
-    "templateCode": "TRANSFER_SENT_ALERT",
-    "parameters": {
-      "memberName": "Abebe Bikila",
-      "saccoName": "Awash Savings SACCO",
-      "amount": "1500",
-      "receiverName": "Tigist Alemu",
-      "receiverAccountNo": "AWS-10003002",
-      "balance": "11500"
-    }
-  }
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X POST 'http://localhost:8086/api/v1/notifications/sms/send' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
-    -H 'X-Tenant-Schema: sacco_awash_savings_sacco' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "recipientPhone": "+251911223344",
-      "templateCode": "TRANSFER_SENT_ALERT",
-      "parameters": {
-        "memberName": "Abebe Bikila",
-        "saccoName": "Awash Savings SACCO",
-        "amount": "1500",
-        "receiverName": "Tigist Alemu",
-        "receiverAccountNo": "AWS-10003002",
-        "balance": "11500"
-      }
-    }'
-  ```
-
----
-
-### 5. Loan Application Approved (`LOAN_APPLICATION_APPROVED`)
-- **Template Code**: `LOAN_APPLICATION_APPROVED`
-- **JSON Payload**:
-  ```json
-  {
-    "recipientPhone": "+251911223344",
-    "templateCode": "LOAN_APPLICATION_APPROVED",
-    "parameters": {
-      "memberName": "Tigist Alemu",
-      "saccoName": "Awash Savings SACCO",
-      "amount": "50000"
-    }
-  }
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X POST 'http://localhost:8086/api/v1/notifications/sms/send' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
-    -H 'X-Tenant-Schema: sacco_awash_savings_sacco' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "recipientPhone": "+251911223344",
-      "templateCode": "LOAN_APPLICATION_APPROVED",
-      "parameters": {
-        "memberName": "Tigist Alemu",
-        "saccoName": "Awash Savings SACCO",
-        "amount": "50000"
-      }
-    }'
-  ```
-
----
-
-### 6. Loan Amount Disbursed (`LOAN_DISBURSED`)
-- **Template Code**: `LOAN_DISBURSED`
-- **JSON Payload**:
-  ```json
-  {
-    "recipientPhone": "+251911223344",
-    "templateCode": "LOAN_DISBURSED",
-    "parameters": {
-      "memberName": "Tigist Alemu",
-      "saccoName": "Awash Savings SACCO",
-      "amount": "50000"
-    }
-  }
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X POST 'http://localhost:8086/api/v1/notifications/sms/send' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
-    -H 'X-Tenant-Schema: sacco_awash_savings_sacco' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "recipientPhone": "+251911223344",
-      "templateCode": "LOAN_DISBURSED",
-      "parameters": {
-        "memberName": "Tigist Alemu",
-        "saccoName": "Awash Savings SACCO",
-        "amount": "50000"
-      }
-    }'
-  ```
-
----
-
-### 7. Loan Repayment Confirmation (`LOAN_REPAYMENT_CONFIRMATION`)
-- **Template Code**: `LOAN_REPAYMENT_CONFIRMATION`
-- **JSON Payload**:
-  ```json
-  {
-    "recipientPhone": "+251911223344",
-    "templateCode": "LOAN_REPAYMENT_CONFIRMATION",
-    "parameters": {
-      "memberName": "Tigist Alemu",
-      "saccoName": "Awash Savings SACCO",
-      "amount": "5000",
-      "loanId": "LN-2026-0042",
-      "remainingBalance": "45000"
-    }
-  }
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X POST 'http://localhost:8086/api/v1/notifications/sms/send' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
-    -H 'X-Tenant-Schema: sacco_awash_savings_sacco' \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "recipientPhone": "+251911223344",
-      "templateCode": "LOAN_REPAYMENT_CONFIRMATION",
-      "parameters": {
-        "memberName": "Tigist Alemu",
-        "saccoName": "Awash Savings SACCO",
-        "amount": "5000",
-        "loanId": "LN-2026-0042",
-        "remainingBalance": "45000"
-      }
-    }'
-  ```
-
----
-
-## Step 6: Inspect SMS Delivery Audit Logs
-Retrieves the complete notification delivery audit trail for the active tenant schema.
-
-- **HTTP Method**: `GET`
-- **URL**: `http://localhost:8086/api/v1/notifications/logs`
-- **Headers**:
-  ```http
-  Authorization: Bearer <JWT_TOKEN>
-  X-Tenant-Schema: sacco_awash_savings_sacco
-  ```
-- **cURL Command**:
-  ```bash
-  curl -X GET 'http://localhost:8086/api/v1/notifications/logs' \
-    -H 'Authorization: Bearer <JWT_TOKEN>' \
-    -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
-  ```
+Retrieves complete SMS delivery log for the tenant schema:
+```bash
+curl -X GET 'http://localhost:8086/api/v1/notifications/logs' \
+  -H 'Authorization: Bearer <SACCO_ADMIN_JWT_TOKEN>' \
+  -H 'X-Tenant-Schema: sacco_awash_savings_sacco'
+```
