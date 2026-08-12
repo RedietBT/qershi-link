@@ -25,7 +25,7 @@ public class ProfileAuditLog {
 
     public ProfileAuditLog(UUID logId, UUID userId, UUID modifiedByUserId, String action,
                            String fieldChanged, String oldValue, String newValue) {
-        this.logId = logId != null ? logId : UUID.randomUUID();
+        this.logId = logId;
         this.userId = userId;
         this.modifiedByUserId = modifiedByUserId;
         this.action = action;

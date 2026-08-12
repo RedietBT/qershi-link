@@ -99,7 +99,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
 
         // Emit Audit Trail Log
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 submittedByUserId != null ? submittedByUserId : userId,
                 "CREATE_MEMBER_PROFILE",
@@ -131,7 +131,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         MemberProfile updated = profileRepository.saveProfile(profile);
 
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "UPDATE_DEMOGRAPHICS",
@@ -169,7 +169,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         MemberAddress savedAddress = profileRepository.saveAddress(address);
 
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "SAVE_CONTACT_ADDRESS",
@@ -221,7 +221,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         MemberEmployment savedEmployment = profileRepository.saveEmployment(employment);
 
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "SAVE_EMPLOYMENT_PROFILE",
@@ -258,7 +258,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         MemberProfile approvedProfile = profileRepository.saveProfile(profile);
 
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 supervisorId,
                 "APPROVE_MEMBER_ONBOARDING",
@@ -285,7 +285,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         MemberProfile updated = profileRepository.saveProfile(profile);
 
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "CHANGE_MEMBER_STATUS",
@@ -335,7 +335,7 @@ public class ProfileManagementService implements ProfileManagementUseCase {
         profileRepository.deleteProfileByUserId(userId);
 
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "CASCADE_DELETE_PROFILE",
