@@ -68,7 +68,7 @@ public class NextOfKinService implements NextOfKinUseCase {
 
         // Audit Log Entry for Beneficiary Addition
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "ADD_NEXT_OF_KIN",
@@ -120,7 +120,7 @@ public class NextOfKinService implements NextOfKinUseCase {
 
         // Audit Log Entry for Beneficiary Update
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "UPDATE_NEXT_OF_KIN",
@@ -144,7 +144,7 @@ public class NextOfKinService implements NextOfKinUseCase {
 
         // Audit Log Entry for Beneficiary Removal
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "DELETE_NEXT_OF_KIN",

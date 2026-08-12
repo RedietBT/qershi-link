@@ -61,7 +61,7 @@ public class KycVerificationService implements KycVerificationUseCase {
 
         // Audit Log Entry for KYC Document Submission
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 userId,
                 userId,
                 "SUBMIT_KYC_DOCUMENT",
@@ -100,7 +100,7 @@ public class KycVerificationService implements KycVerificationUseCase {
 
         // Audit Log Entry for KYC Document Verification
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 identification.getUserId(),
                 supervisorId,
                 "VERIFY_KYC_DOCUMENT",
@@ -124,7 +124,7 @@ public class KycVerificationService implements KycVerificationUseCase {
 
         // Audit Log Entry for KYC Document Rejection
         profileRepository.saveAuditLog(new ProfileAuditLog(
-                UUID.randomUUID(),
+                null,
                 identification.getUserId(),
                 supervisorId,
                 "REJECT_KYC_DOCUMENT",
