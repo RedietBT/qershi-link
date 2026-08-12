@@ -16,7 +16,7 @@ import java.util.UUID;
 public class AccountAuditLogEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "log_id", nullable = false, updatable = false)
     private UUID logId;
 

@@ -38,29 +38,40 @@ public class AccountOpeningService implements AccountOpeningUseCase {
     private final AccountNumberGenerator accountNumberGenerator;
     private final com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
     private final SpringDataAccountAuditLogRepository auditLogRepository;
+    private final com.kab.qershi.account.infrastructure.persistence.SpringDataSaccoConfigRepository saccoConfigRepository;
 
     public AccountOpeningService(AccountRepositoryPort accountRepositoryPort,
                                  ProductRepositoryPort productRepositoryPort,
                                  ProfileValidationPort profileValidationPort,
                                  AccountNumberGenerator accountNumberGenerator,
                                  com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
-                                 SpringDataAccountAuditLogRepository auditLogRepository) {
+                                 SpringDataAccountAuditLogRepository auditLogRepository,
+                                 com.kab.qershi.account.infrastructure.persistence.SpringDataSaccoConfigRepository saccoConfigRepository) {
         this.accountRepositoryPort = accountRepositoryPort;
         this.productRepositoryPort = productRepositoryPort;
         this.profileValidationPort = profileValidationPort;
         this.accountNumberGenerator = accountNumberGenerator;
         this.notificationAdapter = notificationAdapter;
         this.auditLogRepository = auditLogRepository;
+        this.saccoConfigRepository = saccoConfigRepository;
     }
 
     @Override
-    public Account openAccount(UUID userId, String saccoCode, String branchCode, String productCode) {
-        // 1. Validate member active status
+    public Account openAccount(UUID userId, String branchCode, String productCode) {
+        // 1. Resolve tenant SACCO Code & Branch Code configuration
+        com.kab.qershi.account.infrastructure.persistence.SaccoConfigEntity saccoConfig = saccoConfigRepository
+                .findFirstByOrderByCreatedAtAsc()
+                .orElseGet(() -> new com.kab.qershi.account.infrastructure.persistence.SaccoConfigEntity(null, "0001", "Default SACCO", "0001"));
+
+        String saccoCode = saccoConfig.getSaccoCode();
+        String finalBranchCode = (branchCode != null && !branchCode.isBlank()) ? branchCode.trim() : saccoConfig.getBranchCode();
+
+        // 2. Validate member active status
         if (!profileValidationPort.isMemberActive(userId)) {
             throw new IllegalStateException("Cannot open account for member ID " + userId + ". Member status must be active.");
         }
 
-        // 2. Validate product existence & active state
+        // 3. Validate product existence & active state
         AccountProduct product = productRepositoryPort.findByProductCode(productCode)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found for code: " + productCode));
 
@@ -68,22 +79,22 @@ public class AccountOpeningService implements AccountOpeningUseCase {
             throw new IllegalStateException("Product " + productCode + " is currently inactive.");
         }
 
-        // 3. Generate sequential Luhn account number
+        // 4. Generate sequential Luhn account number
         long count = accountRepositoryPort.countAccountsBySaccoAndProduct(saccoCode, productCode);
         long sequenceNumber = count + 1;
-        String accountNo = accountNumberGenerator.generateAccountNo(saccoCode, branchCode, productCode, sequenceNumber);
+        String accountNo = accountNumberGenerator.generateAccountNo(saccoCode, finalBranchCode, productCode, sequenceNumber);
         while (accountRepositoryPort.existsByAccountNo(accountNo)) {
             sequenceNumber++;
-            accountNo = accountNumberGenerator.generateAccountNo(saccoCode, branchCode, productCode, sequenceNumber);
+            accountNo = accountNumberGenerator.generateAccountNo(saccoCode, finalBranchCode, productCode, sequenceNumber);
         }
 
-        // 4. Construct Account aggregate root
+        // 5. Construct Account aggregate root
         Account account = new Account(
                 UUID.randomUUID(),
                 accountNo,
                 userId,
                 saccoCode,
-                branchCode,
+                finalBranchCode,
                 productCode,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,

@@ -49,7 +49,6 @@ public class AccountController {
     public ResponseEntity<ApiResponse<Account>> openAccount(@Valid @RequestBody OpenAccountRequest request) {
         Account account = accountOpeningUseCase.openAccount(
                 request.getUserId(),
-                request.getSaccoCode(),
                 request.getBranchCode(),
                 request.getProductCode()
         );

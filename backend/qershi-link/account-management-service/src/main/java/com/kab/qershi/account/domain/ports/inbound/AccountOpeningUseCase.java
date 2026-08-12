@@ -14,7 +14,7 @@ import java.util.UUID;
  */
 public interface AccountOpeningUseCase {
 
-    Account openAccount(UUID userId, String saccoCode, String branchCode, String productCode);
+    Account openAccount(UUID userId, String branchCode, String productCode);
 
     Account approveAccount(String accountNo, UUID checkerUserId);
 
