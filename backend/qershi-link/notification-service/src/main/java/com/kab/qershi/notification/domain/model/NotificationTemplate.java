@@ -46,8 +46,38 @@ public class NotificationTemplate {
         String renderedContent = content;
         for (Map.Entry<String, String> entry : parameters.entrySet()) {
             if (entry.getKey() != null && entry.getValue() != null) {
-                renderedContent = renderedContent.replace("{" + entry.getKey() + "}", entry.getValue());
+                String key = entry.getKey();
+                String val = entry.getValue();
+                renderedContent = renderedContent.replace("{" + key + "}", val);
+                renderedContent = renderedContent.replace("@" + key, val);
             }
+        }
+
+        // Support user-friendly alias placeholders (e.g., @Name_of_the_user, @SACCO_NAME, @AMOUNT, @Amount)
+        if (parameters.containsKey("memberName") && parameters.get("memberName") != null) {
+            String val = parameters.get("memberName");
+            renderedContent = renderedContent.replace("@Name_of_the_user", val);
+            renderedContent = renderedContent.replace("@memberName", val);
+            renderedContent = renderedContent.replace("{Name_of_the_user}", val);
+        }
+        if (parameters.containsKey("saccoName") && parameters.get("saccoName") != null) {
+            String val = parameters.get("saccoName");
+            renderedContent = renderedContent.replace("@SACCO_NAME", val);
+            renderedContent = renderedContent.replace("@saccoName", val);
+            renderedContent = renderedContent.replace("{SACCO_NAME}", val);
+        }
+        if (parameters.containsKey("amount") && parameters.get("amount") != null) {
+            String val = parameters.get("amount");
+            renderedContent = renderedContent.replace("@AMOUNT", val);
+            renderedContent = renderedContent.replace("@Amount", val);
+            renderedContent = renderedContent.replace("@amount", val);
+            renderedContent = renderedContent.replace("{AMOUNT}", val);
+        }
+        if (parameters.containsKey("balance") && parameters.get("balance") != null) {
+            String val = parameters.get("balance");
+            renderedContent = renderedContent.replace("@balance", val);
+            renderedContent = renderedContent.replace("@Balance", val);
+            renderedContent = renderedContent.replace("{balance}", val);
         }
         return renderedContent;
     }
