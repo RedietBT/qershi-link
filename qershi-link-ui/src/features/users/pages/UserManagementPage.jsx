@@ -17,6 +17,7 @@ export const UserManagementPage = () => {
     isLoading,
     error,
     saccoIdFilter,
+    setSaccoIdFilter,
     searchTerm,
     setSearchTerm,
     statusFilter,
@@ -110,12 +111,14 @@ export const UserManagementPage = () => {
         {/* Stats Bar */}
         <UserStatsBar users={users} />
 
-        {/* Filter Bar */}
+        {/* Filter Bar with SUPER_ADMIN SACCO Tenant Selector */}
         <UserFilterBar 
           searchTerm={searchTerm} 
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
+          saccoIdFilter={saccoIdFilter}
+          setSaccoIdFilter={setSaccoIdFilter}
         />
 
         {/* User Table */}
