@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { roleApi } from '../api/roleApi';
+import { getPermissionDisplayName, getPermissionDescription } from '../utils/permissionUtils';
 import { X, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Key, Check } from 'lucide-react';
 
 export const UpdateRoleModal = ({ role, permissions = [], onClose, onSuccess }) => {
@@ -144,7 +145,8 @@ export const UpdateRoleModal = ({ role, permissions = [], onClose, onSuccess }) 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto p-3 rounded-2xl border border-[var(--bdae-border)] bg-black/5 dark:bg-white/5">
               {permissions.map((perm) => {
                 const permId = perm.permissionId || perm.id;
-                const permName = perm.permissionName || perm.name || perm.authority || String(perm);
+                const permName = getPermissionDisplayName(perm);
+                const permDesc = getPermissionDescription(perm);
                 const isChecked = selectedPermissionIds.includes(permId);
 
                 return (
@@ -157,14 +159,14 @@ export const UpdateRoleModal = ({ role, permissions = [], onClose, onSuccess }) 
                         : 'border-[var(--bdae-border)] hover:bg-black/5 dark:hover:bg-white/5 text-[var(--bdae-text-secondary)]'
                     }`}
                   >
-                    <div className="space-y-0.5">
-                      <p className="font-mono text-xs font-bold">{permName}</p>
-                      {perm.description && (
-                        <p className="text-[10px] opacity-75">{perm.description}</p>
+                    <div className="space-y-0.5 pr-2">
+                      <p className="font-mono text-xs font-bold text-[var(--bdae-text-primary)]">{permName}</p>
+                      {permDesc && (
+                        <p className="text-[10px] opacity-75 leading-tight">{permDesc}</p>
                       )}
                     </div>
 
-                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                    <div className={`w-4 h-4 rounded-md border shrink-0 flex items-center justify-center transition-all ${
                       isChecked ? 'bg-[var(--bdae-secondary)] border-[var(--bdae-secondary)] text-white' : 'border-[var(--bdae-border)]'
                     }`}>
                       {isChecked && <Check className="w-3 h-3" />}
