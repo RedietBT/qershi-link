@@ -1,6 +1,6 @@
 import React from 'react';
 import { SaccoStatusBadge } from './SaccoStatusBadge';
-import { Eye, Building2, Layers, Calendar, Database, RefreshCw, AlertCircle } from 'lucide-react';
+import { Eye, Building2, Layers, Calendar, Database, RefreshCw, AlertCircle, KeyRound } from 'lucide-react';
 
 export const SaccoTenantTable = ({ saccos = [], isLoading, error, onInspect, onRefresh }) => {
   if (isLoading) {
@@ -130,13 +130,22 @@ export const SaccoTenantTable = ({ saccos = [], isLoading, error, onInspect, onR
                   </td>
 
                   {/* Actions */}
-                  <td className="py-3.5 px-4 text-right">
+                  <td className="py-3.5 px-4 text-right space-x-2">
                     <button
                       onClick={() => onInspect(sacco.saccoId)}
                       className="px-3 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] hover:bg-[var(--bdae-secondary)]/10 text-[var(--bdae-secondary)] text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-sm"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>View Profile</span>
+                    </button>
+
+                    <button
+                      onClick={() => onResendPin(sacco.saccoId)}
+                      className="px-3 py-1.5 rounded-xl border border-amber-500/30 hover:border-amber-500 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-sm"
+                      title="Resend Initial PIN via SMS (POST /api/v1/pin/resend/{userId})"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                      <span>Resend PIN</span>
                     </button>
                   </td>
                 </tr>

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSaccoRegistry } from '../hooks/useSaccoRegistry';
 import { SaccoStatsBar } from '../components/SaccoStatsBar';
 import { SaccoTenantTable } from '../components/SaccoTenantTable';
 import { SaccoDetailModal } from '../components/SaccoDetailModal';
+import { PinResendModal } from '../components/PinResendModal';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
-import { Building2, Plus, RefreshCw, Lock } from 'lucide-react';
+import { Building2, Plus, RefreshCw, Lock, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const SaccoRegistryPage = () => {
@@ -21,6 +22,23 @@ export const SaccoRegistryPage = () => {
   } = useSaccoRegistry();
 
   const navigate = useNavigate();
+
+  // Pin Resend Modal State
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinModalMode, setPinModalMode] = useState('phone'); // 'phone' | 'userId'
+  const [pinModalTarget, setPinModalTarget] = useState('');
+
+  const handleOpenPinModalByPhone = () => {
+    setPinModalMode('phone');
+    setPinModalTarget('');
+    setIsPinModalOpen(true);
+  };
+
+  const handleOpenPinModalByUserId = (userId) => {
+    setPinModalMode('userId');
+    setPinModalTarget(userId);
+    setIsPinModalOpen(true);
+  };
 
   return (
     <PermissionGuard role="ROLE_SUPER_ADMIN" fallback={
@@ -54,7 +72,8 @@ export const SaccoRegistryPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
+            {/* Refresh Button */}
             <button
               onClick={refreshSaccos}
               disabled={isLoading}
@@ -64,12 +83,23 @@ export const SaccoRegistryPage = () => {
               <span>Refresh</span>
             </button>
 
+            {/* Onboard New SACCO Button */}
             <button
               onClick={() => navigate('/onboard')}
               className="bdae-btn-primary px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-2 shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>Onboard New SACCO</span>
+            </button>
+
+            {/* Red Dot Position: Resend PIN by Phone Button */}
+            <button
+              onClick={handleOpenPinModalByPhone}
+              className="px-3.5 py-2 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold flex items-center gap-2 transition-all shadow-md"
+              title="Resend Initial PIN via SMS by Phone Number (POST /api/v1/pin/resend)"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Resend PIN</span>
             </button>
           </div>
         </div>
@@ -83,6 +113,7 @@ export const SaccoRegistryPage = () => {
           isLoading={isLoading} 
           error={error} 
           onInspect={fetchSaccoDetails}
+          onResendPin={handleOpenPinModalByUserId}
           onRefresh={refreshSaccos}
         />
 
@@ -93,6 +124,15 @@ export const SaccoRegistryPage = () => {
           error={detailError} 
           onClose={closeDetailModal} 
         />
+
+        {/* PIN Operations Resend Modal */}
+        {isPinModalOpen && (
+          <PinResendModal
+            initialMode={pinModalMode}
+            initialTarget={pinModalTarget}
+            onClose={() => setIsPinModalOpen(false)}
+          />
+        )}
 
       </div>
     </PermissionGuard>
