@@ -5,13 +5,14 @@ import { SaccoOnboardingPage } from '../features/superadmin/pages/SaccoOnboardin
 import { SaccoRegistryPage } from '../features/superadmin/pages/SaccoRegistryPage';
 import { AuditLogsPage } from '../features/audit/pages/AuditLogsPage';
 import { UserManagementPage } from '../features/users/pages/UserManagementPage';
+import { RoleManagementPage } from '../features/roles/pages/RoleManagementPage';
 import { ChangePinModal } from '../features/auth/components/ChangePinModal';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 import { useAuthStore } from '../common/store/useAuthStore';
 import { Layout } from '../common/components/Layout';
 import { PermissionGuard } from '../common/components/PermissionGuard';
-import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users } from 'lucide-react';
+import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield } from 'lucide-react';
 
 /**
  * Dashboard View Component
@@ -108,21 +109,21 @@ function DashboardPage() {
                 </div>
               </PermissionGuard>
 
-              {/* Card 3: PIN & Credential Operations (SUPER_ADMIN + SACCO_ADMIN) */}
+              {/* Card 3: Role & RBAC Management (SUPER_ADMIN + SACCO_ADMIN) */}
               <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
                 <div 
-                  onClick={() => navigate('/saccos')}
+                  onClick={() => navigate('/roles')}
                   className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
                 >
                   <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
-                    <KeyRound className="w-5 h-5" />
+                    <Shield className="w-5 h-5" />
                   </div>
                   <div>
                     <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
-                      PIN & Credential Operations
+                      Role & RBAC Management
                     </p>
                     <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
-                      Initial PIN dispatches and SMS resend triggers.
+                      Manage system roles, custom tenant roles, and permissions.
                     </p>
                   </div>
                 </div>
@@ -234,6 +235,18 @@ export const AppRoutes = () => {
             <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
               <Layout>
                 <UserManagementPage />
+              </Layout>
+            </PermissionRoute>
+          } 
+        />
+
+        {/* Protected Route: Role & RBAC Management (SUPER_ADMIN + SACCO_ADMIN) */}
+        <Route 
+          path="/roles" 
+          element={
+            <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+              <Layout>
+                <RoleManagementPage />
               </Layout>
             </PermissionRoute>
           } 
