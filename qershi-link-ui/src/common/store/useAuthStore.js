@@ -23,7 +23,7 @@ const parseJwtClaims = (token) => {
 
 /**
  * Zustand Global Auth & Credential Store for Qershi-Link UI.
- * Extracts globalRole, permissions, and roles from login API response or JWT token claims.
+ * Unpacks nested userContext { globalRole, permissions, schemaName } returned by backend.
  */
 export const useAuthStore = create(
   persist(
@@ -36,15 +36,17 @@ export const useAuthStore = create(
 
       // --- ACTIONS ---
       login: (sessionData) => {
-        const token = sessionData.token || sessionData.accessToken || null;
+        const token = sessionData.accessToken || sessionData.token || null;
         const jwtClaims = parseJwtClaims(token);
 
-        // Merge response payload properties with JWT payload claims
-        const globalRole = sessionData.globalRole || jwtClaims.globalRole || jwtClaims.role || null;
-        const permissions = sessionData.permissions || jwtClaims.permissions || [];
-        const rawRoles = sessionData.roles || jwtClaims.roles || (globalRole ? [globalRole] : []);
-        
-        // Normalize roles list (supporting both SUPER_ADMIN and ROLE_SUPER_ADMIN formats)
+        // Extract nested userContext returned by backend LoginResult record
+        const ctx = sessionData.userContext || sessionData.user || {};
+
+        const globalRole = ctx.globalRole || sessionData.globalRole || jwtClaims.globalRole || jwtClaims.role || null;
+        const permissions = ctx.permissions || sessionData.permissions || jwtClaims.permissions || [];
+        const rawRoles = ctx.roles || sessionData.roles || jwtClaims.roles || (globalRole ? [globalRole] : []);
+
+        // Normalize roles list
         let roles = Array.isArray(rawRoles) ? [...rawRoles] : [rawRoles];
         if (globalRole) {
           if (!roles.includes(globalRole)) roles.push(globalRole);
@@ -52,10 +54,10 @@ export const useAuthStore = create(
           if (!roles.includes(prefixed)) roles.push(prefixed);
         }
 
-        const userId = sessionData.userId || jwtClaims.userId || jwtClaims.sub;
-        const msisdn = sessionData.msisdn || jwtClaims.msisdn || jwtClaims.sub;
-        const saccoId = sessionData.saccoId || jwtClaims.saccoId || null;
-        const tenantSchema = sessionData.tenantSchema || jwtClaims.tenantSchema || 'master_schema';
+        const userId = ctx.userId || sessionData.userId || jwtClaims.userId || jwtClaims.sub;
+        const msisdn = sessionData.msisdn || ctx.msisdn || jwtClaims.msisdn || jwtClaims.sub;
+        const saccoId = ctx.saccoId || sessionData.saccoId || jwtClaims.saccoId || null;
+        const tenantSchema = ctx.schemaName || sessionData.tenantSchema || jwtClaims.schemaName || jwtClaims.tenantSchema || 'master_schema';
 
         const userData = {
           userId,
@@ -87,7 +89,7 @@ export const useAuthStore = create(
       hasRole: (role) => {
         const { user } = get();
         if (!user) return false;
-        
+
         const targetRole = role.startsWith('ROLE_') ? role : `ROLE_${role}`;
         const rawRole = role.startsWith('ROLE_') ? role.replace('ROLE_', '') : role;
 
@@ -123,7 +125,7 @@ export const useAuthStore = create(
     }),
     {
       name: 'qershi_auth_session',
-      storage: createJSONStorage(() => sessionStorage), // Auto-cleared when browser tab closes
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 );
