@@ -21,14 +21,14 @@ export const AuditLogsPage = () => {
   } = useAuditLogs('GLOBAL');
 
   return (
-    <PermissionGuard role="SUPER_ADMIN" fallback={
+    <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']} fallback={
       <div className="p-8 text-center max-w-lg mx-auto space-y-4">
         <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 mx-auto flex items-center justify-center">
           <Lock className="w-6 h-6" />
         </div>
         <h2 className="text-lg font-bold">Access Restricted</h2>
         <p className="text-xs text-[var(--bdae-text-secondary)]">
-          Platform Security Audit Engine requires Super Admin authorization (<code className="font-mono bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded">ROLE_SUPER_ADMIN</code>).
+          Security Audit Engine requires Super Admin or SACCO Admin authorization.
         </p>
       </div>
     }>
@@ -44,10 +44,10 @@ export const AuditLogsPage = () => {
             </div>
             <div>
               <h1 className="text-xl font-extrabold tracking-tight text-[var(--bdae-text-primary)]">
-                Platform Security Audit Engine
+                Security Audit Engine
               </h1>
               <p className="text-xs text-[var(--bdae-text-secondary)]">
-                Inspect system security, login events, and administrative logs (<code className="font-mono">GET /api/v1/platform/audit-logs</code>).
+                Inspect system security, login events, and audit logs.
               </p>
             </div>
           </div>

@@ -18,8 +18,8 @@ const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/saccos', label: 'SACCO Registry', icon: Building2, role: 'SUPER_ADMIN' },
   { path: '/onboard', label: 'SACCO Tenant Onboarding', icon: PlusCircle, role: 'SUPER_ADMIN' },
-  { path: '/users', label: 'User Management', icon: Users, role: 'SUPER_ADMIN' },
-  { path: '/audit-logs', label: 'Security Audit Logs', icon: ShieldAlert, role: 'SUPER_ADMIN' },
+  { path: '/users', label: 'User Management', icon: Users, roles: ['SUPER_ADMIN', 'SACCO_ADMIN'] },
+  { path: '/audit-logs', label: 'Security Audit Logs', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'SACCO_ADMIN'] },
   { path: '/members', label: 'Member Profiles', icon: UserCheck },
   { path: '/accounts', label: 'Core Accounts', icon: Wallet },
   { path: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
@@ -56,9 +56,9 @@ export const Sidebar = () => {
             </NavLink>
           );
 
-          if (item.role || item.permission) {
+          if (item.roles || item.role || item.permission) {
             return (
-              <PermissionGuard key={item.path} role={item.role} permission={item.permission}>
+              <PermissionGuard key={item.path} role={item.role} roles={item.roles} permission={item.permission}>
                 {navButton}
               </PermissionGuard>
             );

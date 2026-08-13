@@ -1,6 +1,6 @@
 import React from 'react';
 import { SaccoStatusBadge } from './SaccoStatusBadge';
-import { X, Building2, Database, Layers, Coins, Calendar, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, Building2, Database, Layers, Coins, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 
 export const SaccoDetailModal = ({ sacco, isLoading, error, onClose }) => {
   if (!sacco && !isLoading && !error) return null;
@@ -29,8 +29,8 @@ export const SaccoDetailModal = ({ sacco, isLoading, error, onClose }) => {
             <h2 className="text-lg font-bold tracking-tight text-[var(--bdae-text-primary)]">
               SACCO Registry Profile
             </h2>
-            <p className="text-xs text-[var(--bdae-text-secondary)] font-mono">
-              GET /api/v1/saccos/{sacco?.saccoId || 'id'}
+            <p className="text-xs text-[var(--bdae-text-secondary)]">
+              Institution Workspace Configuration
             </p>
           </div>
         </div>
@@ -95,12 +95,6 @@ export const SaccoDetailModal = ({ sacco, isLoading, error, onClose }) => {
                 </p>
               </div>
 
-            </div>
-
-            {/* UUID Box */}
-            <div className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--bdae-border)] font-mono text-[11px] space-y-1">
-              <p className="text-[10px] font-bold text-[var(--bdae-text-secondary)] uppercase">SACCO UUID Identifier</p>
-              <p className="text-[var(--bdae-secondary)] select-all font-bold">{sacco.saccoId}</p>
             </div>
           </div>
         ) : null}

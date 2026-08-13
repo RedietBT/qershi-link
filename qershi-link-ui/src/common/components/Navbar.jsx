@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { Building2, LogOut, ShieldCheck, User } from 'lucide-react';
+import { Building2, LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Navbar = () => {
@@ -10,7 +10,7 @@ export const Navbar = () => {
 
   return (
     <header className="h-16 bdae-surface border-b border-[var(--bdae-border)] px-6 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300">
-      {/* Brand & Tenant Indicator */}
+      {/* Brand & Platform Indicator */}
       <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
         <div 
           className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md"
@@ -23,7 +23,7 @@ export const Navbar = () => {
             Qershi-Link Platform
           </span>
           <span className="text-[10px] block text-[var(--bdae-text-secondary)] font-mono">
-            {user?.saccoId || 'Master Schema'}
+            Core Banking Workspace
           </span>
         </div>
       </div>

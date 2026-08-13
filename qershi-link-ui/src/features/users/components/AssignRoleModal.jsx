@@ -61,8 +61,8 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
             <h2 className="text-lg font-bold tracking-tight text-[var(--bdae-text-primary)]">
               Assign Tenant Role to User
             </h2>
-            <p className="text-xs text-[var(--bdae-text-secondary)] font-mono">
-              POST /api/v1/users/{user?.userId}/roles/{'{roleId}'}
+            <p className="text-xs text-[var(--bdae-text-secondary)]">
+              Map tenant role permissions to account.
             </p>
           </div>
         </div>
@@ -74,7 +74,6 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
           <div className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--bdae-border)] space-y-1">
             <p className="text-[10px] uppercase font-bold text-[var(--bdae-text-secondary)]">Target User</p>
             <p className="font-bold text-xs text-[var(--bdae-text-primary)]">{user?.msisdn} ({user?.globalRole})</p>
-            <p className="text-[10px] font-mono text-[var(--bdae-secondary)]">{user?.userId}</p>
           </div>
 
           {/* Role ID Input */}

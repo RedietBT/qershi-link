@@ -2,13 +2,13 @@ import React from 'react';
 import { SaccoStatusBadge } from './SaccoStatusBadge';
 import { Eye, Building2, Layers, Calendar, Database, RefreshCw, AlertCircle, KeyRound } from 'lucide-react';
 
-export const SaccoTenantTable = ({ saccos = [], isLoading, error, onInspect, onRefresh }) => {
+export const SaccoTenantTable = ({ saccos = [], isLoading, error, onInspect, onResendPin, onRefresh }) => {
   if (isLoading) {
     return (
       <div className="bdae-card p-12 text-center space-y-3 border border-[var(--bdae-border)]">
         <RefreshCw className="w-8 h-8 text-[var(--bdae-secondary)] animate-spin mx-auto" />
         <p className="text-xs font-semibold text-[var(--bdae-text-secondary)]">
-          Fetching SACCO Registry Workspaces (GET /api/v1/saccos)...
+          Fetching SACCO Registry Workspaces...
         </p>
       </div>
     );
@@ -69,7 +69,7 @@ export const SaccoTenantTable = ({ saccos = [], isLoading, error, onInspect, onR
                   key={sacco.saccoId}
                   className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
                 >
-                  {/* SACCO Name & UUID */}
+                  {/* SACCO Name */}
                   <td className="py-3.5 px-4">
                     <div className="flex items-center space-x-3">
                       <div 
@@ -81,9 +81,6 @@ export const SaccoTenantTable = ({ saccos = [], isLoading, error, onInspect, onR
                       <div>
                         <p className="font-bold text-[var(--bdae-text-primary)] text-xs">
                           {sacco.saccoName}
-                        </p>
-                        <p className="text-[10px] text-[var(--bdae-text-secondary)] font-mono">
-                          {sacco.saccoId}
                         </p>
                       </div>
                     </div>
@@ -142,7 +139,7 @@ export const SaccoTenantTable = ({ saccos = [], isLoading, error, onInspect, onR
                     <button
                       onClick={() => onResendPin(sacco.saccoId)}
                       className="px-3 py-1.5 rounded-xl border border-amber-500/30 hover:border-amber-500 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-sm"
-                      title="Resend Initial PIN via SMS (POST /api/v1/pin/resend/{userId})"
+                      title="Resend Initial PIN via SMS"
                     >
                       <KeyRound className="w-3.5 h-3.5" />
                       <span>Resend PIN</span>

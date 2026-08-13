@@ -1,13 +1,13 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../common/store/useAuthStore';
-import { Lock, ShieldAlert } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 /**
  * Guard for routes requiring specific Roles or Permissions.
- * Renders a clean 403 Access Denied fallback when missing authorization.
+ * Supports arrays of roles (e.g. roles={['SUPER_ADMIN', 'SACCO_ADMIN']}).
  */
-export const PermissionRoute = ({ role, permission, children }) => {
+export const PermissionRoute = ({ role, roles, permission, permissions, children }) => {
   const user = useAuthStore((state) => state.user);
   const hasRole = useAuthStore((state) => state.hasRole);
   const hasPermission = useAuthStore((state) => state.hasPermission);
@@ -16,8 +16,21 @@ export const PermissionRoute = ({ role, permission, children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  const isRoleAuthorized = !role || hasRole(role);
-  const isPermissionAuthorized = !permission || hasPermission(permission);
+  // Super Admin global override
+  if (
+    user.globalRole === 'SUPER_ADMIN' ||
+    user.globalRole === 'ROLE_SUPER_ADMIN' ||
+    user.roles?.includes('ROLE_SUPER_ADMIN') ||
+    user.roles?.includes('SUPER_ADMIN')
+  ) {
+    return children ? children : <Outlet />;
+  }
+
+  const roleList = roles || (Array.isArray(role) ? role : role ? [role] : []);
+  const isRoleAuthorized = roleList.length === 0 || roleList.some((r) => hasRole(r));
+
+  const permList = permissions || (Array.isArray(permission) ? permission : permission ? [permission] : []);
+  const isPermissionAuthorized = permList.length === 0 || permList.some((p) => hasPermission(p));
 
   if (!isRoleAuthorized || !isPermissionAuthorized) {
     return (
@@ -33,10 +46,6 @@ export const PermissionRoute = ({ role, permission, children }) => {
             <p className="text-xs text-[var(--bdae-text-secondary)] mt-1">
               You do not possess the required authorization claims to view this page.
             </p>
-          </div>
-          <div className="p-3 rounded-xl bg-black/5 dark:bg-white/5 text-[11px] font-mono text-[var(--bdae-text-secondary)] text-left space-y-1">
-            {role && <p><strong>Required Role:</strong> {role}</p>}
-            {permission && <p><strong>Required Permission:</strong> {permission}</p>}
           </div>
           <a
             href="/dashboard"

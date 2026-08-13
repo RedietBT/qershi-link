@@ -56,14 +56,14 @@ export const UserManagementPage = () => {
   };
 
   return (
-    <PermissionGuard role="SUPER_ADMIN" fallback={
+    <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']} fallback={
       <div className="p-8 text-center max-w-lg mx-auto space-y-4">
         <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 mx-auto flex items-center justify-center">
           <Lock className="w-6 h-6" />
         </div>
         <h2 className="text-lg font-bold">Access Restricted</h2>
         <p className="text-xs text-[var(--bdae-text-secondary)]">
-          User Account Management requires Super Admin authorization (<code className="font-mono bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded">ROLE_SUPER_ADMIN</code>).
+          User Account Management requires Super Admin or SACCO Admin authorization.
         </p>
       </div>
     }>
@@ -82,7 +82,7 @@ export const UserManagementPage = () => {
                 User Account Management
               </h1>
               <p className="text-xs text-[var(--bdae-text-secondary)]">
-                Track, register, update security parameters, and purge identity records (<code className="font-mono">GET /api/v1/users</code>).
+                Track, register, update security parameters, and manage identity records.
               </p>
             </div>
           </div>
@@ -179,7 +179,7 @@ export const UserManagementPage = () => {
                   Purge User Identity Record?
                 </h2>
                 <p className="text-xs text-[var(--bdae-text-secondary)] mt-1">
-                  You are about to issue a cascading deletion for user <strong className="font-mono text-[var(--bdae-text-primary)]">{deletingUser.msisdn}</strong> (<code className="font-mono">{deletingUser.userId}</code>). This operation cannot be undone.
+                  You are about to issue a cascading deletion for user <strong className="font-mono text-[var(--bdae-text-primary)]">{deletingUser.msisdn}</strong>. This operation cannot be undone.
                 </p>
               </div>
 

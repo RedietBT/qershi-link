@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AuditStatusBadge } from './AuditStatusBadge';
-import { ShieldCheck, RefreshCw, AlertCircle, Calendar, Globe, User, Building2, ChevronDown, ChevronUp, Terminal } from 'lucide-react';
+import { ShieldCheck, RefreshCw, AlertCircle, Calendar, Globe, ChevronDown, ChevronUp, Terminal } from 'lucide-react';
 
 export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
   const [expandedLogId, setExpandedLogId] = useState(null);
@@ -14,7 +14,7 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
       <div className="bdae-card p-12 text-center space-y-3 border border-[var(--bdae-border)]">
         <RefreshCw className="w-8 h-8 text-[var(--bdae-secondary)] animate-spin mx-auto" />
         <p className="text-xs font-semibold text-[var(--bdae-text-secondary)]">
-          Fetching Platform Security Audit Logs (GET /api/v1/platform/audit-logs)...
+          Fetching Platform Security Audit Logs...
         </p>
       </div>
     );
@@ -54,7 +54,6 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
               <th className="py-3.5 px-4">Timestamp</th>
               <th className="py-3.5 px-4">Action Event</th>
               <th className="py-3.5 px-4">Resource Affected</th>
-              <th className="py-3.5 px-4">User ID / Actor</th>
               <th className="py-3.5 px-4">IP Address</th>
               <th className="py-3.5 px-4">Status</th>
               <th className="py-3.5 px-4 text-right">Details</th>
@@ -100,14 +99,6 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
                       {log.resourceAffected || 'System Global'}
                     </td>
 
-                    {/* User ID / Actor */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center space-x-1.5 font-mono text-[11px] text-[var(--bdae-text-secondary)]">
-                        <User className="w-3 h-3 text-[var(--bdae-secondary)]" />
-                        <span className="truncate max-w-[140px]">{log.userId || 'System'}</span>
-                      </div>
-                    </td>
-
                     {/* IP Address */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center space-x-1 font-mono text-[11px] text-[var(--bdae-text-secondary)]">
@@ -138,21 +129,21 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
                   {/* Expanded Log Details */}
                   {isExpanded && (
                     <tr className="bg-black/5 dark:bg-white/5 border-b border-[var(--bdae-border)]">
-                      <td colSpan="7" className="p-4 font-mono text-xs">
+                      <td colSpan="6" className="p-4 font-mono text-xs">
                         <div className="p-4 rounded-xl bdae-surface border border-[var(--bdae-border)] space-y-2">
                           <div className="flex items-center justify-between border-b border-[var(--bdae-border)] pb-2 text-[11px]">
                             <span className="font-bold flex items-center gap-1.5 text-[var(--bdae-secondary)]">
-                              <Terminal className="w-4 h-4" /> Event Payload Log ID: {log.logId}
+                              <Terminal className="w-4 h-4" /> Action Event Log Trace
                             </span>
-                            <span>SACCO ID: {log.saccoId || 'Master Schema'}</span>
+                            <span>Status: {log.status}</span>
                           </div>
 
                           <div className="space-y-1">
                             <p className="text-[10px] uppercase font-bold text-[var(--bdae-text-secondary)]">
-                              Metadata & Trace Log Details:
+                              Event Details & Audit Log Message:
                             </p>
                             <pre className="p-3 rounded-lg bg-black/10 dark:bg-black/40 text-[11px] leading-relaxed text-[var(--bdae-text-primary)] overflow-x-auto whitespace-pre-wrap font-mono">
-                              {log.details ? log.details : JSON.stringify(log, null, 2)}
+                              {log.details ? log.details : JSON.stringify({ action: log.action, resource: log.resourceAffected, ip: log.ipAddress }, null, 2)}
                             </pre>
                           </div>
                         </div>

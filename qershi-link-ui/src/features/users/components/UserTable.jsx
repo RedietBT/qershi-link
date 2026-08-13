@@ -1,7 +1,7 @@
 import React from 'react';
 import { UserStatusBadge } from './UserStatusBadge';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
-import { Users, Phone, Calendar, Database, RefreshCw, AlertCircle, Edit3, Trash2, KeyRound, ShieldCheck, Crown } from 'lucide-react';
+import { Users, Phone, Calendar, Building2, RefreshCw, AlertCircle, Edit3, Trash2, KeyRound, ShieldCheck, Crown } from 'lucide-react';
 
 export const UserTable = ({
   users = [],
@@ -18,7 +18,7 @@ export const UserTable = ({
       <div className="bdae-card p-12 text-center space-y-3 border border-[var(--bdae-border)]">
         <RefreshCw className="w-8 h-8 text-[var(--bdae-secondary)] animate-spin mx-auto" />
         <p className="text-xs font-semibold text-[var(--bdae-text-secondary)]">
-          Fetching User Accounts (GET /api/v1/users)...
+          Fetching User Accounts...
         </p>
       </div>
     );
@@ -55,10 +55,9 @@ export const UserTable = ({
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-[var(--bdae-border)] bg-black/5 dark:bg-white/5 text-[11px] font-bold text-[var(--bdae-text-secondary)] uppercase tracking-wider">
-              <th className="py-3.5 px-4">User Identity / Phone</th>
+              <th className="py-3.5 px-4">User Phone (MSISDN)</th>
               <th className="py-3.5 px-4">Global Role</th>
               <th className="py-3.5 px-4">Status</th>
-              <th className="py-3.5 px-4">SACCO Context</th>
               <th className="py-3.5 px-4">Last Login</th>
               <th className="py-3.5 px-4 text-right">Actions</th>
             </tr>
@@ -82,7 +81,7 @@ export const UserTable = ({
                   key={user.userId}
                   className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
                 >
-                  {/* Phone & User ID */}
+                  {/* Phone Number */}
                   <td className="py-3.5 px-4">
                     <div className="flex items-center space-x-3">
                       <div 
@@ -94,9 +93,6 @@ export const UserTable = ({
                       <div>
                         <p className="font-mono font-bold text-[var(--bdae-text-primary)] text-xs">
                           {user.msisdn}
-                        </p>
-                        <p className="text-[10px] text-[var(--bdae-text-secondary)] font-mono">
-                          {user.userId}
                         </p>
                       </div>
                     </div>
@@ -121,14 +117,6 @@ export const UserTable = ({
                     <UserStatusBadge status={user.status} />
                   </td>
 
-                  {/* SACCO Context */}
-                  <td className="py-3.5 px-4">
-                    <span className="inline-flex items-center space-x-1 font-mono text-[11px] bg-black/5 dark:bg-white/5 px-2 py-1 rounded-md border border-[var(--bdae-border)] text-[var(--bdae-text-primary)]">
-                      <Database className="w-3 h-3 text-[var(--bdae-secondary)]" />
-                      <span className="truncate max-w-[130px]">{user.saccoId || 'Master Schema'}</span>
-                    </span>
-                  </td>
-
                   {/* Last Login Date */}
                   <td className="py-3.5 px-4 text-[11px] text-[var(--bdae-text-secondary)] font-mono">
                     <div className="flex items-center space-x-1">
@@ -143,7 +131,7 @@ export const UserTable = ({
                     <button
                       onClick={() => onEdit(user)}
                       className="px-2.5 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] hover:bg-[var(--bdae-secondary)]/10 text-[var(--bdae-secondary)] text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                      title="Update Mobile Phone & Security Status (PUT /api/v1/users/{id})"
+                      title="Update Mobile Phone & Security Status"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                       <span>Edit</span>
@@ -153,7 +141,7 @@ export const UserTable = ({
                     <button
                       onClick={() => onResendPin(user.userId)}
                       className="px-2.5 py-1.5 rounded-xl border border-amber-500/30 hover:border-amber-500 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                      title="Resend Initial PIN via SMS (POST /api/v1/pin/resend/{userId})"
+                      title="Resend Initial PIN via SMS"
                     >
                       <KeyRound className="w-3.5 h-3.5" />
                       <span>PIN</span>
@@ -163,7 +151,7 @@ export const UserTable = ({
                     <button
                       onClick={() => onAssignRole(user)}
                       className="px-2.5 py-1.5 rounded-xl border border-cyan-500/30 hover:border-cyan-500 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                      title="Assign Role to User (POST /api/v1/users/{userId}/roles/{roleId})"
+                      title="Assign Role to User"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
                       <span>Role</span>
@@ -174,7 +162,7 @@ export const UserTable = ({
                       <button
                         onClick={() => onDelete(user)}
                         className="px-2.5 py-1.5 rounded-xl border border-red-500/30 hover:border-red-500 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                        title="Purge User Identity (DELETE /api/v1/users/{id})"
+                        title="Purge User Identity"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         <span>Purge</span>

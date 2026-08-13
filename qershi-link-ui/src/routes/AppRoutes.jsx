@@ -31,7 +31,7 @@ function DashboardPage() {
             <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-semibold">Active Session</span>
             <h1 className="text-2xl font-bold">Welcome, {user?.msisdn || 'SACCO User'}!</h1>
             <p className="text-xs opacity-90 font-mono">
-              User ID: {user?.userId || 'N/A'} | Role: <span className="font-bold underline">{user?.globalRole || user?.roles?.[0]}</span>
+              Role: <span className="font-bold underline">{user?.globalRole || user?.roles?.[0]}</span>
             </p>
           </div>
 
@@ -48,86 +48,94 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Super Admin Control Engine Matrix */}
-        <PermissionGuard role="SUPER_ADMIN">
+        {/* Administrative Control Engine Matrix */}
+        <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
           <div className="bdae-card p-6 space-y-4 border border-[var(--bdae-border)] shadow-xl">
             <h2 className="text-sm font-bold border-b border-[var(--bdae-border)] pb-2 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[var(--bdae-secondary)]" />
-              <span>Platform Administrative Control Engines</span>
+              <span>Administrative Control Engines</span>
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-              {/* Card 1: SACCO Registry Management */}
-              <div 
-                onClick={() => navigate('/saccos')}
-                className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
-              >
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
-                  <Building2 className="w-5 h-5" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              {/* Card 1: SACCO Registry Management (SUPER_ADMIN) */}
+              <PermissionGuard role="SUPER_ADMIN">
+                <div 
+                  onClick={() => navigate('/saccos')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      SACCO Registry Management
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Monitor and manage ecosystem tenant configurations.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
-                    SACCO Registry Management
-                  </p>
-                  <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
-                    Monitor and manage ecosystem tenant configurations (<code className="font-mono">GET /api/v1/saccos</code>).
-                  </p>
-                </div>
-              </div>
+              </PermissionGuard>
 
-              {/* Card 2: User Account Management */}
-              <div 
-                onClick={() => navigate('/users')}
-                className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
-              >
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
-                  <Users className="w-5 h-5" />
+              {/* Card 2: User Account Management (SUPER_ADMIN + SACCO_ADMIN) */}
+              <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                <div 
+                  onClick={() => navigate('/users')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      User Account Management
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Track and perform CRUD options on identity records.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
-                    User Account Management
-                  </p>
-                  <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
-                    Track and perform CRUD options on identity records (<code className="font-mono">GET /api/v1/users</code>).
-                  </p>
-                </div>
-              </div>
+              </PermissionGuard>
 
-              {/* Card 3: PIN & Credential Operations */}
-              <div 
-                onClick={() => navigate('/saccos')}
-                className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
-              >
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
-                  <KeyRound className="w-5 h-5" />
+              {/* Card 3: PIN & Credential Operations (SUPER_ADMIN + SACCO_ADMIN) */}
+              <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                <div 
+                  onClick={() => navigate('/saccos')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      PIN & Credential Operations
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Initial PIN dispatches and SMS resend triggers.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
-                    PIN & Credential Operations
-                  </p>
-                  <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
-                    Initial PIN dispatches and SMS resend triggers (<code className="font-mono">POST /api/v1/pin/resend</code>).
-                  </p>
-                </div>
-              </div>
+              </PermissionGuard>
 
-              {/* Card 4: Platform Security Audit Engine */}
-              <div 
-                onClick={() => navigate('/audit-logs')}
-                className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
-              >
-                <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center font-bold">
-                  <ShieldAlert className="w-5 h-5" />
+              {/* Card 4: Platform Security Audit Engine (SUPER_ADMIN + SACCO_ADMIN) */}
+              <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                <div 
+                  onClick={() => navigate('/audit-logs')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center font-bold">
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      Security Audit Engine
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Inspect system security, login events, and audit logs.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
-                    Platform Security Audit Engine
-                  </p>
-                  <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
-                    Inspect system security, login events, and audit logs (<code className="font-mono">GET /api/v1/platform/audit-logs</code>).
-                  </p>
-                </div>
-              </div>
+              </PermissionGuard>
             </div>
           </div>
         </PermissionGuard>
@@ -176,7 +184,7 @@ export const AppRoutes = () => {
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         
-        {/* Protected & Role-Guarded Route: SACCO Registry */}
+        {/* Protected Route: SACCO Registry (SUPER_ADMIN) */}
         <Route 
           path="/saccos" 
           element={
@@ -188,7 +196,7 @@ export const AppRoutes = () => {
           } 
         />
 
-        {/* Protected & Role-Guarded Route: SACCO Onboarding */}
+        {/* Protected Route: SACCO Onboarding (SUPER_ADMIN) */}
         <Route 
           path="/onboard" 
           element={
@@ -200,11 +208,11 @@ export const AppRoutes = () => {
           } 
         />
 
-        {/* Protected & Role-Guarded Route: User Account Management */}
+        {/* Protected Route: User Account Management (SUPER_ADMIN + SACCO_ADMIN) */}
         <Route 
           path="/users" 
           element={
-            <PermissionRoute role="SUPER_ADMIN">
+            <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
               <Layout>
                 <UserManagementPage />
               </Layout>
@@ -212,11 +220,11 @@ export const AppRoutes = () => {
           } 
         />
 
-        {/* Protected & Role-Guarded Route: Platform Security Audit Logs */}
+        {/* Protected Route: Platform Security Audit Logs (SUPER_ADMIN + SACCO_ADMIN) */}
         <Route 
           path="/audit-logs" 
           element={
-            <PermissionRoute role="SUPER_ADMIN">
+            <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
               <Layout>
                 <AuditLogsPage />
               </Layout>
