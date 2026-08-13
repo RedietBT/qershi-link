@@ -37,7 +37,7 @@ export const Navbar = () => {
           </div>
           <div className="text-left">
             <p className="text-xs font-bold text-[var(--bdae-text-primary)] leading-none">{user?.msisdn || 'SACCO User'}</p>
-            <p className="text-[10px] text-[var(--bdae-text-secondary)] font-mono">{user?.roles?.[0] || 'ROLE_USER'}</p>
+            <p className="text-[10px] text-[var(--bdae-text-secondary)] font-mono">{user?.globalRole || user?.roles?.[0] || 'ROLE_USER'}</p>
           </div>
         </div>
 
