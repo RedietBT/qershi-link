@@ -51,7 +51,7 @@ public class KycController {
     }
 
     @PostMapping("/{userId}/identifications")
-    @PreAuthorize("hasAuthority('KYC_SUBMIT')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('KYC_SUBMIT')")
     @Operation(summary = "Submit KYC Identification Document", description = "Stores official identity document details for a member profile.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "KYC identification document submitted successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -73,7 +73,7 @@ public class KycController {
     }
 
     @GetMapping("/identifications")
-    @PreAuthorize("hasAuthority('KYC_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('KYC_VIEW')")
     @Operation(summary = "Get All Identification Documents", description = "Retrieves all member identity documents across the SACCO. Optionally filters by KYC verification status (UNVERIFIED, VERIFIED, REJECTED).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC documents retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
@@ -89,7 +89,7 @@ public class KycController {
     }
 
     @GetMapping("/{userId}/identifications")
-    @PreAuthorize("hasAuthority('KYC_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('KYC_VIEW')")
     @Operation(summary = "List Member KYC Documents", description = "Lists all government identity document submissions for a specific member.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Member KYC documents retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
@@ -104,7 +104,7 @@ public class KycController {
     }
 
     @GetMapping("/identifications/{identificationId}")
-    @PreAuthorize("hasAuthority('KYC_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('KYC_VIEW')")
     @Operation(summary = "Get KYC Document Details", description = "Fetches details of a specific identity document by identification ID.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document details retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -121,7 +121,7 @@ public class KycController {
     }
 
     @PutMapping("/identifications/{identificationId}/verify")
-    @PreAuthorize("hasAuthority('KYC_VERIFY')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('KYC_VERIFY')")
     @Operation(summary = "Verify KYC Document", description = "Supervisor approves identity document status to VERIFIED. Supervisor ID is extracted from JWT.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document verified successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -144,7 +144,7 @@ public class KycController {
     }
 
     @PutMapping("/identifications/{identificationId}/reject")
-    @PreAuthorize("hasAuthority('KYC_VERIFY')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('KYC_VERIFY')")
     @Operation(summary = "Reject KYC Document", description = "Supervisor rejects identity document with rejection audit notes. Supervisor ID is extracted from JWT.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "KYC document rejected", content = @Content(schema = @Schema(implementation = ApiResponse.class))),

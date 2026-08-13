@@ -62,7 +62,7 @@ public class MemberProfileController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('MEMBER_CREATE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_CREATE')")
     @Operation(summary = "Register Member Profile", description = "Creates a new SACCO member profile linked to userId with auto-generated Member ID. SubmittedByUserId is automatically extracted from JWT.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Member profile created successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -92,7 +92,7 @@ public class MemberProfileController {
     }
 
     @PutMapping("/{userId}/demographics")
-    @PreAuthorize("hasAuthority('MEMBER_UPDATE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_UPDATE')")
     @Operation(summary = "Update Demographics", description = "Updates member names, date of birth, gender, and marital status.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Demographics updated successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -116,7 +116,7 @@ public class MemberProfileController {
     }
 
     @PostMapping("/{userId}/address")
-    @PreAuthorize("hasAuthority('MEMBER_UPDATE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_UPDATE')")
     @Operation(summary = "Save Contact Address", description = "Saves or updates physical residence location and E.164 primary phone handles.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Contact address saved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -140,7 +140,7 @@ public class MemberProfileController {
     }
 
     @PostMapping("/{userId}/employment")
-    @PreAuthorize("hasAuthority('MEMBER_UPDATE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_UPDATE')")
     @Operation(summary = "Save Employment Profile", description = "Saves or updates member economic sector, employer, monthly income, and TIN number.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Employment profile saved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -163,7 +163,7 @@ public class MemberProfileController {
     }
 
     @PutMapping("/{userId}/approve")
-    @PreAuthorize("hasAuthority('MEMBER_APPROVE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_APPROVE')")
     @Operation(summary = "Approve Member Onboarding", description = "Four-Eye Principle (Maker-Checker) supervisor approval to activate member profile. Supervisor ID is automatically extracted from JWT.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Member onboarding approved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -188,7 +188,7 @@ public class MemberProfileController {
     }
 
     @PutMapping("/{userId}/status")
-    @PreAuthorize("hasAuthority('MEMBER_UPDATE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_UPDATE')")
     @Operation(summary = "Change Member Status", description = "Transitions member lifecycle status (ACTIVE, SUSPENDED, CLOSED).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Member status updated successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -204,7 +204,7 @@ public class MemberProfileController {
     }
 
     @GetMapping("/{userId}")
-    @PreAuthorize("hasAuthority('MEMBER_VIEW_BASIC')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_VIEW_BASIC')")
     @Operation(summary = "Get Profile by User ID", description = "Fetches member profile details by user ID.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Profile details retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -222,7 +222,7 @@ public class MemberProfileController {
     }
 
     @GetMapping("/member-no/{memberNo}")
-    @PreAuthorize("hasAuthority('MEMBER_VIEW_BASIC')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_VIEW_BASIC')")
     @Operation(summary = "Get Profile by Member Number", description = "Searches member profile by structured member number (e.g. QL-2026-000142).")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Profile details retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -240,7 +240,7 @@ public class MemberProfileController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('MEMBER_VIEW_BASIC')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('MEMBER_VIEW_BASIC')")
     @Operation(summary = "List Member Profiles", description = "Lists member profiles filtered by optional lifecycle status.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Member profiles list retrieved successfully", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
