@@ -101,7 +101,7 @@ export const RoleTable = ({
                             )}
                           </p>
                           <p className="text-[10px] text-[var(--bdae-text-secondary)] font-mono">
-                            Click to {isExpanded ? 'collapse' : 'view full permissions list'}
+                            Click to {isExpanded ? 'collapse' : 'inspect permissions'}
                           </p>
                         </div>
                       </div>
@@ -151,10 +151,10 @@ export const RoleTable = ({
                               onEdit(role);
                             }}
                             className="px-2.5 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] hover:bg-[var(--bdae-secondary)]/10 text-[var(--bdae-secondary)] text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                            title="Update Custom Role Permissions"
+                            title="Update Custom Role & Add/Delete Permissions"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
+                            <span>Edit Role</span>
                           </button>
 
                           <button
@@ -188,12 +188,28 @@ export const RoleTable = ({
                             <div className="flex items-center space-x-2">
                               <Key className="w-4 h-4 text-[var(--bdae-secondary)]" />
                               <span className="font-bold text-[var(--bdae-text-primary)]">
-                                Full Permission Breakdown for <code className="font-mono underline">{role.roleName}</code>
+                                Full Permission Breakdown for <code className="font-mono underline font-bold">{role.roleName}</code>
                               </span>
                             </div>
-                            <span className="font-mono font-bold text-[var(--bdae-secondary)] text-[11px]">
-                              Total: {permsList.length} Granted Authorities
-                            </span>
+
+                            <div className="flex items-center space-x-3">
+                              <span className="font-mono font-bold text-[var(--bdae-secondary)] text-[11px]">
+                                {permsList.length} Granted Authorities
+                              </span>
+
+                              {!isSystemDefined && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEdit(role);
+                                  }}
+                                  className="bdae-btn-primary px-3 py-1 text-[11px] font-bold rounded-lg inline-flex items-center gap-1 shadow-sm"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  <span>Edit & Manage Permissions</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           {/* Permissions Grid */}

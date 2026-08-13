@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { roleApi } from '../api/roleApi';
-import { getPermissionDisplayName, getPermissionDescription } from '../utils/permissionUtils';
-import { X, ShieldPlus, CheckCircle2, AlertCircle, RefreshCw, Key, Check } from 'lucide-react';
+import { 
+  getPermissionDisplayName, 
+  getPermissionDescription, 
+  groupPermissionsByResource 
+} from '../utils/permissionUtils';
+import { X, ShieldPlus, CheckCircle2, AlertCircle, RefreshCw, Key, Check, Search, FolderCheck } from 'lucide-react';
 
 export const CreateRoleModal = ({ permissions = [], onClose, onSuccess }) => {
   const [roleNameInput, setRoleNameInput] = useState('');
   const [selectedPermissionIds, setSelectedPermissionIds] = useState([]);
+  const [permSearchTerm, setPermSearchTerm] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
@@ -25,6 +30,18 @@ export const CreateRoleModal = ({ permissions = [], onClose, onSuccess }) => {
     } else {
       const allIds = permissions.map(p => p.permissionId || p.id).filter(Boolean);
       setSelectedPermissionIds(allIds);
+    }
+  };
+
+  const toggleCategory = (categoryPermissions) => {
+    const categoryIds = categoryPermissions.map(p => p.permissionId || p.id).filter(Boolean);
+    const allSelected = categoryIds.every(id => selectedPermissionIds.includes(id));
+
+    if (allSelected) {
+      setSelectedPermissionIds(selectedPermissionIds.filter(id => !categoryIds.includes(id)));
+    } else {
+      const newSelected = new Set([...selectedPermissionIds, ...categoryIds]);
+      setSelectedPermissionIds(Array.from(newSelected));
     }
   };
 
@@ -69,9 +86,24 @@ export const CreateRoleModal = ({ permissions = [], onClose, onSuccess }) => {
     }
   };
 
+  // Filter permissions by live search term
+  const filteredPermissions = permissions.filter((perm) => {
+    const term = permSearchTerm.toLowerCase().trim();
+    if (!term) return true;
+
+    const pName = getPermissionDisplayName(perm).toLowerCase();
+    const pDesc = getPermissionDescription(perm).toLowerCase();
+    const pResource = (perm.resource || '').toLowerCase();
+
+    return pName.includes(term) || pDesc.includes(term) || pResource.includes(term);
+  });
+
+  // Group filtered permissions by resource category
+  const groupedPermissions = groupPermissionsByResource(filteredPermissions);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bdae-card p-6 md:p-8 max-w-2xl w-full rounded-3xl shadow-2xl border border-[var(--bdae-border)] space-y-6 relative max-h-[90vh] flex flex-col">
+      <div className="bdae-card p-6 md:p-8 max-w-3xl w-full rounded-3xl shadow-2xl border border-[var(--bdae-border)] space-y-6 relative max-h-[92vh] flex flex-col">
         
         {/* Close Button */}
         <button
@@ -94,7 +126,7 @@ export const CreateRoleModal = ({ permissions = [], onClose, onSuccess }) => {
               Create Custom Local Role
             </h2>
             <p className="text-xs text-[var(--bdae-text-secondary)]">
-              Bundle permissions into a custom RBAC role for your tenant workspace.
+              Bundle permissions by resource category into a custom RBAC role.
             </p>
           </div>
         </div>
@@ -116,56 +148,107 @@ export const CreateRoleModal = ({ permissions = [], onClose, onSuccess }) => {
             />
           </div>
 
-          {/* Permissions Selection Checklist */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
+          {/* Permissions Search & Control Bar */}
+          <div className="space-y-3 border-t border-[var(--bdae-border)] pt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <label className="block text-xs font-bold text-[var(--bdae-text-primary)] flex items-center gap-1.5">
                 <Key className="w-4 h-4 text-[var(--bdae-secondary)]" />
-                <span>Select Granted Permissions ({selectedPermissionIds.length}/{permissions.length}) *</span>
+                <span>Granted Permissions ({selectedPermissionIds.length}/{permissions.length} Selected) *</span>
               </label>
 
               <button
                 type="button"
                 onClick={toggleSelectAll}
-                className="text-[11px] font-bold text-[var(--bdae-secondary)] hover:underline"
+                className="text-[11px] font-bold text-[var(--bdae-secondary)] hover:underline self-end sm:self-auto"
               >
-                {selectedPermissionIds.length === permissions.length ? 'Deselect All' : 'Select All'}
+                {selectedPermissionIds.length === permissions.length ? 'Deselect All Permissions' : 'Select All Permissions'}
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto p-3 rounded-2xl border border-[var(--bdae-border)] bg-black/5 dark:bg-white/5">
-              {permissions.map((perm) => {
-                const permId = perm.permissionId || perm.id;
-                const permName = getPermissionDisplayName(perm);
-                const permDesc = getPermissionDescription(perm);
-                const isChecked = selectedPermissionIds.includes(permId);
+            {/* Permission Live Search Bar */}
+            <div className="relative">
+              <input
+                type="text"
+                value={permSearchTerm}
+                onChange={(e) => setPermSearchTerm(e.target.value)}
+                placeholder="Search permissions by name (e.g., ACCOUNT_OPEN) or resource (LOAN, KYC)..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none text-[var(--bdae-text-primary)] font-mono transition-all"
+              />
+              <Search className="w-4 h-4 text-[var(--bdae-text-secondary)] absolute left-3.5 top-2.5" />
+            </div>
+          </div>
+
+          {/* Categorized Permissions Grid */}
+          <div className="space-y-4 max-h-72 overflow-y-auto p-3 rounded-2xl border border-[var(--bdae-border)] bg-black/5 dark:bg-white/5">
+            {Object.keys(groupedPermissions).length === 0 ? (
+              <p className="text-xs text-[var(--bdae-text-secondary)] italic text-center py-6">
+                No permissions matching search query "{permSearchTerm}".
+              </p>
+            ) : (
+              Object.entries(groupedPermissions).map(([category, categoryPerms]) => {
+                const categoryIds = categoryPerms.map(p => p.permissionId || p.id).filter(Boolean);
+                const categorySelectedCount = categoryIds.filter(id => selectedPermissionIds.includes(id)).length;
+                const isAllCategorySelected = categorySelectedCount === categoryIds.length;
 
                 return (
-                  <div
-                    key={permId || permName}
-                    onClick={() => togglePermission(permId)}
-                    className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between select-none ${
-                      isChecked
-                        ? 'border-[var(--bdae-secondary)] bg-[var(--bdae-secondary)]/10 text-[var(--bdae-text-primary)] shadow-sm'
-                        : 'border-[var(--bdae-border)] hover:bg-black/5 dark:hover:bg-white/5 text-[var(--bdae-text-secondary)]'
-                    }`}
-                  >
-                    <div className="space-y-0.5 pr-2">
-                      <p className="font-mono text-xs font-bold text-[var(--bdae-text-primary)]">{permName}</p>
-                      {permDesc && (
-                        <p className="text-[10px] opacity-75 leading-tight">{permDesc}</p>
-                      )}
+                  <div key={category} className="space-y-2">
+                    {/* Category Header */}
+                    <div className="flex items-center justify-between bg-black/10 dark:bg-white/10 px-3 py-1.5 rounded-xl border border-[var(--bdae-border)]">
+                      <div className="flex items-center space-x-2 font-mono font-bold text-xs text-[var(--bdae-primary)] dark:text-[var(--bdae-secondary)]">
+                        <FolderCheck className="w-4 h-4 text-[var(--bdae-secondary)]" />
+                        <span>RESOURCE: {category}</span>
+                        <span className="text-[10px] text-[var(--bdae-text-secondary)] font-normal">
+                          ({categorySelectedCount}/{categoryPerms.length} selected)
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(categoryPerms)}
+                        className="text-[10px] font-bold text-[var(--bdae-secondary)] hover:underline"
+                      >
+                        {isAllCategorySelected ? 'Deselect Category' : 'Select Category'}
+                      </button>
                     </div>
 
-                    <div className={`w-4 h-4 rounded-md border shrink-0 flex items-center justify-center transition-all ${
-                      isChecked ? 'bg-[var(--bdae-secondary)] border-[var(--bdae-secondary)] text-white' : 'border-[var(--bdae-border)]'
-                    }`}>
-                      {isChecked && <Check className="w-3 h-3" />}
+                    {/* Permission Items Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2">
+                      {categoryPerms.map((perm) => {
+                        const permId = perm.permissionId || perm.id;
+                        const permName = getPermissionDisplayName(perm);
+                        const permDesc = getPermissionDescription(perm);
+                        const isChecked = selectedPermissionIds.includes(permId);
+
+                        return (
+                          <div
+                            key={permId || permName}
+                            onClick={() => togglePermission(permId)}
+                            className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between select-none ${
+                              isChecked
+                                ? 'border-[var(--bdae-secondary)] bg-[var(--bdae-secondary)]/10 text-[var(--bdae-text-primary)] shadow-sm'
+                                : 'border-[var(--bdae-border)] hover:bg-black/5 dark:hover:bg-white/5 text-[var(--bdae-text-secondary)]'
+                            }`}
+                          >
+                            <div className="space-y-0.5 pr-2">
+                              <p className="font-mono text-xs font-bold text-[var(--bdae-text-primary)]">{permName}</p>
+                              {permDesc && (
+                                <p className="text-[10px] opacity-75 leading-tight">{permDesc}</p>
+                              )}
+                            </div>
+
+                            <div className={`w-4 h-4 rounded-md border shrink-0 flex items-center justify-center transition-all ${
+                              isChecked ? 'bg-[var(--bdae-secondary)] border-[var(--bdae-secondary)] text-white' : 'border-[var(--bdae-border)]'
+                            }`}>
+                              {isChecked && <Check className="w-3 h-3" />}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              })
+            )}
           </div>
 
           {/* Error Alert */}

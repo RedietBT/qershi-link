@@ -32,3 +32,35 @@ export const getPermissionDescription = (perm) => {
   if (!perm || typeof perm === 'string') return '';
   return perm.description || perm.permission?.description || '';
 };
+
+/**
+ * Extracts resource category for a permission item.
+ */
+export const getPermissionResourceCategory = (perm) => {
+  if (!perm) return 'GENERAL';
+  if (typeof perm === 'object' && perm.resource) return perm.resource.toUpperCase();
+  if (typeof perm === 'object' && perm.permission?.resource) return perm.permission.resource.toUpperCase();
+
+  const name = getPermissionDisplayName(perm);
+  if (name.includes('_')) {
+    return name.split('_')[0].toUpperCase();
+  }
+  return 'GENERAL';
+};
+
+/**
+ * Groups an array of permission objects by their resource category.
+ */
+export const groupPermissionsByResource = (permissions = []) => {
+  const groups = {};
+
+  permissions.forEach((perm) => {
+    const category = getPermissionResourceCategory(perm);
+    if (!groups[category]) {
+      groups[category] = [];
+    }
+    groups[category].push(perm);
+  });
+
+  return groups;
+};
