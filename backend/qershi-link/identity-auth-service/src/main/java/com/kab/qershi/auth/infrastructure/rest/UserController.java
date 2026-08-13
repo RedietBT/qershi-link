@@ -236,19 +236,32 @@ public class UserController {
     public ResponseEntity<Void> assignRole(
             @PathVariable UUID userId,
             @PathVariable UUID roleId,
-            @RequestParam UUID saccoId,
+            @RequestParam(required = false) UUID saccoId,
             Authentication authentication) {
+
+        UUID targetSaccoId = saccoId;
+
+        // If saccoId is omitted, extract from JWT claims or fallback to user's assigned SACCO
+        if (targetSaccoId == null) {
+            targetSaccoId = SecurityUtils.extractSaccoId(authentication);
+        }
+
+        if (targetSaccoId == null) {
+            targetSaccoId = userRepository.findById(userId)
+                    .map(UserEntity::getSaccoId)
+                    .orElse(null);
+        }
 
         if (!SecurityUtils.isSuperAdmin(authentication)) {
             UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
-            if (tenantSaccoId != null && !tenantSaccoId.equals(saccoId)) {
-                log.warn("SACCO admin attempted to assign role in different SACCO: {}", saccoId);
+            if (tenantSaccoId != null && !tenantSaccoId.equals(targetSaccoId)) {
+                log.warn("SACCO admin attempted to assign role in different SACCO: {}", targetSaccoId);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
         }
 
-        log.info("Assigning role {} to user {} in SACCO {}", roleId, userId, saccoId);
-        userRepository.insertUserRole(userId, roleId, saccoId);
+        log.info("Assigning role {} to user {} in SACCO {}", roleId, userId, targetSaccoId);
+        userRepository.insertUserRole(userId, roleId, targetSaccoId);
         return ResponseEntity.noContent().build();
     }
 }

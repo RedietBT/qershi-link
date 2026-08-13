@@ -1,8 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { auditApi } from '../api/auditApi';
+import { useAuthStore } from '../../../common/store/useAuthStore';
 
 export const useAuditLogs = (initialScope = 'GLOBAL') => {
-  const [scope, setScope] = useState(initialScope); // 'GLOBAL' | 'TENANT'
+  const user = useAuthStore((state) => state.user);
+  
+  const isSuperAdmin =
+    user?.globalRole === 'SUPER_ADMIN' ||
+    user?.globalRole === 'ROLE_SUPER_ADMIN' ||
+    user?.roles?.includes('ROLE_SUPER_ADMIN') ||
+    user?.roles?.includes('SUPER_ADMIN');
+
+  // SACCO_ADMIN is restricted to TENANT scope by backend security policies
+  const [scope, setScope] = useState(isSuperAdmin ? initialScope : 'TENANT');
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,12 +22,14 @@ export const useAuditLogs = (initialScope = 'GLOBAL') => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'SUCCESS' | 'FAILED'
 
+  const activeScope = isSuperAdmin ? scope : 'TENANT';
+
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       let data = [];
-      if (scope === 'TENANT') {
+      if (activeScope === 'TENANT') {
         data = await auditApi.getTenantAuditLogs();
       } else {
         data = await auditApi.getGlobalAuditLogs(page, size);
@@ -29,7 +41,7 @@ export const useAuditLogs = (initialScope = 'GLOBAL') => {
       const msg = err.response?.data?.message || err.message || 'Failed to fetch platform security audit logs.';
       setError(msg);
     }
-  }, [scope, page, size]);
+  }, [activeScope, page, size]);
 
   useEffect(() => {
     fetchLogs();
@@ -58,7 +70,7 @@ export const useAuditLogs = (initialScope = 'GLOBAL') => {
     rawLogsCount: logs.length,
     isLoading,
     error,
-    scope,
+    scope: activeScope,
     setScope,
     page,
     setPage,

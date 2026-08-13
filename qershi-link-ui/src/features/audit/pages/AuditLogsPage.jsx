@@ -47,38 +47,45 @@ export const AuditLogsPage = () => {
                 Security Audit Engine
               </h1>
               <p className="text-xs text-[var(--bdae-text-secondary)]">
-                Inspect system security, login events, and audit logs.
+                Inspect system security, login events, and tenant audit logs.
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            {/* Scope Toggle: Global vs Tenant */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-[var(--bdae-border)]">
-              <button
-                onClick={() => setScope('GLOBAL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  scope === 'GLOBAL'
-                    ? 'bg-[var(--bdae-primary)] text-white shadow-sm'
-                    : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span>Global Logs</span>
-              </button>
-
-              <button
-                onClick={() => setScope('TENANT')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  scope === 'TENANT'
-                    ? 'bg-[var(--bdae-primary)] text-white shadow-sm'
-                    : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
-                }`}
-              >
+            {/* Scope Toggle: SUPER_ADMIN Only */}
+            <PermissionGuard role="SUPER_ADMIN" fallback={
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-[var(--bdae-border)] bg-black/5 dark:bg-white/5 text-xs font-bold text-[var(--bdae-secondary)]">
                 <Building2 className="w-3.5 h-3.5" />
-                <span>Tenant Scope</span>
-              </button>
-            </div>
+                <span>Tenant Audit Scope</span>
+              </span>
+            }>
+              <div className="grid grid-cols-2 gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-[var(--bdae-border)]">
+                <button
+                  onClick={() => setScope('GLOBAL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    scope === 'GLOBAL'
+                      ? 'bg-[var(--bdae-primary)] text-white shadow-sm'
+                      : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Global Logs</span>
+                </button>
+
+                <button
+                  onClick={() => setScope('TENANT')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    scope === 'TENANT'
+                      ? 'bg-[var(--bdae-primary)] text-white shadow-sm'
+                      : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Tenant Scope</span>
+                </button>
+              </div>
+            </PermissionGuard>
 
             {/* Refresh Button */}
             <button

@@ -50,12 +50,11 @@ export const userApi = {
   },
 
   /**
-   * Assign role to user (POST /api/v1/users/{userId}/roles/{roleId}?saccoId={saccoId}).
+   * Assign role to user (POST /api/v1/users/{userId}/roles/{roleId}).
+   * Tenant SACCO context is automatically extracted from caller JWT token or user profile.
    */
-  assignRole: async (userId, roleId, saccoId) => {
-    const response = await authHttpClient.post(`/users/${userId}/roles/${roleId}`, null, {
-      params: { saccoId }
-    });
+  assignRole: async (userId, roleId) => {
+    const response = await authHttpClient.post(`/users/${userId}/roles/${roleId}`);
     return response.data;
   }
 };

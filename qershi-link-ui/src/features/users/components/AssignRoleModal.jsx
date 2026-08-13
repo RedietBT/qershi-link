@@ -26,7 +26,7 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
         setIsLoadingRoles(false);
       } catch (err) {
         setIsLoadingRoles(false);
-        // Fallback default static options if endpoint fails
+        // Fallback default options
         const fallbackList = [
           { roleName: 'SACCO_ADMIN', roleId: '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f' },
           { roleName: 'BRANCH_MANAGER', roleId: '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e10' },
@@ -51,11 +51,10 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
       return;
     }
 
-    const saccoIdContext = user?.saccoId || 'c8e55276-25d5-4fe3-bc59-1c008b25b7da';
-
     setIsSubmitting(true);
     try {
-      await userApi.assignRole(user.userId, selectedRoleId, saccoIdContext);
+      // POST /api/v1/users/{userId}/roles/{roleId} (SACCO context extracted automatically from JWT)
+      await userApi.assignRole(user.userId, selectedRoleId);
 
       setIsSubmitting(false);
       setSuccessMessage('Tenant Role successfully assigned to user!');
@@ -96,7 +95,7 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
               Assign Tenant Role to User
             </h2>
             <p className="text-xs text-[var(--bdae-text-secondary)]">
-              Select tenant operational role for user account.
+              Select operational role for user account.
             </p>
           </div>
         </div>
