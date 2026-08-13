@@ -3,12 +3,13 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { SaccoOnboardingPage } from '../features/superadmin/pages/SaccoOnboardingPage';
 import { SaccoRegistryPage } from '../features/superadmin/pages/SaccoRegistryPage';
+import { AuditLogsPage } from '../features/audit/pages/AuditLogsPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 import { useAuthStore } from '../common/store/useAuthStore';
 import { Layout } from '../common/components/Layout';
 import { PermissionGuard } from '../common/components/PermissionGuard';
-import { ShieldCheck, CheckCircle2, UserCheck, Building2, KeyRound, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Building2, KeyRound, ShieldAlert } from 'lucide-react';
 
 /**
  * Dashboard View Component
@@ -75,7 +76,7 @@ function DashboardPage() {
 
               {/* Card 2: PIN & Credential Operations */}
               <div 
-                onClick={() => navigate('/pin-operations')}
+                onClick={() => navigate('/saccos')}
                 className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
               >
                 <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
@@ -86,7 +87,7 @@ function DashboardPage() {
                     PIN & Credential Operations
                   </p>
                   <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
-                    Initial PIN dispatches and SMS resend triggers (<code className="font-mono">POST /api/v1/pin/dispatch</code>).
+                    Initial PIN dispatches and SMS resend triggers (<code className="font-mono">POST /api/v1/pin/resend</code>).
                   </p>
                 </div>
               </div>
@@ -104,7 +105,7 @@ function DashboardPage() {
                     Platform Security Audit Engine
                   </p>
                   <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
-                    Inspect system security, login events, and audit logs (<code className="font-mono">GET /api/v1/audit/logs</code>).
+                    Inspect system security, login events, and audit logs (<code className="font-mono">GET /api/v1/platform/audit-logs</code>).
                   </p>
                 </div>
               </div>
@@ -175,6 +176,18 @@ export const AppRoutes = () => {
             <PermissionRoute role="SUPER_ADMIN">
               <Layout>
                 <SaccoOnboardingPage />
+              </Layout>
+            </PermissionRoute>
+          } 
+        />
+
+        {/* Protected & Role-Guarded Route: Platform Security Audit Logs */}
+        <Route 
+          path="/audit-logs" 
+          element={
+            <PermissionRoute role="SUPER_ADMIN">
+              <Layout>
+                <AuditLogsPage />
               </Layout>
             </PermissionRoute>
           } 
