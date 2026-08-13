@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { userApi } from '../api/userApi';
+import { authApi } from '../api/authApi';
 import { sanitizeMsisdn } from '../../../common/utils/sanitizers';
-import { X, UserPlus, Phone, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { X, KeyRound, Phone, CheckCircle2, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 
-export const CreateUserModal = ({ defaultSaccoId = '', onClose, onSuccess }) => {
-  const [msisdnInput, setMsisdnInput] = useState('');
-  const [saccoIdInput, setSaccoIdInput] = useState(defaultSaccoId);
+export const ChangePinModal = ({ initialMsisdn = '', onClose, onSuccess }) => {
+  const [msisdnInput, setMsisdnInput] = useState(initialMsisdn);
+  const [oldPin, setOldPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+
+  const [showOldPin, setShowOldPin] = useState(false);
+  const [showNewPin, setShowNewPin] = useState(false);
 
   const [phoneError, setPhoneError] = useState('');
+  const [pinError, setPinError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -28,6 +34,7 @@ export const CreateUserModal = ({ defaultSaccoId = '', onClose, onSuccess }) => 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError(null);
+    setPinError('');
 
     const formatted = sanitizeMsisdn(msisdnInput);
     if (!formatted || !formatted.match(/^\+251\d{9}$/)) {
@@ -35,19 +42,34 @@ export const CreateUserModal = ({ defaultSaccoId = '', onClose, onSuccess }) => 
       return;
     }
 
+    if (!oldPin || oldPin.length < 4) {
+      setPinError('Please enter your current initial PIN.');
+      return;
+    }
+
+    if (!newPin || newPin.length < 4) {
+      setPinError('New PIN must be at least 4 digits.');
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      setPinError('New PIN and Confirm PIN do not match.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // POST payload: { "msisdn": "+251995220266", "globalRole": "SACCO_USER" }
-      const response = await userApi.createUser(
-        { msisdn: formatted, globalRole: 'SACCO_USER' },
-        saccoIdInput || null
-      );
+      const response = await authApi.changePassword({
+        msisdn: formatted,
+        oldPin,
+        newPin
+      });
 
       setIsSubmitting(false);
       setSuccessMessage(
         typeof response === 'string'
           ? response
-          : `User account created successfully! Initial PIN dispatched via SMS to ${formatted}.`
+          : 'Initial PIN changed successfully! You can now log in using your new PIN.'
       );
 
       setTimeout(() => {
@@ -56,7 +78,7 @@ export const CreateUserModal = ({ defaultSaccoId = '', onClose, onSuccess }) => 
       }, 1800);
     } catch (err) {
       setIsSubmitting(false);
-      const msg = err.response?.data?.message || err.response?.data || err.message || 'Failed to register user account.';
+      const msg = err.response?.data?.message || err.response?.data || err.message || 'Failed to rotate PIN. Verify current initial PIN.';
       setApiError(msg);
     }
   };
@@ -79,14 +101,14 @@ export const CreateUserModal = ({ defaultSaccoId = '', onClose, onSuccess }) => 
             className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0"
             style={{ background: `linear-gradient(135deg, var(--bdae-primary), var(--bdae-secondary))` }}
           >
-            <UserPlus className="w-6 h-6" />
+            <KeyRound className="w-6 h-6" />
           </div>
           <div>
             <h2 className="text-lg font-bold tracking-tight text-[var(--bdae-text-primary)]">
-              Register New User Account
+              First-Time Initial PIN Rotation
             </h2>
             <p className="text-xs text-[var(--bdae-text-secondary)]">
-              Creates identity profile & dispatches initial PIN via SMS.
+              POST /api/v1/auth/change-password
             </p>
           </div>
         </div>
@@ -94,10 +116,10 @@ export const CreateUserModal = ({ defaultSaccoId = '', onClose, onSuccess }) => 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           
-          {/* MSISDN Input */}
+          {/* Phone Input */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-[var(--bdae-text-primary)]">
-              Mobile Phone Number (MSISDN) *
+              Phone Number (MSISDN) *
             </label>
             <div className="relative">
               <input
@@ -118,11 +140,69 @@ export const CreateUserModal = ({ defaultSaccoId = '', onClose, onSuccess }) => 
             )}
           </div>
 
-          {/* Global Role Indicator */}
-          <div className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--bdae-border)] space-y-1">
-            <p className="text-[10px] font-bold text-[var(--bdae-text-secondary)] uppercase">Global Platform Role</p>
-            <p className="font-bold text-xs text-[var(--bdae-text-primary)]">SACCO_USER (Standard Tenant User)</p>
+          {/* Current Initial PIN */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-[var(--bdae-text-primary)]">
+              Current Initial PIN (from SMS) *
+            </label>
+            <div className="relative">
+              <input
+                type={showOldPin ? 'text' : 'password'}
+                value={oldPin}
+                onChange={(e) => setOldPin(e.target.value)}
+                placeholder="Enter 6-digit SMS initial PIN"
+                className="w-full px-4 py-2.5 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none font-mono text-[var(--bdae-text-primary)] transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowOldPin(!showOldPin)}
+                className="absolute right-3.5 top-3 text-[var(--bdae-text-secondary)]"
+              >
+                {showOldPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
+
+          {/* New PIN */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-[var(--bdae-text-primary)]">
+              Create New Security PIN *
+            </label>
+            <div className="relative">
+              <input
+                type={showNewPin ? 'text' : 'password'}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value)}
+                placeholder="Enter new PIN"
+                className="w-full px-4 py-2.5 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none font-mono text-[var(--bdae-text-primary)] transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPin(!showNewPin)}
+                className="absolute right-3.5 top-3 text-[var(--bdae-text-secondary)]"
+              >
+                {showNewPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Confirm New PIN */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-[var(--bdae-text-primary)]">
+              Confirm New Security PIN *
+            </label>
+            <input
+              type="password"
+              value={confirmPin}
+              onChange={(e) => setConfirmPin(e.target.value)}
+              placeholder="Re-enter new PIN"
+              className="w-full px-4 py-2.5 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none font-mono text-[var(--bdae-text-primary)] transition-all"
+            />
+          </div>
+
+          {pinError && (
+            <p className="text-[11px] text-red-500 font-semibold">{pinError}</p>
+          )}
 
           {/* Error Alert */}
           {apiError && (
@@ -149,12 +229,12 @@ export const CreateUserModal = ({ defaultSaccoId = '', onClose, onSuccess }) => 
             {isSubmitting ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Registering & Dispatching Initial PIN...</span>
+                <span>Rotating Security PIN...</span>
               </>
             ) : (
               <>
-                <ShieldCheck className="w-4 h-4" />
-                <span>Register User & Dispatch PIN</span>
+                <KeyRound className="w-4 h-4" />
+                <span>Update PIN & Activate Account</span>
               </>
             )}
           </button>

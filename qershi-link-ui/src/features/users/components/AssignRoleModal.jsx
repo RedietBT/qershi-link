@@ -2,9 +2,16 @@ import React, { useState } from 'react';
 import { userApi } from '../api/userApi';
 import { X, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
+const SYSTEM_ROLES = [
+  { name: 'ADMIN', label: 'SACCO Admin (Full Operational Management)', id: '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f' },
+  { name: 'MANAGER', label: 'Branch Manager (Approval & Oversight)', id: '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e10' },
+  { name: 'TELLER', label: 'Cashier / Teller (Deposit & Withdrawal)', id: '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e11' },
+  { name: 'LOAN_OFFICER', label: 'Loan Officer (Credit & Origination)', id: '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e12' },
+  { name: 'MEMBER', label: 'SACCO Member (Self Service)', id: '018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e13' },
+];
+
 export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
-  const [roleIdInput, setRoleIdInput] = useState('018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f'); // Default ADMIN role UUID
-  const [saccoIdInput, setSaccoIdInput] = useState(user?.saccoId || '');
+  const [selectedRoleId, setSelectedRoleId] = useState(SYSTEM_ROLES[0].id);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
@@ -14,14 +21,11 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
     e.preventDefault();
     setApiError(null);
 
-    if (!roleIdInput || !saccoIdInput) {
-      setApiError('Role UUID and SACCO UUID context are required.');
-      return;
-    }
+    const saccoIdContext = user?.saccoId || 'c8e55276-25d5-4fe3-bc59-1c008b25b7da';
 
     setIsSubmitting(true);
     try {
-      await userApi.assignRole(user.userId, roleIdInput, saccoIdInput);
+      await userApi.assignRole(user.userId, selectedRoleId, saccoIdContext);
 
       setIsSubmitting(false);
       setSuccessMessage('Tenant Role successfully assigned to user!');
@@ -62,7 +66,7 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
               Assign Tenant Role to User
             </h2>
             <p className="text-xs text-[var(--bdae-text-secondary)]">
-              Map tenant role permissions to account.
+              Select tenant operational role for user.
             </p>
           </div>
         </div>
@@ -72,36 +76,26 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
           
           {/* Target User Info */}
           <div className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--bdae-border)] space-y-1">
-            <p className="text-[10px] uppercase font-bold text-[var(--bdae-text-secondary)]">Target User</p>
+            <p className="text-[10px] uppercase font-bold text-[var(--bdae-text-secondary)]">Target Account</p>
             <p className="font-bold text-xs text-[var(--bdae-text-primary)]">{user?.msisdn} ({user?.globalRole})</p>
           </div>
 
-          {/* Role ID Input */}
+          {/* Role Selection Dropdown */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-[var(--bdae-text-primary)]">
-              Role UUID Identifier *
+              Select Operational Role *
             </label>
-            <input
-              type="text"
-              value={roleIdInput}
-              onChange={(e) => setRoleIdInput(e.target.value)}
-              placeholder="018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f"
-              className="w-full px-4 py-2.5 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none font-mono text-[var(--bdae-text-primary)] transition-all"
-            />
-          </div>
-
-          {/* SACCO ID Input */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-[var(--bdae-text-primary)]">
-              SACCO UUID Context *
-            </label>
-            <input
-              type="text"
-              value={saccoIdInput}
-              onChange={(e) => setSaccoIdInput(e.target.value)}
-              placeholder="3fa85f64-5717-4562-b3fc-2c963f66afa6"
-              className="w-full px-4 py-2.5 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none font-mono text-[var(--bdae-text-primary)] transition-all"
-            />
+            <select
+              value={selectedRoleId}
+              onChange={(e) => setSelectedRoleId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none text-[var(--bdae-text-primary)] font-bold transition-all"
+            >
+              {SYSTEM_ROLES.map((role) => (
+                <option key={role.id} value={role.id} className="bg-[var(--bdae-bg)]">
+                  {role.name} — {role.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Error Alert */}
@@ -129,7 +123,7 @@ export const AssignRoleModal = ({ user, onClose, onSuccess }) => {
             {isSubmitting ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Assigning Tenant Role...</span>
+                <span>Assigning Role...</span>
               </>
             ) : (
               <>

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { SaccoOnboardingPage } from '../features/superadmin/pages/SaccoOnboardingPage';
 import { SaccoRegistryPage } from '../features/superadmin/pages/SaccoRegistryPage';
 import { AuditLogsPage } from '../features/audit/pages/AuditLogsPage';
 import { UserManagementPage } from '../features/users/pages/UserManagementPage';
+import { ChangePinModal } from '../features/auth/components/ChangePinModal';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 import { useAuthStore } from '../common/store/useAuthStore';
@@ -18,6 +19,7 @@ import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users } from 'lucide-rea
 function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
+  const [isChangePinOpen, setIsChangePinOpen] = useState(false);
 
   return (
     <Layout>
@@ -36,6 +38,15 @@ function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3 self-start md:self-auto">
+            {/* Rotate PIN Action */}
+            <button
+              onClick={() => setIsChangePinOpen(true)}
+              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all border border-white/20 shadow-sm"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Rotate Initial PIN</span>
+            </button>
+
             <PermissionGuard role="SUPER_ADMIN">
               <button
                 onClick={() => navigate('/saccos')}
@@ -139,6 +150,14 @@ function DashboardPage() {
             </div>
           </div>
         </PermissionGuard>
+
+        {/* Change Initial PIN Modal */}
+        {isChangePinOpen && (
+          <ChangePinModal
+            initialMsisdn={user?.msisdn || ''}
+            onClose={() => setIsChangePinOpen(false)}
+          />
+        )}
       </div>
     </Layout>
   );

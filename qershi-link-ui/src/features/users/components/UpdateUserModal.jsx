@@ -15,7 +15,13 @@ export const UpdateUserModal = ({ user, onClose, onSuccess }) => {
   useEffect(() => {
     if (user) {
       setMsisdnInput(user.msisdn || '');
-      setStatusInput(user.status || 'ACTIVE');
+      // If current status is PASSWORD_CHANGE_REQUIRED, fallback default selection to ACTIVE or PENDING
+      const current = (user.status || 'ACTIVE').toUpperCase();
+      if (current === 'PASSWORD_CHANGE_REQUIRED') {
+        setStatusInput('ACTIVE');
+      } else {
+        setStatusInput(current);
+      }
     }
   }, [user]);
 
@@ -87,8 +93,8 @@ export const UpdateUserModal = ({ user, onClose, onSuccess }) => {
             <h2 className="text-lg font-bold tracking-tight text-[var(--bdae-text-primary)]">
               Update User Security Parameters
             </h2>
-            <p className="text-xs text-[var(--bdae-text-secondary)] font-mono">
-              PUT /api/v1/users/{user?.userId}
+            <p className="text-xs text-[var(--bdae-text-secondary)]">
+              PUT /api/v1/users/{'{id}'}
             </p>
           </div>
         </div>
@@ -131,8 +137,11 @@ export const UpdateUserModal = ({ user, onClose, onSuccess }) => {
               className="w-full px-4 py-2.5 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none text-[var(--bdae-text-primary)] font-bold transition-all"
             >
               <option value="ACTIVE" className="bg-[var(--bdae-bg)] text-emerald-500">ACTIVE (Operational Identity)</option>
-              <option value="PASSWORD_CHANGE_REQUIRED" className="bg-[var(--bdae-bg)] text-amber-500">PASSWORD_CHANGE_REQUIRED (Pending PIN Reset)</option>
-              <option value="LOCKED" className="bg-[var(--bdae-bg)] text-red-500">LOCKED (Account Frozen / Suspended)</option>
+              <option value="PENDING" className="bg-[var(--bdae-bg)] text-amber-500">PENDING (Initial Setup)</option>
+              <option value="PENDING_APPROVAL" className="bg-[var(--bdae-bg)] text-amber-500">PENDING_APPROVAL (Awaiting Admin Review)</option>
+              <option value="PENDING_SHARE" className="bg-[var(--bdae-bg)] text-amber-500">PENDING_SHARE (Awaiting Share Requirement)</option>
+              <option value="BLOCKED" className="bg-[var(--bdae-bg)] text-red-500">BLOCKED (Account Frozen)</option>
+              <option value="DEACTIVATED" className="bg-[var(--bdae-bg)] text-red-500">DEACTIVATED (Account Disabled)</option>
             </select>
           </div>
 
