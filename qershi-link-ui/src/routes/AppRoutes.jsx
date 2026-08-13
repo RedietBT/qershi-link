@@ -4,12 +4,13 @@ import { LoginPage } from '../features/auth/pages/LoginPage';
 import { SaccoOnboardingPage } from '../features/superadmin/pages/SaccoOnboardingPage';
 import { SaccoRegistryPage } from '../features/superadmin/pages/SaccoRegistryPage';
 import { AuditLogsPage } from '../features/audit/pages/AuditLogsPage';
+import { UserManagementPage } from '../features/users/pages/UserManagementPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 import { useAuthStore } from '../common/store/useAuthStore';
 import { Layout } from '../common/components/Layout';
 import { PermissionGuard } from '../common/components/PermissionGuard';
-import { ShieldCheck, Building2, KeyRound, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users } from 'lucide-react';
 
 /**
  * Dashboard View Component
@@ -55,7 +56,7 @@ function DashboardPage() {
               <span>Platform Administrative Control Engines</span>
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
               {/* Card 1: SACCO Registry Management */}
               <div 
                 onClick={() => navigate('/saccos')}
@@ -74,7 +75,25 @@ function DashboardPage() {
                 </div>
               </div>
 
-              {/* Card 2: PIN & Credential Operations */}
+              {/* Card 2: User Account Management */}
+              <div 
+                onClick={() => navigate('/users')}
+                className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+              >
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                    User Account Management
+                  </p>
+                  <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                    Track and perform CRUD options on identity records (<code className="font-mono">GET /api/v1/users</code>).
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 3: PIN & Credential Operations */}
               <div 
                 onClick={() => navigate('/saccos')}
                 className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
@@ -92,7 +111,7 @@ function DashboardPage() {
                 </div>
               </div>
 
-              {/* Card 3: Platform Security Audit Engine */}
+              {/* Card 4: Platform Security Audit Engine */}
               <div 
                 onClick={() => navigate('/audit-logs')}
                 className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
@@ -176,6 +195,18 @@ export const AppRoutes = () => {
             <PermissionRoute role="SUPER_ADMIN">
               <Layout>
                 <SaccoOnboardingPage />
+              </Layout>
+            </PermissionRoute>
+          } 
+        />
+
+        {/* Protected & Role-Guarded Route: User Account Management */}
+        <Route 
+          path="/users" 
+          element={
+            <PermissionRoute role="SUPER_ADMIN">
+              <Layout>
+                <UserManagementPage />
               </Layout>
             </PermissionRoute>
           } 

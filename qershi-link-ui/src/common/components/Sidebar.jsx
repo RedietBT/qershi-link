@@ -9,6 +9,7 @@ import {
   FileText, 
   PlusCircle,
   ShieldAlert,
+  UserCheck,
   ChevronRight
 } from 'lucide-react';
 import { PermissionGuard } from './PermissionGuard';
@@ -17,8 +18,9 @@ const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/saccos', label: 'SACCO Registry', icon: Building2, role: 'SUPER_ADMIN' },
   { path: '/onboard', label: 'SACCO Tenant Onboarding', icon: PlusCircle, role: 'SUPER_ADMIN' },
+  { path: '/users', label: 'User Management', icon: Users, role: 'SUPER_ADMIN' },
   { path: '/audit-logs', label: 'Security Audit Logs', icon: ShieldAlert, role: 'SUPER_ADMIN' },
-  { path: '/members', label: 'Member Profiles', icon: Users },
+  { path: '/members', label: 'Member Profiles', icon: UserCheck },
   { path: '/accounts', label: 'Core Accounts', icon: Wallet },
   { path: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { path: '/loans', label: 'Loan Origination', icon: FileText },
