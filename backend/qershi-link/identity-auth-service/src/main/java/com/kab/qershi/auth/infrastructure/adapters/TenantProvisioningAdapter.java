@@ -177,11 +177,13 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 ")");
 
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS " + schemaName + ".next_of_kin (" +
-                "beneficiary_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
+                "kin_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
                 "user_id UUID NOT NULL, " +
                 "full_name VARCHAR(200) NOT NULL, " +
                 "relationship VARCHAR(100) NOT NULL, " +
                 "primary_phone VARCHAR(15) NOT NULL, " +
+                "id_number VARCHAR(100), " +
+                "physical_address VARCHAR(255), " +
                 "allocation_percentage DECIMAL(5,2) NOT NULL DEFAULT 100.00, " +
                 "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
                 "FOREIGN KEY (user_id) REFERENCES " + schemaName + ".member_profiles(user_id) ON DELETE CASCADE" +
@@ -541,6 +543,8 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "('REPORT',           'VIEW_ALL',     'Authority to run and view overall SACCO financial reports.'), " +
                 "('AUDIT_LOG',        'VIEW',         'Authority to inspect security and core banking audit trail logs.'), " +
                 "('SACCO',            'ATTACH',       'Authority to link external core modules or sub-entities.'), " +
+                "('NEXT_OF_KIN',      'VIEW',         'Authority to view member next of kin beneficiaries.'), " +
+                "('NEXT_OF_KIN',      'MANAGE',       'Authority to add, update, or remove member next of kin beneficiaries.'), " +
                 "('USER',             'VIEW_ALL',     'Authority to list and view all user security accounts.') " +
                 "ON CONFLICT (resource, action) DO NOTHING");
 

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
-    X, UserCircle, MapPin, Briefcase, ShieldCheck, RefreshCw, AlertCircle, Save, CheckCircle, FileText
+    X, UserCircle, MapPin, Briefcase, ShieldCheck, RefreshCw, AlertCircle, Save, CheckCircle, FileText, Heart
 } from 'lucide-react';
 import { memberProfileApi } from '../api/memberProfileApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
 import { KycDocumentTab } from './KycDocumentTab';
+import { NextOfKinTab } from './NextOfKinTab';
 
 export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
     const [activeTab, setActiveTab] = useState('demographics');
@@ -96,7 +97,7 @@ export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-            <div className="bdae-card w-full max-w-2xl rounded-3xl shadow-2xl border border-[var(--bdae-border)] flex flex-col max-h-[95vh]">
+            <div className="bdae-card w-full max-w-4xl rounded-3xl shadow-2xl border border-[var(--bdae-border)] flex flex-col max-h-[95vh]">
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-[var(--bdae-border)] shrink-0 bg-black/5 dark:bg-white/5">
@@ -119,7 +120,7 @@ export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-[var(--bdae-border)] px-5 sticky top-0 bg-[var(--bdae-bg)] shrink-0 z-10">
+                <div className="flex overflow-x-auto border-b border-[var(--bdae-border)] px-5 sticky top-0 bg-[var(--bdae-bg)] shrink-0 z-10 no-scrollbar">
                     <button onClick={() => { setActiveTab('demographics'); clearMessages(); }} className={`flex items-center gap-2 py-3 px-4 text-xs font-bold transition-all relative ${activeTab === 'demographics' ? 'text-[var(--bdae-primary)]' : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'}`}>
                         <UserCircle className="w-4 h-4" /> Demographics
                         {activeTab === 'demographics' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--bdae-primary)] rounded-t" />}
@@ -136,6 +137,12 @@ export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
                         <FileText className="w-4 h-4" /> KYC Identifications
                         {activeTab === 'kyc' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--bdae-primary)] rounded-t" />}
                     </button>
+                    <PermissionGuard permissions={['NEXT_OF_KIN_VIEW', 'NEXT_OF_KIN_MANAGE']}>
+                        <button onClick={() => { setActiveTab('kin'); clearMessages(); }} className={`flex items-center gap-2 py-3 px-4 text-xs font-bold transition-all relative ${activeTab === 'kin' ? 'text-[var(--bdae-primary)]' : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'}`}>
+                            <Heart className="w-4 h-4 text-rose-500" /> Beneficiaries
+                            {activeTab === 'kin' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--bdae-primary)] rounded-t" />}
+                        </button>
+                    </PermissionGuard>
                     <button onClick={() => { setActiveTab('governance'); clearMessages(); }} className={`flex items-center gap-2 py-3 px-4 text-xs font-bold transition-all relative ${activeTab === 'governance' ? 'text-[var(--bdae-primary)]' : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'}`}>
                         <ShieldCheck className="w-4 h-4" /> Governance
                         {activeTab === 'governance' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--bdae-primary)] rounded-t" />}
@@ -257,6 +264,10 @@ export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
                         <KycDocumentTab userId={profile.userId} />
                     )}
 
+                    {activeTab === 'kin' && (
+                        <NextOfKinTab userId={profile.userId} />
+                    )}
+
                     {activeTab === 'governance' && (
                         <div className="space-y-6">
                             <div className="bdae-card p-5 border border-[var(--bdae-border)] bg-black/5 rounded-xl">
@@ -312,7 +323,7 @@ export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
                 </div>
 
                 {/* Footer */}
-                {(activeTab !== 'governance' && activeTab !== 'kyc') && (
+                {(activeTab !== 'governance' && activeTab !== 'kyc' && activeTab !== 'kin') && (
                     <div className="p-5 border-t border-[var(--bdae-border)] shrink-0 flex justify-end gap-3 bg-black/5 dark:bg-white/5">
                         <PermissionGuard authorities={['MEMBER_UPDATE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
                             <button
