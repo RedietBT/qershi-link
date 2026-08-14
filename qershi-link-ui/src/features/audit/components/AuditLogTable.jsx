@@ -53,6 +53,7 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
             <tr className="border-b border-[var(--bdae-border)] bg-black/5 dark:bg-white/5 text-[11px] font-bold text-[var(--bdae-text-secondary)] uppercase tracking-wider">
               <th className="py-3.5 px-4">Timestamp</th>
               <th className="py-3.5 px-4">Action Event</th>
+              <th className="py-3.5 px-4">User Phone</th>
               <th className="py-3.5 px-4">Resource Affected</th>
               <th className="py-3.5 px-4">IP Address</th>
               <th className="py-3.5 px-4">Status</th>
@@ -64,18 +65,18 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
               const isExpanded = expandedLogId === (log.logId || log.timestamp);
               const formattedDate = log.timestamp
                 ? new Date(log.timestamp).toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                  })
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })
                 : 'N/A';
 
               return (
                 <React.Fragment key={log.logId || log.timestamp || Math.random()}>
-                  <tr 
+                  <tr
                     onClick={() => toggleExpand(log.logId || log.timestamp)}
                     className="hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors group"
                   >
@@ -92,6 +93,11 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
                       <span className="font-mono font-bold text-xs text-[var(--bdae-primary)] dark:text-[var(--bdae-secondary)]">
                         {log.action}
                       </span>
+                    </td>
+
+                    {/* User Phone */}
+                    <td className="py-3.5 px-4 font-mono text-xs text-[var(--bdae-text-primary)] font-semibold">
+                      {log.phoneNumber || 'N/A'}
                     </td>
 
                     {/* Resource Affected */}
@@ -129,7 +135,7 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
                   {/* Expanded Log Details */}
                   {isExpanded && (
                     <tr className="bg-black/5 dark:bg-white/5 border-b border-[var(--bdae-border)]">
-                      <td colSpan="6" className="p-4 font-mono text-xs">
+                      <td colSpan="7" className="p-4 font-mono text-xs">
                         <div className="p-4 rounded-xl bdae-surface border border-[var(--bdae-border)] space-y-2">
                           <div className="flex items-center justify-between border-b border-[var(--bdae-border)] pb-2 text-[11px]">
                             <span className="font-bold flex items-center gap-1.5 text-[var(--bdae-secondary)]">

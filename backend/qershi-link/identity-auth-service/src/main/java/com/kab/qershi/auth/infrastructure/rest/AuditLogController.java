@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import com.kab.qershi.auth.infrastructure.persistence.SpringDataUserRepository;
+import com.kab.qershi.auth.infrastructure.persistence.UserEntity;
+import java.util.stream.Collectors;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Map;
 
 /**
  * REST Controller exposing security and administrative audit log query endpoints.
@@ -30,9 +36,25 @@ import java.util.UUID;
 public class AuditLogController {
 
     private final SpringDataAuditLogRepository auditLogRepository;
+    private final SpringDataUserRepository userRepository;
 
-    public AuditLogController(SpringDataAuditLogRepository auditLogRepository) {
+    public AuditLogController(SpringDataAuditLogRepository auditLogRepository, SpringDataUserRepository userRepository) {
         this.auditLogRepository = auditLogRepository;
+        this.userRepository = userRepository;
+    }
+
+    private List<AuditLogResponse> mapToResponses(List<AuditLogEntity> entities) {
+        Set<UUID> userIds = entities.stream()
+                .map(AuditLogEntity::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<UUID, String> msisdnMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserEntity::getUserId, UserEntity::getMsisdn));
+
+        return entities.stream()
+                .map(log -> AuditLogResponse.fromEntity(log, msisdnMap.get(log.getUserId())))
+                .toList();
     }
 
     @GetMapping
@@ -42,11 +64,10 @@ public class AuditLogController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
 
-        Page<AuditLogResponse> logs = auditLogRepository
-                .findAllByOrderByTimestampDesc(PageRequest.of(page, Math.min(size, 200)))
-                .map(AuditLogResponse::fromEntity);
+        Page<AuditLogEntity> logsPage = auditLogRepository
+                .findAllByOrderByTimestampDesc(PageRequest.of(page, Math.min(size, 200)));
 
-        return ResponseEntity.ok(logs.getContent());
+        return ResponseEntity.ok(mapToResponses(logsPage.getContent()));
     }
 
     @GetMapping("/tenant")
@@ -58,11 +79,8 @@ public class AuditLogController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        List<AuditLogResponse> logs = auditLogRepository.findBySaccoIdOrderByTimestampDesc(tenantSaccoId).stream()
-                .map(AuditLogResponse::fromEntity)
-                .toList();
-
-        return ResponseEntity.ok(logs);
+        List<AuditLogEntity> logs = auditLogRepository.findBySaccoIdOrderByTimestampDesc(tenantSaccoId);
+        return ResponseEntity.ok(mapToResponses(logs));
     }
 
     @GetMapping("/sacco/{saccoId}")
@@ -79,11 +97,8 @@ public class AuditLogController {
             }
         }
 
-        List<AuditLogResponse> logs = auditLogRepository.findBySaccoIdOrderByTimestampDesc(saccoId).stream()
-                .map(AuditLogResponse::fromEntity)
-                .toList();
-
-        return ResponseEntity.ok(logs);
+        List<AuditLogEntity> logs = auditLogRepository.findBySaccoIdOrderByTimestampDesc(saccoId);
+        return ResponseEntity.ok(mapToResponses(logs));
     }
 
     @GetMapping("/user/{userId}")
@@ -103,10 +118,6 @@ public class AuditLogController {
                     .toList();
         }
 
-        List<AuditLogResponse> logs = userLogs.stream()
-                .map(AuditLogResponse::fromEntity)
-                .toList();
-
-        return ResponseEntity.ok(logs);
+        return ResponseEntity.ok(mapToResponses(userLogs));
     }
 }

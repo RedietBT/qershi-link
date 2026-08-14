@@ -15,6 +15,7 @@ import java.util.UUID;
 public record AuditLogResponse(
         UUID logId,
         UUID userId,
+        String phoneNumber,
         UUID saccoId,
         String action,
         String resourceAffected,
@@ -23,13 +24,14 @@ public record AuditLogResponse(
         String details,
         OffsetDateTime timestamp
 ) {
-    public static AuditLogResponse fromEntity(AuditLogEntity entity) {
+    public static AuditLogResponse fromEntity(AuditLogEntity entity, String phoneNumber) {
         if (entity == null) {
             return null;
         }
         return new AuditLogResponse(
                 entity.getLogId(),
                 entity.getUserId(),
+                phoneNumber,
                 entity.getSaccoId(),
                 entity.getAction(),
                 entity.getResourceAffected(),
