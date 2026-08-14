@@ -4,6 +4,7 @@ import { UserStatsBar } from '../components/UserStatsBar';
 import { UserFilterBar } from '../components/UserFilterBar';
 import { UserTable } from '../components/UserTable';
 import { CreateUserModal } from '../components/CreateUserModal';
+import { CreateProfileModal } from '../../members/components/CreateProfileModal';
 import { UpdateUserModal } from '../components/UpdateUserModal';
 import { AssignRoleModal } from '../components/AssignRoleModal';
 import { PinResendModal } from '../../superadmin/components/PinResendModal';
@@ -35,6 +36,9 @@ export const UserManagementPage = () => {
 
   // Resend PIN modal state
   const [resendPinUserId, setResendPinUserId] = useState(null);
+
+  // Profile Create context state
+  const [profileCreateUser, setProfileCreateUser] = useState(null);
 
   // Deletion submit state
   const [isDeleting, setIsDeleting] = useState(false);
@@ -72,7 +76,7 @@ export const UserManagementPage = () => {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--bdae-border)] pb-4">
           <div className="flex items-center space-x-3">
-            <div 
+            <div
               className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md shrink-0"
               style={{ background: `linear-gradient(135deg, var(--bdae-primary), var(--bdae-secondary))` }}
             >
@@ -112,8 +116,8 @@ export const UserManagementPage = () => {
         <UserStatsBar users={users} />
 
         {/* Filter Bar with SUPER_ADMIN SACCO Tenant Selector */}
-        <UserFilterBar 
-          searchTerm={searchTerm} 
+        <UserFilterBar
+          searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
@@ -122,13 +126,14 @@ export const UserManagementPage = () => {
         />
 
         {/* User Table */}
-        <UserTable 
-          users={users} 
-          isLoading={isLoading} 
+        <UserTable
+          users={users}
+          isLoading={isLoading}
           error={error}
           onEdit={(user) => setEditingUser(user)}
           onAssignRole={(user) => setRoleAssignUser(user)}
           onResendPin={(userId) => setResendPinUserId(userId)}
+          onProfileCreate={(user) => setProfileCreateUser(user)}
           onDelete={(user) => setDeletingUser(user)}
           onRefresh={refreshUsers}
         />
@@ -166,6 +171,18 @@ export const UserManagementPage = () => {
             initialMode="userId"
             initialTarget={resendPinUserId}
             onClose={() => setResendPinUserId(null)}
+          />
+        )}
+
+        {/* Create Member Profile Modal via Identity Context */}
+        {profileCreateUser && (
+          <CreateProfileModal
+            userId={profileCreateUser.userId}
+            msisdn={profileCreateUser.msisdn}
+            onClose={() => setProfileCreateUser(null)}
+            onSuccess={() => {
+              setProfileCreateUser(null);
+            }}
           />
         )}
 

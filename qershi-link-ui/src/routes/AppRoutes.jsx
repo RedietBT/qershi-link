@@ -6,13 +6,15 @@ import { SaccoRegistryPage } from '../features/superadmin/pages/SaccoRegistryPag
 import { AuditLogsPage } from '../features/audit/pages/AuditLogsPage';
 import { UserManagementPage } from '../features/users/pages/UserManagementPage';
 import { RoleManagementPage } from '../features/roles/pages/RoleManagementPage';
+import { MemberProfilePage } from '../features/members/pages/MemberProfilePage';
+import { KycVerificationPage } from '../features/members/pages/KycVerificationPage';
 import { ChangePinModal } from '../features/auth/components/ChangePinModal';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 import { useAuthStore } from '../common/store/useAuthStore';
 import { Layout } from '../common/components/Layout';
 import { PermissionGuard } from '../common/components/PermissionGuard';
-import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield } from 'lucide-react';
+import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact } from 'lucide-react';
 
 /**
  * Dashboard View Component
@@ -26,7 +28,7 @@ function DashboardPage() {
     <Layout>
       <div className="space-y-6 animate-fadeIn">
         {/* Welcome Header */}
-        <div 
+        <div
           className="bdae-card p-6 md:p-8 text-white rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4"
           style={{ background: `linear-gradient(135deg, var(--bdae-primary), var(--bdae-secondary))` }}
         >
@@ -68,10 +70,10 @@ function DashboardPage() {
               <span>Administrative Control Engines</span>
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 text-xs">
               {/* Card 1: SACCO Registry Management (SUPER_ADMIN) */}
               <PermissionGuard role="SUPER_ADMIN">
-                <div 
+                <div
                   onClick={() => navigate('/saccos')}
                   className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
                 >
@@ -91,7 +93,7 @@ function DashboardPage() {
 
               {/* Card 2: User Account Management (SUPER_ADMIN + SACCO_ADMIN) */}
               <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
-                <div 
+                <div
                   onClick={() => navigate('/users')}
                   className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
                 >
@@ -109,9 +111,49 @@ function DashboardPage() {
                 </div>
               </PermissionGuard>
 
+              {/* Card 2.5: Member Profile Management (SUPER_ADMIN + SACCO_ADMIN) */}
+              <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']} authorities={['MEMBER_VIEW_BASIC', 'MEMBER_VIEW_FULL']}>
+                <div
+                  onClick={() => navigate('/members')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold">
+                    <Contact className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      Member Profile Ops
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Onboard, approve, and manage member registry profiles.
+                    </p>
+                  </div>
+                </div>
+              </PermissionGuard>
+
+              {/* Card 2.6: KYC Verification Queue (SUPER_ADMIN + SACCO_ADMIN) */}
+              <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']} authorities={['KYC_VIEW']}>
+                <div
+                  onClick={() => navigate('/kyc-verifications')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      KYC Validations
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Review official government IDs and run Maker-Checker queues.
+                    </p>
+                  </div>
+                </div>
+              </PermissionGuard>
+
               {/* Card 3: Role & RBAC Management (SUPER_ADMIN + SACCO_ADMIN) */}
               <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
-                <div 
+                <div
                   onClick={() => navigate('/roles')}
                   className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
                 >
@@ -131,7 +173,7 @@ function DashboardPage() {
 
               {/* Card 4: Platform Security Audit Engine (SUPER_ADMIN + SACCO_ADMIN) */}
               <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
-                <div 
+                <div
                   onClick={() => navigate('/audit-logs')}
                   className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
                 >
@@ -193,82 +235,106 @@ export const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Route */}
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
-        } 
+        }
       />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
-        
+
         {/* Protected Route: SACCO Registry (SUPER_ADMIN) */}
-        <Route 
-          path="/saccos" 
+        <Route
+          path="/saccos"
           element={
             <PermissionRoute role="SUPER_ADMIN">
               <Layout>
                 <SaccoRegistryPage />
               </Layout>
             </PermissionRoute>
-          } 
+          }
         />
 
         {/* Protected Route: SACCO Onboarding (SUPER_ADMIN) */}
-        <Route 
-          path="/onboard" 
+        <Route
+          path="/onboard"
           element={
             <PermissionRoute role="SUPER_ADMIN">
               <Layout>
                 <SaccoOnboardingPage />
               </Layout>
             </PermissionRoute>
-          } 
+          }
         />
 
         {/* Protected Route: User Account Management (SUPER_ADMIN + SACCO_ADMIN) */}
-        <Route 
-          path="/users" 
+        <Route
+          path="/users"
           element={
             <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
               <Layout>
                 <UserManagementPage />
               </Layout>
             </PermissionRoute>
-          } 
+          }
+        />
+
+        {/* Protected Route: Member Profiles (SUPER_ADMIN + SACCO_ADMIN + Authorities) */}
+        <Route
+          path="/members"
+          element={
+            <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']} authorities={['MEMBER_VIEW_BASIC', 'MEMBER_VIEW_FULL']}>
+              <Layout>
+                <MemberProfilePage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: KYC Verification Queue */}
+        <Route
+          path="/kyc-verifications"
+          element={
+            <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']} authorities={['KYC_VIEW']}>
+              <Layout>
+                <KycVerificationPage />
+              </Layout>
+            </PermissionRoute>
+          }
         />
 
         {/* Protected Route: Role & RBAC Management (SUPER_ADMIN + SACCO_ADMIN) */}
-        <Route 
-          path="/roles" 
+        <Route
+          path="/roles"
           element={
             <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
               <Layout>
                 <RoleManagementPage />
               </Layout>
             </PermissionRoute>
-          } 
+          }
         />
 
         {/* Protected Route: Platform Security Audit Logs (SUPER_ADMIN + SACCO_ADMIN) */}
-        <Route 
-          path="/audit-logs" 
+        <Route
+          path="/audit-logs"
           element={
             <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
               <Layout>
                 <AuditLogsPage />
               </Layout>
             </PermissionRoute>
-          } 
+          }
         />
       </Route>
 
       {/* Default Fallback Redirects */}
-      <Route 
-        path="/" 
-        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
+      <Route
+        path="/"
+        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
       />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

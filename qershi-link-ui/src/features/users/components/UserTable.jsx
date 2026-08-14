@@ -1,7 +1,7 @@
 import React from 'react';
 import { UserStatusBadge } from './UserStatusBadge';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
-import { Users, Phone, Calendar, Building2, RefreshCw, AlertCircle, Edit3, Trash2, KeyRound, ShieldCheck, Crown } from 'lucide-react';
+import { Users, Phone, Calendar, Building2, RefreshCw, AlertCircle, Edit3, Trash2, KeyRound, ShieldCheck, Crown, Contact } from 'lucide-react';
 
 export const UserTable = ({
   users = [],
@@ -10,6 +10,7 @@ export const UserTable = ({
   onEdit,
   onAssignRole,
   onResendPin,
+  onProfileCreate,
   onDelete,
   onRefresh
 }) => {
@@ -66,25 +67,25 @@ export const UserTable = ({
             {users.map((user) => {
               const formattedLastLogin = user.lastLoginAt
                 ? new Date(user.lastLoginAt).toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
                 : 'Never Logged In';
 
               const isSuperAdminRole = (user.globalRole || '').toUpperCase().includes('SUPER_ADMIN');
 
               return (
-                <tr 
+                <tr
                   key={user.userId}
                   className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
                 >
                   {/* Phone Number */}
                   <td className="py-3.5 px-4">
                     <div className="flex items-center space-x-3">
-                      <div 
+                      <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0"
                         style={{ background: `linear-gradient(135deg, var(--bdae-primary), var(--bdae-secondary))` }}
                       >
@@ -155,6 +156,16 @@ export const UserTable = ({
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
                       <span>Role</span>
+                    </button>
+
+                    {/* Create Profile */}
+                    <button
+                      onClick={() => onProfileCreate(user)}
+                      className="px-2.5 py-1.5 rounded-xl border border-purple-500/30 hover:border-purple-500 bg-purple-500/5 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
+                      title="Create Member Profile for User"
+                    >
+                      <Contact className="w-3.5 h-3.5" />
+                      <span>Profile</span>
                     </button>
 
                     {/* Delete User (SUPER_ADMIN ONLY) */}

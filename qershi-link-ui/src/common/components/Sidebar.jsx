@@ -1,13 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Users, 
-  ShieldCheck, 
+import {
+  LayoutDashboard,
+  Building2,
+  Users,
+  ShieldCheck,
   PlusCircle,
   ShieldAlert,
-  ChevronRight
+  ChevronRight,
+  Contact,
+  FileText
 } from 'lucide-react';
 import { PermissionGuard } from './PermissionGuard';
 
@@ -16,6 +18,8 @@ const NAV_ITEMS = [
   { path: '/saccos', label: 'SACCO Registry', icon: Building2, role: 'SUPER_ADMIN' },
   { path: '/onboard', label: 'SACCO Tenant Onboarding', icon: PlusCircle, role: 'SUPER_ADMIN' },
   { path: '/users', label: 'User Management', icon: Users, roles: ['SUPER_ADMIN', 'SACCO_ADMIN'] },
+  { path: '/members', label: 'Member Profiles', icon: Contact, roles: ['SUPER_ADMIN', 'SACCO_ADMIN'], authorities: ['MEMBER_VIEW_BASIC'] },
+  { path: '/kyc-verifications', label: 'KYC Validations', icon: FileText, roles: ['SUPER_ADMIN', 'SACCO_ADMIN'], authorities: ['KYC_VIEW'] },
   { path: '/roles', label: 'Role & RBAC Management', icon: ShieldCheck, roles: ['SUPER_ADMIN', 'SACCO_ADMIN'] },
   { path: '/audit-logs', label: 'Security Audit Logs', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'SACCO_ADMIN'] }
 ];
@@ -35,10 +39,9 @@ export const Sidebar = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[var(--bdae-primary)] text-white shadow-md'
-                    : 'text-[var(--bdae-text-primary)] hover:bg-black/5 dark:hover:bg-white/5'
+                `w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${isActive
+                  ? 'bg-[var(--bdae-primary)] text-white shadow-md'
+                  : 'text-[var(--bdae-text-primary)] hover:bg-black/5 dark:hover:bg-white/5'
                 }`
               }
             >
@@ -50,9 +53,9 @@ export const Sidebar = () => {
             </NavLink>
           );
 
-          if (item.roles || item.role || item.permission) {
+          if (item.roles || item.role || item.permission || item.authorities) {
             return (
-              <PermissionGuard key={item.path} role={item.role} roles={item.roles} permission={item.permission}>
+              <PermissionGuard key={item.path} role={item.role} roles={item.roles} permission={item.permission} authorities={item.authorities}>
                 {navButton}
               </PermissionGuard>
             );
