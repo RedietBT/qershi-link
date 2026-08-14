@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     CreditCard, Plus, RefreshCw, AlertCircle, CheckCircle,
-    X, ShieldAlert, Snowflake, Lock, Unlock, Search
+    X, ShieldAlert, Snowflake, List, Link2Off
 } from 'lucide-react';
 import { accountLedgerApi } from '../api/accountLedgerApi';
 import { depositProductApi } from '../api/depositProductApi';
@@ -218,6 +218,92 @@ const FreezeModal = ({ accountNo, currentStatus, onClose, onDone }) => {
     );
 };
 
+/**
+ * Active Liens Panel — lists GET /{accountNo}/liens and supports LIEN_RELEASE per row.
+ * Gated: LIEN_VIEW to see, LIEN_RELEASE to release.
+ */
+const ActiveLiensPanel = ({ accountNo, onRefreshAccount }) => {
+    const [liens, setLiens] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [releasingId, setReleasingId] = useState(null);
+    const [success, setSuccess] = useState(null);
+
+    const fetchLiens = async () => {
+        setIsLoading(true); setError(null);
+        try {
+            const res = await accountLedgerApi.getLiens(accountNo);
+            setLiens(res.data || res || []);
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Could not load liens.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchLiens(); }, [accountNo]);
+
+    const handleRelease = async (lienId) => {
+        setReleasingId(lienId); setSuccess(null); setError(null);
+        try {
+            await accountLedgerApi.releaseLien(lienId);
+            setSuccess('Lien released — balance restored.');
+            setTimeout(() => setSuccess(null), 3500);
+            fetchLiens();
+            onRefreshAccount(); // refresh parent so lienAmount updates
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Release failed.');
+        } finally {
+            setReleasingId(null);
+        }
+    };
+
+    if (isLoading) return <div className="py-4 text-center"><RefreshCw className="w-4 h-4 animate-spin mx-auto text-[var(--bdae-secondary)]" /></div>;
+
+    return (
+        <div className="space-y-2">
+            {error && <div className="flex items-center gap-1.5 p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-[10px] font-bold"><AlertCircle className="w-3 h-3" /> {error}</div>}
+            {success && <div className="flex items-center gap-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-[10px] font-bold"><CheckCircle className="w-3 h-3" /> {success}</div>}
+
+            {liens.length === 0 ? (
+                <p className="text-[10px] text-[var(--bdae-text-secondary)] italic text-center py-2">No active lien holds on this account.</p>
+            ) : (
+                <div className="space-y-1.5">
+                    {liens.map(lien => (
+                        <div key={lien.lienId} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-extrabold text-amber-600">
+                                    {Number(lien.amount || 0).toLocaleString()} ETB
+                                </p>
+                                <p className="text-[9px] text-[var(--bdae-text-secondary)] truncate">
+                                    {lien.reason || 'No reason given'}
+                                    {lien.referenceNo && <> — Ref: <span className="font-mono font-bold">{lien.referenceNo}</span></>}
+                                </p>
+                                <p className="text-[9px] text-[var(--bdae-text-secondary)] opacity-70">
+                                    {lien.createdAt ? new Date(lien.createdAt).toLocaleString() : ''}
+                                </p>
+                            </div>
+                            {/* Release Lien — gated by LIEN_RELEASE */}
+                            <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['LIEN_RELEASE']}>
+                                <button
+                                    onClick={() => handleRelease(lien.lienId)}
+                                    disabled={releasingId === lien.lienId}
+                                    className="shrink-0 px-2.5 py-1 rounded-lg border border-amber-500/30 text-amber-600 text-[9px] font-bold hover:bg-amber-500/10 flex items-center gap-1 disabled:opacity-50 transition-all"
+                                >
+                                    {releasingId === lien.lienId
+                                        ? <><RefreshCw className="w-2.5 h-2.5 animate-spin" /> Releasing...</>
+                                        : <><Link2Off className="w-2.5 h-2.5" /> Release</>
+                                    }
+                                </button>
+                            </PermissionGuard>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 /** Member Account Tab — embeds into MemberProfileDetailModal */
 export const MemberAccountsTab = ({ userId }) => {
     const [accounts, setAccounts] = useState([]);
@@ -228,6 +314,7 @@ export const MemberAccountsTab = ({ userId }) => {
     const [lienTarget, setLienTarget] = useState(null);
     const [freezeTarget, setFreezeTarget] = useState(null);
     const [approvingNo, setApprovingNo] = useState(null);
+    const [expandedLiens, setExpandedLiens] = useState({}); // { accountNo: bool }
 
     const fetchAccounts = async () => {
         setIsLoading(true);
@@ -357,6 +444,17 @@ export const MemberAccountsTab = ({ userId }) => {
                                     </button>
                                 </PermissionGuard>
 
+                                {/* View Liens — gated by LIEN_VIEW */}
+                                <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['LIEN_VIEW']}>
+                                    <button
+                                        onClick={() => setExpandedLiens(prev => ({ ...prev, [acc.accountNo]: !prev[acc.accountNo] }))}
+                                        className="px-3 py-1.5 rounded-xl border border-[var(--bdae-border)] text-[var(--bdae-text-secondary)] text-[10px] font-bold hover:text-[var(--bdae-primary)] hover:border-[var(--bdae-primary)]/30 flex items-center gap-1.5 transition-all"
+                                    >
+                                        <List className="w-3 h-3" />
+                                        {expandedLiens[acc.accountNo] ? 'Hide Liens' : 'View Liens'}
+                                    </button>
+                                </PermissionGuard>
+
                                 {/* Freeze Control */}
                                 <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_FREEZE']}>
                                     <button
@@ -367,6 +465,19 @@ export const MemberAccountsTab = ({ userId }) => {
                                     </button>
                                 </PermissionGuard>
                             </div>
+
+                            {/* Inline Lien Panel — expands under action row */}
+                            {expandedLiens[acc.accountNo] && (
+                                <div className="border-t border-amber-500/20 pt-3">
+                                    <p className="text-[9px] uppercase font-extrabold tracking-widest text-amber-600 mb-2 flex items-center gap-1">
+                                        <ShieldAlert className="w-3 h-3" /> Active Lien Holds
+                                    </p>
+                                    <ActiveLiensPanel
+                                        accountNo={acc.accountNo}
+                                        onRefreshAccount={fetchAccounts}
+                                    />
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
