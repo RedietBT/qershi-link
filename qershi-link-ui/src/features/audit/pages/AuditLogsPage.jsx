@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuditLogs } from '../hooks/useAuditLogs';
 import { AuditLogStatsBar } from '../components/AuditLogStatsBar';
 import { AuditLogFilterBar } from '../components/AuditLogFilterBar';
 import { AuditLogTable } from '../components/AuditLogTable';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
-import { ShieldAlert, RefreshCw, Lock, Globe, Building2 } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Lock, Globe, Building2, UserCircle, Key } from 'lucide-react';
+import { ProfileGlobalAuditLogs } from '../components/ProfileGlobalAuditLogs';
 
 export const AuditLogsPage = () => {
   const {
@@ -19,6 +20,8 @@ export const AuditLogsPage = () => {
     setStatusFilter,
     refreshLogs
   } = useAuditLogs('GLOBAL');
+
+  const [activeTab, setActiveTab] = useState('auth');
 
   return (
     <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']} fallback={
@@ -36,7 +39,7 @@ export const AuditLogsPage = () => {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--bdae-border)] pb-4">
           <div className="flex items-center space-x-3">
-            <div 
+            <div
               className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md shrink-0"
               style={{ background: `linear-gradient(135deg, var(--bdae-primary), var(--bdae-secondary))` }}
             >
@@ -63,11 +66,10 @@ export const AuditLogsPage = () => {
               <div className="grid grid-cols-2 gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-[var(--bdae-border)]">
                 <button
                   onClick={() => setScope('GLOBAL')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                    scope === 'GLOBAL'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${scope === 'GLOBAL'
                       ? 'bg-[var(--bdae-primary)] text-white shadow-sm'
                       : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
-                  }`}
+                    }`}
                 >
                   <Globe className="w-3.5 h-3.5" />
                   <span>Global Logs</span>
@@ -75,11 +77,10 @@ export const AuditLogsPage = () => {
 
                 <button
                   onClick={() => setScope('TENANT')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                    scope === 'TENANT'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${scope === 'TENANT'
                       ? 'bg-[var(--bdae-primary)] text-white shadow-sm'
                       : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
-                  }`}
+                    }`}
                 >
                   <Building2 className="w-3.5 h-3.5" />
                   <span>Tenant Scope</span>
@@ -99,24 +100,64 @@ export const AuditLogsPage = () => {
           </div>
         </div>
 
-        {/* Stats Bar */}
-        <AuditLogStatsBar logs={logs} />
+        {/* Audit Domain Tabs */}
+        <div className="flex items-center gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-[var(--bdae-border)] w-fit mb-4">
+          <button
+            onClick={() => setActiveTab('auth')}
+            className={`px-6 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeTab === 'auth'
+                ? 'bg-[var(--bdae-primary)] text-white shadow-md'
+                : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)] hover:bg-black/5 dark:hover:bg-white/5'
+              }`}
+          >
+            <Key className="w-4 h-4" /> System & Auth Audits
+          </button>
 
-        {/* Filter Bar */}
-        <AuditLogFilterBar 
-          searchTerm={searchTerm} 
-          setSearchTerm={setSearchTerm}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-        />
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`px-6 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeTab === 'profile'
+                ? 'bg-[var(--bdae-primary)] text-white shadow-md'
+                : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)] hover:bg-black/5 dark:hover:bg-white/5'
+              }`}
+          >
+            <UserCircle className="w-4 h-4" /> Profile Audits
+          </button>
+        </div>
 
-        {/* Audit Log Table */}
-        <AuditLogTable 
-          logs={logs} 
-          isLoading={isLoading} 
-          error={error} 
-          onRefresh={refreshLogs}
-        />
+        {/* Dynamic Tab Body */}
+        {activeTab === 'auth' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Stats Bar */}
+            <AuditLogStatsBar logs={logs} />
+
+            {/* Filter Bar */}
+            <AuditLogFilterBar
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+            />
+
+            {/* Audit Log Table */}
+            <AuditLogTable
+              logs={logs}
+              isLoading={isLoading}
+              error={error}
+              onRefresh={refreshLogs}
+            />
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div className="animate-fadeIn">
+            <PermissionGuard permissions={['AUDIT_LOG_VIEW']} fallback={
+              <div className="text-center p-8 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-sm font-bold">
+                You lack the AUDIT_LOG_VIEW permission required to view profile modification streams.
+              </div>
+            }>
+              <ProfileGlobalAuditLogs />
+            </PermissionGuard>
+          </div>
+        )}
 
       </div>
     </PermissionGuard>
