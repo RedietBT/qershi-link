@@ -140,6 +140,12 @@ public class CashTransactionService implements CashTransactionUseCase {
             log.warn("Failed writing deposit transaction audit log: {}", ex.getMessage());
         }
 
+        // 4.5. Update the actual account book balance via gRPC
+        boolean balanceUpdated = accountClientPort.postTransaction(accountNo, amount, "CREDIT");
+        if (!balanceUpdated) {
+            throw new RuntimeException("Failed to update account balance in account-management-service.");
+        }
+
         // 5. Create & Post Balanced General Ledger Journal Entry
         JournalEntry journalEntry = new JournalEntry(
                 UUID.randomUUID(),
@@ -240,6 +246,12 @@ public class CashTransactionService implements CashTransactionUseCase {
             ));
         } catch (Exception ex) {
             log.warn("Failed writing withdrawal transaction audit log: {}", ex.getMessage());
+        }
+
+        // 4.5. Update the actual account book balance via gRPC
+        boolean balanceUpdated = accountClientPort.postTransaction(accountNo, amount, "DEBIT");
+        if (!balanceUpdated) {
+            throw new RuntimeException("Failed to update account balance in account-management-service.");
         }
 
         // 5. Create & Post Balanced General Ledger Journal Entry

@@ -11,4 +11,8 @@ import java.util.UUID;
 public interface ProfileValidationPort {
 
     boolean isMemberActive(UUID userId);
+
+    ProfileContact getProfileContact(UUID userId);
+
+    record ProfileContact(String phoneNumber, String fullName) {}
 }

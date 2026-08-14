@@ -16,6 +16,8 @@ public interface AccountClientPort {
 
     ValidationResult validateCredit(String accountNo, BigDecimal amount);
 
+    boolean postTransaction(String accountNo, BigDecimal amount, String transactionType);
+
     record AccountInfo(
             String accountId,
             String accountNo,

@@ -6,6 +6,8 @@ import com.kab.qershi.account.infrastructure.grpc.AccountProtoResponse;
 import com.kab.qershi.account.infrastructure.grpc.CreditValidationProtoRequest;
 import com.kab.qershi.account.infrastructure.grpc.DebitValidationProtoRequest;
 import com.kab.qershi.account.infrastructure.grpc.ValidationProtoResponse;
+import com.kab.qershi.account.infrastructure.grpc.PostTransactionRequest;
+import com.kab.qershi.account.infrastructure.grpc.PostTransactionResponse;
 import com.kab.qershi.transaction.domain.ports.outbound.AccountClientPort;
 import com.kab.qershi.transaction.infrastructure.config.TenantContext;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -105,6 +107,30 @@ public class AccountGrpcClientAdapter implements AccountClientPort {
         } catch (Exception ex) {
             log.error("gRPC call ValidateAccountForCredit failed for accountNo {}: {}", accountNo, ex.getMessage());
             return new ValidationResult(false, "gRPC credit validation failed: " + ex.getMessage(), BigDecimal.ZERO);
+        }
+    }
+
+    @Override
+    public boolean postTransaction(String accountNo, BigDecimal amount, String transactionType) {
+        log.debug("Calling gRPC PostTransaction for accountNo: {}, amount: {}, type: {}", accountNo, amount, transactionType);
+        try {
+            String schema = TenantContext.getTenantSchema();
+            PostTransactionRequest request = PostTransactionRequest.newBuilder()
+                    .setAccountNo(accountNo)
+                    .setAmount(amount.toPlainString())
+                    .setTransactionType(transactionType)
+                    .setTenantSchema(schema != null ? schema : "")
+                    .build();
+
+            PostTransactionResponse res = accountGrpcStub.postTransaction(request);
+
+            if (!res.getIsSuccess()) {
+                log.warn("gRPC PostTransaction failed remotely: {}", res.getMessage());
+            }
+            return res.getIsSuccess();
+        } catch (Exception ex) {
+            log.error("gRPC call PostTransaction failed for accountNo {}: {}", accountNo, ex.getMessage());
+            return false;
         }
     }
 

@@ -4,6 +4,8 @@ import com.kab.qershi.account.domain.model.Account;
 import com.kab.qershi.account.domain.model.AccountProduct;
 import com.kab.qershi.account.domain.ports.inbound.AccountOpeningUseCase;
 import com.kab.qershi.account.domain.ports.inbound.ProductManagementUseCase;
+import com.kab.qershi.account.domain.ports.outbound.AccountRepositoryPort;
+import com.kab.qershi.account.domain.ports.outbound.ProfileValidationPort;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.slf4j.Logger;
@@ -25,11 +27,17 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
 
     private final AccountOpeningUseCase accountOpeningUseCase;
     private final ProductManagementUseCase productManagementUseCase;
+    private final AccountRepositoryPort accountRepositoryPort;
+    private final ProfileValidationPort profileValidationPort;
 
     public AccountGrpcServiceImpl(AccountOpeningUseCase accountOpeningUseCase,
-                                  ProductManagementUseCase productManagementUseCase) {
+                                  ProductManagementUseCase productManagementUseCase,
+                                  AccountRepositoryPort accountRepositoryPort,
+                                  ProfileValidationPort profileValidationPort) {
         this.accountOpeningUseCase = accountOpeningUseCase;
         this.productManagementUseCase = productManagementUseCase;
+        this.accountRepositoryPort = accountRepositoryPort;
+        this.profileValidationPort = profileValidationPort;
     }
 
     @Override
@@ -43,6 +51,8 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
             AccountProduct product = productManagementUseCase.getProductByCode(account.getProductCode());
             BigDecimal minBalance = product != null ? product.getMinOperatingBalance() : BigDecimal.ZERO;
             BigDecimal available = account.getAvailableBalance(minBalance);
+            
+            ProfileValidationPort.ProfileContact contact = profileValidationPort.getProfileContact(account.getUserId());
 
             AccountProtoResponse response = AccountProtoResponse.newBuilder()
                     .setAccountId(account.getAccountId().toString())
@@ -56,8 +66,8 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
                     .setAvailableBalance(available.toPlainString())
                     .setStatus(account.getStatus().name())
                     .setFreezeStatus(account.getFreezeStatus().name())
-                    .setPhoneNumber("")
-                    .setFullName("Member " + account.getUserId().toString().substring(0, 8))
+                    .setPhoneNumber(contact.phoneNumber() != null ? contact.phoneNumber() : "")
+                    .setFullName(contact.fullName() != null ? contact.fullName() : "Member")
                     .build();
 
             responseObserver.onNext(response);
@@ -140,6 +150,52 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
                     .setIsValid(false)
                     .setMessage("Validation error: " + ex.getMessage())
                     .setAvailableBalance("0.0000")
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } finally {
+            com.kab.qershi.account.infrastructure.config.TenantContext.clear();
+        }
+    }
+
+    @Override
+    public void postTransaction(PostTransactionRequest request, StreamObserver<PostTransactionResponse> responseObserver) {
+        log.info("gRPC PostTransaction request for accountNo: {}, type: {}, amount: {}, schema: {}",
+                request.getAccountNo(), request.getTransactionType(), request.getAmount(), request.getTenantSchema());
+        try {
+            if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
+                com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
+            }
+
+            Account account = accountOpeningUseCase.getAccountByNo(request.getAccountNo());
+            BigDecimal amount = new BigDecimal(request.getAmount());
+
+            if ("CREDIT".equalsIgnoreCase(request.getTransactionType())) {
+                account.credit(amount);
+            } else if ("DEBIT".equalsIgnoreCase(request.getTransactionType())) {
+                AccountProduct product = productManagementUseCase.getProductByCode(account.getProductCode());
+                BigDecimal minBalance = product != null ? product.getMinOperatingBalance() : BigDecimal.ZERO;
+                account.debit(amount, minBalance);
+            } else {
+                throw new IllegalArgumentException("Unknown transaction type: " + request.getTransactionType());
+            }
+
+            Account saved = accountRepositoryPort.save(account);
+
+            PostTransactionResponse response = PostTransactionResponse.newBuilder()
+                    .setIsSuccess(true)
+                    .setMessage("Transaction applied successfully.")
+                    .setNewBalance(saved.getBookBalance().toPlainString())
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            log.error("Failed to apply gRPC transaction for accountNo: {}", request.getAccountNo(), ex);
+            PostTransactionResponse response = PostTransactionResponse.newBuilder()
+                    .setIsSuccess(false)
+                    .setMessage(ex.getMessage())
+                    .setNewBalance("0.00")
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();

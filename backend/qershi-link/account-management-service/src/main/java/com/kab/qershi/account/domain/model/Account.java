@@ -108,6 +108,28 @@ public class Account {
     }
 
     /**
+     * Executes a credit transaction by updating the book balance.
+     */
+    public void credit(BigDecimal amount) {
+        if (!canPerformCredit(amount)) {
+            throw new IllegalStateException("Account cannot be credited. Status: " + status + " | Freeze: " + freezeStatus);
+        }
+        this.bookBalance = this.bookBalance.add(amount);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Executes a debit transaction by updating the book balance.
+     */
+    public void debit(BigDecimal amount, BigDecimal minOperatingBalance) {
+        if (!canPerformDebit(amount, minOperatingBalance)) {
+            throw new IllegalStateException("Account cannot be debited. Insufficient funds or freeze in place.");
+        }
+        this.bookBalance = this.bookBalance.subtract(amount);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
      * Places a monetary lien hold on the account.
      */
     public void placeLien(BigDecimal amount) {

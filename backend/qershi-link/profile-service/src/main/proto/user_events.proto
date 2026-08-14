@@ -8,6 +8,7 @@ option java_package = "com.kab.qershi.auth.infrastructure.grpc";
 // The service definition exposing the remote procedure
 service ProfileService {
   rpc CascadeDeleteProfile (ResourceDeleteRequest) returns (ResourceDeleteResponse);
+  rpc GetProfileContact (GetProfileRequest) returns (ProfileContactResponse);
 }
 
 message ResourceDeleteRequest {
@@ -17,4 +18,15 @@ message ResourceDeleteRequest {
 message ResourceDeleteResponse {
   bool is_success = 1;
   string feedback_message = 2;
+}
+
+message GetProfileRequest {
+  string user_id = 1;
+  string tenant_schema = 2;
+}
+
+message ProfileContactResponse {
+  string phone_number = 1;
+  string full_name = 2;
+  bool is_found = 3;
 }

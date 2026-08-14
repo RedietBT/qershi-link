@@ -3,13 +3,18 @@ package com.kab.qershi.profile.infrastructure.grpc;
 import com.kab.qershi.auth.infrastructure.grpc.ProfileServiceGrpc;
 import com.kab.qershi.auth.infrastructure.grpc.ResourceDeleteRequest;
 import com.kab.qershi.auth.infrastructure.grpc.ResourceDeleteResponse;
+import com.kab.qershi.auth.infrastructure.grpc.GetProfileRequest;
+import com.kab.qershi.auth.infrastructure.grpc.ProfileContactResponse;
 import com.kab.qershi.common.util.PiiMasker;
+import com.kab.qershi.profile.domain.model.MemberProfile;
+import com.kab.qershi.profile.domain.model.MemberAddress;
 import com.kab.qershi.profile.domain.ports.inbound.ProfileManagementUseCase;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -56,6 +61,39 @@ public class ProfileGrpcService extends ProfileServiceGrpc.ProfileServiceImplBas
                     .setFeedbackMessage("Error purging profile: " + ex.getMessage())
                     .build();
 
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        }
+    }
+
+    @Override
+    public void getProfileContact(GetProfileRequest request, StreamObserver<ProfileContactResponse> responseObserver) {
+        String userIdStr = request.getUserId();
+        try {
+            UUID userId = UUID.fromString(userIdStr);
+            Optional<MemberProfile> profileOpt = profileManagementUseCase.getProfileByUserId(userId);
+            Optional<MemberAddress> addressOpt = profileManagementUseCase.findAddressByUserId(userId);
+            
+            if (profileOpt.isPresent()) {
+                MemberProfile profile = profileOpt.get();
+                String phone = addressOpt.map(MemberAddress::getPrimaryPhone).orElse("");
+                ProfileContactResponse response = ProfileContactResponse.newBuilder()
+                        .setIsFound(true)
+                        .setPhoneNumber(phone)
+                        .setFullName(profile.getFullName())
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                throw new RuntimeException("Profile not found");
+            }
+        } catch (Exception ex) {
+            log.error("Failed to execute gRPC getProfileContact for user ID: {}", PiiMasker.maskIdNumber(userIdStr), ex);
+            ProfileContactResponse response = ProfileContactResponse.newBuilder()
+                    .setIsFound(false)
+                    .setPhoneNumber("")
+                    .setFullName("")
+                    .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         }
