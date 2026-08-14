@@ -109,15 +109,16 @@ cd backend/qershi-link
 ```
 
 ### 3. Build Docker Container Images
+Ensure you run these commands from the `backend/qershi-link` directory:
 ```bash
-docker build -t identity-auth-service:latest -f backend/qershi-link/identity-auth-service/Dockerfile backend/qershi-link/
-docker build -t profile-service:latest -f backend/qershi-link/profile-service/Dockerfile backend/qershi-link/
-docker build -t account-management-service:latest -f backend/qershi-link/account-management-service/Dockerfile backend/qershi-link/
-docker build -t transaction-management-service:latest -f backend/qershi-link/transaction-management-service/Dockerfile backend/qershi-link/
-docker build -t loan-origination-service:latest -f backend/qershi-link/loan-origination-service/Dockerfile backend/qershi-link/
-docker build -t loan-management-service:latest -f backend/qershi-link/loan-management-service/Dockerfile backend/qershi-link/
-docker build -t notification-service:latest -f backend/qershi-link/notification-service/Dockerfile backend/qershi-link/
-docker build -t swagger-api-hub:latest -f backend/qershi-link/swagger-api-hub/Dockerfile backend/qershi-link/
+docker build -t identity-auth-service:latest identity-auth-service/
+docker build -t profile-service:latest profile-service/
+docker build -t account-management-service:latest account-management-service/
+docker build -t transaction-management-service:latest transaction-management-service/
+docker build -t loan-origination-service:latest loan-origination-service/
+docker build -t loan-management-service:latest loan-management-service/
+docker build -t notification-service:latest notification-service/
+docker build -t swagger-api-hub:latest swagger-api-hub/
 ```
 
 ### 4. Deploy to Kubernetes Cluster
@@ -130,6 +131,15 @@ Once the cluster is running, open your browser:
 👉 **`http://localhost:8090/swagger-ui/index.html`**
 
 Access all 7 core banking microservice APIs dynamically using the top-right service selector.
+
+### 6. Run the Frontend (React UI)
+To run the front-end React interface, navigate to the UI directory and start the Vite development server:
+```bash
+cd qershi-link-ui
+npm install
+npm run dev
+```
+The frontend UI will be accessible at: 👉 **`http://localhost:3000/`**
 
 ---
 
