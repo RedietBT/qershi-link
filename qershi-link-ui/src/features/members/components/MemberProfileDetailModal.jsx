@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import {
-    X, UserCircle, MapPin, Briefcase, ShieldCheck, RefreshCw, AlertCircle, Save, CheckCircle, FileText, Heart
+    X, UserCircle, MapPin, Briefcase, ShieldCheck, RefreshCw, AlertCircle, Save, CheckCircle, FileText, Heart, CreditCard
 } from 'lucide-react';
 import { memberProfileApi } from '../api/memberProfileApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
 import { KycDocumentTab } from './KycDocumentTab';
 import { NextOfKinTab } from './NextOfKinTab';
+import { MemberAccountsTab } from '../../accounts/components/MemberAccountsTab';
 
 export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
     const [activeTab, setActiveTab] = useState('demographics');
@@ -147,6 +148,12 @@ export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
                         <ShieldCheck className="w-4 h-4" /> Governance
                         {activeTab === 'governance' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--bdae-primary)] rounded-t" />}
                     </button>
+                    <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_VIEW']}>
+                        <button onClick={() => { setActiveTab('accounts'); clearMessages(); }} className={`flex items-center gap-2 py-3 px-4 text-xs font-bold transition-all relative ${activeTab === 'accounts' ? 'text-[var(--bdae-primary)]' : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'}`}>
+                            <CreditCard className="w-4 h-4 text-teal-500" /> Accounts
+                            {activeTab === 'accounts' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--bdae-primary)] rounded-t" />}
+                        </button>
+                    </PermissionGuard>
                 </div>
 
                 {/* scrollable Body */}
@@ -320,10 +327,16 @@ export const MemberProfileDetailModal = ({ profile, onClose, onSuccess }) => {
                             </div>
                         </div>
                     )}
+
+                    {activeTab === 'accounts' && (
+                        <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_VIEW']}>
+                            <MemberAccountsTab userId={profile.userId} />
+                        </PermissionGuard>
+                    )}
                 </div>
 
                 {/* Footer */}
-                {(activeTab !== 'governance' && activeTab !== 'kyc' && activeTab !== 'kin') && (
+                {(activeTab !== 'governance' && activeTab !== 'kyc' && activeTab !== 'kin' && activeTab !== 'accounts') && (
                     <div className="p-5 border-t border-[var(--bdae-border)] shrink-0 flex justify-end gap-3 bg-black/5 dark:bg-white/5">
                         <PermissionGuard authorities={['MEMBER_UPDATE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
                             <button

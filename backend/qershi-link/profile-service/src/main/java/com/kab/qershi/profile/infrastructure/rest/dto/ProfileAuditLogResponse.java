@@ -14,6 +14,7 @@ import java.util.UUID;
 public record ProfileAuditLogResponse(
         UUID logId,
         UUID userId,
+        String primaryPhone,
         UUID performedByUserId,
         String action,
         String fieldName,
@@ -25,9 +26,15 @@ public record ProfileAuditLogResponse(
         if (entity == null) {
             return null;
         }
+        String phone = null;
+        if (entity.getAddress() != null) {
+            phone = entity.getAddress().getPrimaryPhone();
+        }
+
         return new ProfileAuditLogResponse(
                 entity.getLogId(),
                 entity.getUserId(),
+                phone,
                 entity.getPerformedByUserId(),
                 entity.getAction(),
                 entity.getFieldName(),

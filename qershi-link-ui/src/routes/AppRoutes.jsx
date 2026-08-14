@@ -8,13 +8,17 @@ import { UserManagementPage } from '../features/users/pages/UserManagementPage';
 import { RoleManagementPage } from '../features/roles/pages/RoleManagementPage';
 import { MemberProfilePage } from '../features/members/pages/MemberProfilePage';
 import { KycVerificationPage } from '../features/members/pages/KycVerificationPage';
+import { SaccoConfigPage } from '../features/accounts/pages/SaccoConfigPage';
+import { DepositProductsPage } from '../features/accounts/pages/DepositProductsPage';
+import { PendingAuthorizationsPage } from '../features/accounts/pages/PendingAuthorizationsPage';
+import { AccountManagementPage } from '../features/accounts/pages/AccountManagementPage';
 import { ChangePinModal } from '../features/auth/components/ChangePinModal';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 import { useAuthStore } from '../common/store/useAuthStore';
 import { Layout } from '../common/components/Layout';
 import { PermissionGuard } from '../common/components/PermissionGuard';
-import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact } from 'lucide-react';
+import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact, Landmark, PackagePlus, ClipboardCheck } from 'lucide-react';
 
 /**
  * Dashboard View Component
@@ -190,6 +194,66 @@ function DashboardPage() {
                   </div>
                 </div>
               </PermissionGuard>
+
+              {/* Card 5: SACCO Entity Configuration (SACCO_ADMIN) */}
+              <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_VIEW']}>
+                <div
+                  onClick={() => navigate('/accounts/config')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold">
+                    <Landmark className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      SACCO Configuration
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Configure SACCO codes used for ISO Luhn account generation.
+                    </p>
+                  </div>
+                </div>
+              </PermissionGuard>
+
+              {/* Card 6: Deposit Product Factory (SACCO_ADMIN + PRODUCT_VIEW) */}
+              <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['PRODUCT_VIEW']}>
+                <div
+                  onClick={() => navigate('/accounts/products')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-violet-500/10 text-violet-600 flex items-center justify-center font-bold">
+                    <PackagePlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      Deposit Product Factory
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Define savings, fixed deposit, and other account products.
+                    </p>
+                  </div>
+                </div>
+              </PermissionGuard>
+
+              {/* Card 7: Pending Authorizations (ACCOUNT_APPROVE) */}
+              <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_APPROVE']}>
+                <div
+                  onClick={() => navigate('/accounts/pending')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                    <ClipboardCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      Pending Authorizations
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Four-Eye Maker/Checker approval queue for new accounts.
+                    </p>
+                  </div>
+                </div>
+              </PermissionGuard>
             </div>
           </div>
         </PermissionGuard>
@@ -325,6 +389,54 @@ export const AppRoutes = () => {
             <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
               <Layout>
                 <AuditLogsPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Account Management — Member Roster + Account Lookup */}
+        <Route
+          path="/accounts"
+          element={
+            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_VIEW']}>
+              <Layout>
+                <AccountManagementPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: SACCO Entity Configuration (SACCO_ADMIN) */}
+        <Route
+          path="/accounts/config"
+          element={
+            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_VIEW']}>
+              <Layout>
+                <SaccoConfigPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Deposit Product Factory (SACCO_ADMIN + PRODUCT_VIEW) */}
+        <Route
+          path="/accounts/products"
+          element={
+            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['PRODUCT_VIEW']}>
+              <Layout>
+                <DepositProductsPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Pending Authorizations (ACCOUNT_APPROVE) */}
+        <Route
+          path="/accounts/pending"
+          element={
+            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_APPROVE']}>
+              <Layout>
+                <PendingAuthorizationsPage />
               </Layout>
             </PermissionRoute>
           }

@@ -209,7 +209,8 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
                 "field_name VARCHAR(100), " +
                 "old_value TEXT, " +
                 "new_value TEXT, " +
-                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()" +
+                "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), " +
+                "FOREIGN KEY (user_id) REFERENCES " + schemaName + ".member_profiles(user_id) ON DELETE CASCADE" +
                 ")");
 
         // 5. Account Domain Tables

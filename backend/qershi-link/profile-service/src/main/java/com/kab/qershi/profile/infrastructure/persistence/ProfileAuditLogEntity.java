@@ -40,6 +40,10 @@ public class ProfileAuditLogEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id", insertable = false, updatable = false)
+    private MemberAddressEntity address;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -123,5 +127,13 @@ public class ProfileAuditLogEntity {
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public MemberAddressEntity getAddress() {
+        return address;
+    }
+
+    public void setAddress(MemberAddressEntity address) {
+        this.address = address;
     }
 }

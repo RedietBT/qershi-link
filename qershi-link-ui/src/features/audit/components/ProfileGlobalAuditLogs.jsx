@@ -33,6 +33,7 @@ export const ProfileGlobalAuditLogs = () => {
         return (
             (log.action && log.action.toLowerCase().includes(term)) ||
             (log.userId && log.userId.toLowerCase().includes(term)) ||
+            (log.primaryPhone && log.primaryPhone.toLowerCase().includes(term)) ||
             (log.performedByUserId && log.performedByUserId.toLowerCase().includes(term)) ||
             (log.fieldName && log.fieldName.toLowerCase().includes(term))
         );
@@ -84,7 +85,7 @@ export const ProfileGlobalAuditLogs = () => {
                             <thead>
                                 <tr className="bg-black/5 dark:bg-white/5 border-b border-[var(--bdae-border)] text-[10px] uppercase font-extrabold text-[var(--bdae-text-secondary)] tracking-wider">
                                     <th className="p-4">Action Details</th>
-                                    <th className="p-4">Entity (User ID)</th>
+                                    <th className="p-4">Entity (User)</th>
                                     <th className="p-4">Data Changes</th>
                                     <th className="p-4 text-right">Timestamp & Actor</th>
                                 </tr>
@@ -102,8 +103,10 @@ export const ProfileGlobalAuditLogs = () => {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-4 align-top font-mono text-[11px] text-[var(--bdae-text-primary)]">
-                                            {log.userId}
+                                        <td className="p-4 align-top">
+                                            <div className="font-mono text-[11px] text-[var(--bdae-primary)] font-bold mb-1">
+                                                {log.primaryPhone ? `📞 ${log.primaryPhone}` : <span className="opacity-50 text-[var(--bdae-text-secondary)] italic">No Phone Linked</span>}
+                                            </div>
                                         </td>
                                         <td className="p-4 align-top">
                                             {(log.oldValue || log.newValue) ? (
@@ -130,7 +133,7 @@ export const ProfileGlobalAuditLogs = () => {
                                                     {new Date(log.createdAt).toLocaleString()}
                                                 </span>
                                                 <span className="text-[10px] font-mono text-[var(--bdae-text-secondary)] opacity-70">
-                                                    Act: {log.performedByUserId}
+                                                    Action by Admin
                                                 </span>
                                             </div>
                                         </td>
