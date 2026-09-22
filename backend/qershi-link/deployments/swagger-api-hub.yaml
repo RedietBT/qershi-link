@@ -18,7 +18,7 @@ spec:
       containers:
         - name: swagger-api-hub
           image: swagger-api-hub:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8090
@@ -27,11 +27,11 @@ spec:
               value: "8090"
           resources:
             requests:
-              memory: "256Mi"
+              memory: "192Mi"
               cpu: "100m"
             limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "1000m"
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

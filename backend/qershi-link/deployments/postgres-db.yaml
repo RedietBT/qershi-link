@@ -10,7 +10,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: manual
   hostPath:
-    path: "/run/desktop/mnt/host/c/Users/HP/qershi-link-postgres-data"
+    path: "/tmp/qershi-link-postgres-data"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -45,9 +45,15 @@ spec:
           image: postgres:15
           env:
             - name: POSTGRES_DB
-              value: "qershi-link"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: POSTGRES_DB
             - name: POSTGRES_PASSWORD
-              value: "postgres"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: POSTGRES_PASSWORD
             - name: PGDATA
               value: "/var/lib/postgresql/data/pgdata"
           ports:

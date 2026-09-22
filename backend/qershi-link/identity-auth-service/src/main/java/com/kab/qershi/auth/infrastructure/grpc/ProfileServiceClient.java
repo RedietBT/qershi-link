@@ -18,9 +18,8 @@ public class ProfileServiceClient {
 
     private static final Logger log = LoggerFactory.getLogger(ProfileServiceClient.class);
 
-    // 🛠️ FIXED: Changed outer class reference to ProfileServiceGrpcGrpc to match the protobuf compiler output
     @GrpcClient("profile-service")
-    private ProfileServiceGrpcGrpc.ProfileServiceGrpcBlockingStub profileServiceStub;
+    private ProfileServiceGrpc.ProfileServiceBlockingStub profileServiceStub;
 
     /**
      * Dispatches a synchronous procedure call to drop matching records from profile_schema.profile.

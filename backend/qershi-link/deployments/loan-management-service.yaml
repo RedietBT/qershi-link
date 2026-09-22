@@ -18,7 +18,7 @@ spec:
       containers:
         - name: loan-management-service
           image: loan-management-service:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8085
               name: http
@@ -32,7 +32,10 @@ spec:
             - name: SPRING_DATASOURCE_PASSWORD
               value: "postgres"
             - name: JWT_SECRET
-              value: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: JWT_SECRET
             - name: GRPC_CLIENT_NOTIFICATION_SERVICE_ADDRESS
               value: "static://notification-service:9086"
             - name: GRPC_CLIENT_ACCOUNT_SERVICE_ADDRESS
@@ -41,13 +44,17 @@ spec:
               value: "redis-service"
             - name: SPRING_DATA_REDIS_PORT
               value: "6379"
+            - name: SPRING_FLYWAY_TABLE
+              value: "flyway_schema_history_loan_management"
+            - name: SPRING_FLYWAY_BASELINE_ON_MIGRATE
+              value: "true"
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: "192Mi"
+              cpu: "100m"
             limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "1000m"
           readinessProbe:
             httpGet:
               path: /actuator/health
@@ -69,7 +76,7 @@ metadata:
   name: loan-management-service
   namespace: sacco-core
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: loan-management-service
   ports:

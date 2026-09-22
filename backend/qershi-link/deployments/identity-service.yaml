@@ -16,7 +16,7 @@ spec:
       containers:
         - name: identity-auth
           image: identity-auth-service:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:
@@ -27,7 +27,10 @@ spec:
             - name: SPRING_DATASOURCE_PASSWORD
               value: "postgres"
             - name: JWT_SECRET
-              value: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: JWT_SECRET
             - name: SPRING_DATA_REDIS_HOST
               value: "redis-service"
             - name: SPRING_DATA_REDIS_PORT
@@ -35,9 +38,30 @@ spec:
             - name: GRPC_CLIENT_NOTIFICATION_SERVICE_ADDRESS
               value: "static://notification-service:9086"
             - name: AFROMESSAGE_API_KEY
-              value: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoiMmZIMjdweTJZampWMWlYNVJxMHhFeGZaZnNjd1UxM2QiLCJleHAiOjE5NDQyNDM4MzQsImlhdCI6MTc4NjQ3NzQzNCwianRpIjoiOTM5Y2MxM2EtNjQ1My00NjBlLWFhMDQtMmViZTVjY2M0ZjZlIn0.JToav9-Hvhg5VjUdFeNtBdceG-UYX0Sx7W1-7ugQTXo"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: AFROMESSAGE_API_KEY
             - name: AFROMESSAGE_API_URL
-              value: "https://api.afromessage.com/api/send"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: AFROMESSAGE_API_URL
+            - name: SPRING_FLYWAY_DEFAULT_SCHEMA
+              value: "master_schema"
+            - name: SPRING_FLYWAY_SCHEMAS
+              value: "master_schema"
+            - name: SPRING_FLYWAY_CREATE_SCHEMAS
+              value: "true"
+            - name: SPRING_FLYWAY_TABLE
+              value: "flyway_schema_history_identity"
+          resources:
+            requests:
+              memory: "192Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

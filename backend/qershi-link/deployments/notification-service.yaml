@@ -18,7 +18,7 @@ spec:
       containers:
         - name: notification-service
           image: notification-service:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8086
@@ -36,17 +36,40 @@ spec:
             - name: GRPC_SERVER_PORT
               value: "9086"
             - name: JWT_SECRET
-              value: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: JWT_SECRET
             - name: AFROMESSAGE_API_KEY
-              value: "eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoiMmZIMjdweTJZampWMWlYNVJxMHhFeGZaZnNjd1UxM2QiLCJleHAiOjE5NDQyNDM4MzQsImlhdCI6MTc4NjQ3NzQzNCwianRpIjoiOTM5Y2MxM2EtNjQ1My00NjBlLWFhMDQtMmViZTVjY2M0ZjZlIn0.JToav9-Hvhg5VjUdFeNtBdceG-UYX0Sx7W1-7ugQTXo"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: AFROMESSAGE_API_KEY
             - name: AFROMESSAGE_API_URL
-              value: "https://api.afromessage.com/api/send"
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: AFROMESSAGE_API_URL
+            - name: SPRING_DATA_REDIS_HOST
+              value: "redis-service"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            - name: SPRING_FLYWAY_DEFAULT_SCHEMA
+              value: "master_schema"
+            - name: SPRING_FLYWAY_SCHEMAS
+              value: "master_schema"
+            - name: SPRING_FLYWAY_TABLE
+              value: "flyway_schema_history_notification"
+            - name: SPRING_FLYWAY_BASELINE_ON_MIGRATE
+              value: "true"
+            - name: SPRING_FLYWAY_BASELINE_VERSION
+              value: "0"
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "250m"
+              memory: "192Mi"
+              cpu: "100m"
             limits:
-              memory: "1Gi"
+              memory: "512Mi"
               cpu: "1000m"
           livenessProbe:
             httpGet:
