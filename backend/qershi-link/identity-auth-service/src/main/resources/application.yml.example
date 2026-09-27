@@ -1,0 +1,59 @@
+# Identity & Auth Service Configuration Template
+# Copy this file to application.yml and replace placeholder values for local development.
+
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: identity-auth-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/qershi-link?stringtype=unspecified}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    default-schema: master_schema
+    schemas: master_schema
+    create-schemas: true
+    table: flyway_schema_history_identity
+
+grpc:
+  server:
+    port: ${GRPC_SERVER_PORT:9080}
+  client:
+    notification-service:
+      address: ${GRPC_CLIENT_NOTIFICATION_SERVICE_ADDRESS:static://localhost:9086}
+      negotiation-type: plaintext
+
+jwt:
+  # Secret key used for signing JWT tokens (minimum 256 bits / 32 bytes)
+  secret: ${JWT_SECRET:YOUR_SECURE_256BIT_HEX_OR_BASE64_JWT_SECRET_KEY}
+
+afromessage:
+  api:
+    key: ${AFROMESSAGE_API_KEY:mock-key}
+    url: ${AFROMESSAGE_API_URL:https://api.afromessage.com/api/send}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always

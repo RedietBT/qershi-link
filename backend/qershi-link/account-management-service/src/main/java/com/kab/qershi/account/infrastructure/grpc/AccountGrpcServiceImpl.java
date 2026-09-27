@@ -40,6 +40,18 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
         this.profileValidationPort = profileValidationPort;
     }
 
+    private Account resolveAccount(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            throw new IllegalArgumentException("Account identifier cannot be null or blank.");
+        }
+        try {
+            java.util.UUID id = java.util.UUID.fromString(identifier.trim());
+            return accountOpeningUseCase.getAccountById(id);
+        } catch (IllegalArgumentException notUuid) {
+            return accountOpeningUseCase.getAccountByNo(identifier.trim());
+        }
+    }
+
     @Override
     public void getAccountByNo(AccountNoRequest request, StreamObserver<AccountProtoResponse> responseObserver) {
         log.debug("gRPC GetAccountByNo request received for accountNo: {}, schema: {}", request.getAccountNo(), request.getTenantSchema());
@@ -47,7 +59,7 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
             if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
                 com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
             }
-            Account account = accountOpeningUseCase.getAccountByNo(request.getAccountNo());
+            Account account = resolveAccount(request.getAccountNo());
             AccountProduct product = productManagementUseCase.getProductByCode(account.getProductCode());
             BigDecimal minBalance = product != null ? product.getMinOperatingBalance() : BigDecimal.ZERO;
             BigDecimal available = account.getAvailableBalance(minBalance);
@@ -88,7 +100,7 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
             if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
                 com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
             }
-            Account account = accountOpeningUseCase.getAccountByNo(request.getAccountNo());
+            Account account = resolveAccount(request.getAccountNo());
             AccountProduct product = productManagementUseCase.getProductByCode(account.getProductCode());
             BigDecimal minBalance = product != null ? product.getMinOperatingBalance() : BigDecimal.ZERO;
             BigDecimal amount = new BigDecimal(request.getAmount());
@@ -127,7 +139,7 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
             if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
                 com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
             }
-            Account account = accountOpeningUseCase.getAccountByNo(request.getAccountNo());
+            Account account = resolveAccount(request.getAccountNo());
             BigDecimal amount = new BigDecimal(request.getAmount());
 
             boolean canCredit = account.canPerformCredit(amount);
@@ -167,7 +179,7 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
                 com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
             }
 
-            Account account = accountOpeningUseCase.getAccountByNo(request.getAccountNo());
+            Account account = resolveAccount(request.getAccountNo());
             BigDecimal amount = new BigDecimal(request.getAmount());
 
             if ("CREDIT".equalsIgnoreCase(request.getTransactionType())) {

@@ -37,15 +37,21 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
     private final LoanRepaymentRepositoryPort repaymentRepository;
     private final NotificationGrpcClientAdapter notificationAdapter;
     private final PaymentWaterfallEngine waterfallEngine;
+    private final com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort;
+    private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataPenaltyRuleRepository penaltyRuleRepository;
 
     public LoanRepaymentService(LoanAccountRepositoryPort accountRepository,
                                 RepaymentScheduleRepositoryPort scheduleRepository,
                                 LoanRepaymentRepositoryPort repaymentRepository,
-                                NotificationGrpcClientAdapter notificationAdapter) {
+                                NotificationGrpcClientAdapter notificationAdapter,
+                                com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort,
+                                com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataPenaltyRuleRepository penaltyRuleRepository) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.repaymentRepository = repaymentRepository;
         this.notificationAdapter = notificationAdapter;
+        this.accountClientPort = accountClientPort;
+        this.penaltyRuleRepository = penaltyRuleRepository;
         this.waterfallEngine = new PaymentWaterfallEngine();
     }
 
@@ -62,11 +68,29 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
             throw new IllegalStateException("Loan account " + account.getAccountNo() + " is already fully paid and CLOSED.");
         }
 
+        // 1. Debit member savings account if source account is specified
+        if (command.sourceAccountNo() != null && !command.sourceAccountNo().isBlank()) {
+            log.info("Debiting savings account {} for loan repayment amount {} via gRPC", command.sourceAccountNo(), command.amount());
+            com.kab.qershi.loan.management.domain.port.out.AccountClientPort.ValidationResult debitValidation =
+                    accountClientPort.validateDebit(command.sourceAccountNo(), command.amount());
+            if (!debitValidation.isValid()) {
+                throw new IllegalArgumentException("Loan repayment rejected: " + debitValidation.message());
+            }
+
+            boolean debitOk = accountClientPort.postTransaction(command.sourceAccountNo(), command.amount(), "DEBIT");
+            if (!debitOk) {
+                throw new RuntimeException("Failed to debit savings account " + command.sourceAccountNo() + " for loan repayment.");
+            }
+        }
+
         List<RepaymentSchedule> schedules = scheduleRepository.findByAccountIdOrderByInstallmentNoAsc(command.accountId());
 
-        // Allocate payment across Penalties, Interest, and Principal
+        // 2. Compute dynamic overdue penalty based on active penalty policies
+        BigDecimal penaltyOwed = calculateOverduePenalty(schedules);
+
+        // 3. Allocate payment across Penalties, Interest, and Principal
         PaymentWaterfallEngine.AllocationResult allocation = waterfallEngine.allocatePayment(
-                command.amount(), BigDecimal.ZERO, schedules
+                command.amount(), penaltyOwed, schedules
         );
 
         // Update schedule records
@@ -124,5 +148,36 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
         }
 
         return savedRepayment;
+    }
+
+    private BigDecimal calculateOverduePenalty(List<RepaymentSchedule> schedules) {
+        BigDecimal penaltyRate = new BigDecimal("2.00");
+        int gracePeriodDays = 5;
+        try {
+            List<com.kab.qershi.loan.management.infrastructure.persistence.entity.PenaltyRuleEntity> rules = penaltyRuleRepository.findByActiveTrue();
+            if (!rules.isEmpty()) {
+                penaltyRate = rules.get(0).getPenaltyRatePct();
+                gracePeriodDays = rules.get(0).getGracePeriodDays();
+            }
+        } catch (Exception ex) {
+            log.warn("Using default penalty rule (2% rate, 5 days grace): {}", ex.getMessage());
+        }
+
+        LocalDate today = LocalDate.now();
+        BigDecimal totalPenalty = BigDecimal.ZERO;
+        for (RepaymentSchedule s : schedules) {
+            if (s.getStatus() != ScheduleStatus.PAID && s.getDueDate() != null) {
+                LocalDate graceEnd = s.getDueDate().plusDays(gracePeriodDays);
+                if (today.isAfter(graceEnd)) {
+                    BigDecimal overdueDue = s.getTotalDue().subtract(s.getAmountPaid()).max(BigDecimal.ZERO);
+                    if (overdueDue.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal penalty = overdueDue.multiply(penaltyRate)
+                                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                        totalPenalty = totalPenalty.add(penalty);
+                    }
+                }
+            }
+        }
+        return totalPenalty;
     }
 }

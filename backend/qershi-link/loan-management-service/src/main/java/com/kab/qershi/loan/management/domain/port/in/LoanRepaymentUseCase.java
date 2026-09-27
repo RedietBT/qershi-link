@@ -18,8 +18,13 @@ public interface LoanRepaymentUseCase {
             BigDecimal amount,
             String paymentChannel,
             String remarks,
-            String memberPhone
-    ) {}
+            String memberPhone,
+            String sourceAccountNo
+    ) {
+        public RepaymentCommand(UUID accountId, BigDecimal amount, String paymentChannel, String remarks, String memberPhone) {
+            this(accountId, amount, paymentChannel, remarks, memberPhone, null);
+        }
+    }
 
     LoanRepayment processRepayment(RepaymentCommand command);
 }

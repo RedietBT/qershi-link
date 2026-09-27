@@ -1,0 +1,45 @@
+# Swagger API Hub Configuration Template
+# Copy this file to application.yml and replace placeholder values for local development.
+
+server:
+  port: ${SERVER_PORT:8090}
+
+spring:
+  application:
+    name: swagger-api-hub
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui/index.html
+    doc-expansion: none
+    tags-sorter: alpha
+    operations-sorter: alpha
+    urls:
+      - name: "1. Identity & Auth Service (Port 8080)"
+        url: /api-docs/identity
+      - name: "2. Member Profile Service (Port 8081)"
+        url: /api-docs/profile
+      - name: "3. Account Management Service (Port 8082)"
+        url: /api-docs/account
+      - name: "4. Transaction Management Service (Port 8083)"
+        url: /api-docs/transaction
+      - name: "5. Loan Origination Service (Port 8084)"
+        url: /api-docs/loan-origination
+      - name: "6. Loan Management Service (Port 8085)"
+        url: /api-docs/loan-management
+      - name: "7. Notification Service (Port 8086)"
+        url: /api-docs/notification
+    urls-primary-name: "1. Identity & Auth Service (Port 8080)"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always

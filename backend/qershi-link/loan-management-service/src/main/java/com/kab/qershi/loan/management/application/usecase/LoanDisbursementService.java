@@ -40,17 +40,20 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
     private final AmortizationEngine amortizationEngine;
     private final NotificationGrpcClientAdapter notificationAdapter;
     private final SpringDataLoanAuditLogRepository auditLogRepository;
+    private final com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort;
 
     public LoanDisbursementService(LoanAccountRepositoryPort accountRepository,
                                    RepaymentScheduleRepositoryPort scheduleRepository,
                                    AmortizationEngine amortizationEngine,
                                    NotificationGrpcClientAdapter notificationAdapter,
-                                   SpringDataLoanAuditLogRepository auditLogRepository) {
+                                   SpringDataLoanAuditLogRepository auditLogRepository,
+                                   com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.amortizationEngine = amortizationEngine;
         this.notificationAdapter = notificationAdapter;
         this.auditLogRepository = auditLogRepository;
+        this.accountClientPort = accountClientPort;
     }
 
     @Override
@@ -124,6 +127,17 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
         scheduleRepository.saveAll(schedules);
 
         log.info("Disbursed Loan Account {} with {} repayment installments", savedAccount.getAccountNo(), schedules.size());
+
+        // 4.5. Credit the disbursed funds to the borrower's savings account in account-management-service
+        if (command.targetSavingsAccountId() != null) {
+            String targetAccount = command.targetSavingsAccountId().toString();
+            log.info("Crediting loan disbursement amount {} to savings account {} via gRPC", command.amount(), targetAccount);
+            boolean creditOk = accountClientPort.postTransaction(targetAccount, command.amount(), "CREDIT");
+            if (!creditOk) {
+                log.error("Failed to credit savings account {} for disbursed loan {}", targetAccount, savedAccount.getAccountNo());
+                throw new RuntimeException("Failed to credit disbursed funds to borrower savings account: " + targetAccount);
+            }
+        }
 
         // 5. Trigger SMS Notification via gRPC — send to the actual member's phone
         if (command.memberPhone() != null && !command.memberPhone().isBlank()) {

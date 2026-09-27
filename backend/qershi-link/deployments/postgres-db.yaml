@@ -1,3 +1,7 @@
+# Cross-Platform Persistent Storage Definition
+# In Kubernetes environments with a default dynamic storage provisioner (Docker Desktop, Minikube, k3s, EKS/GKE),
+# PVCs bind dynamically. For clusters requiring manual hostPath volumes, the PersistentVolume below provides
+# a portable fallback using a standard POSIX /tmp directory instead of OS-specific absolute paths.
 apiVersion: v1
 kind: PersistentVolume
 metadata:

@@ -148,6 +148,23 @@ public class TransferService implements TransferUseCase {
             log.warn("Failed writing transfer transaction audit log: {}", ex.getMessage());
         }
 
+        // 5.5. Debit Sender Account & Credit Receiver Account via gRPC
+        boolean debitSenderOk = accountClientPort.postTransaction(senderAccountNo, amount, "DEBIT");
+        if (!debitSenderOk) {
+            throw new RuntimeException("Failed to debit sender account " + senderAccountNo + " in account-management-service.");
+        }
+
+        boolean creditReceiverOk = accountClientPort.postTransaction(receiverAccountNo, amount, "CREDIT");
+        if (!creditReceiverOk) {
+            // Compensate sender account if receiver credit fails
+            log.error("Credit to receiver account {} failed! Initiating compensation credit for sender account {}", receiverAccountNo, senderAccountNo);
+            boolean compensated = accountClientPort.postTransaction(senderAccountNo, amount, "CREDIT");
+            if (!compensated) {
+                log.error("CRITICAL: Failed to compensate sender account {} for amount {} after failed transfer to {}", senderAccountNo, amount, receiverAccountNo);
+            }
+            throw new RuntimeException("Failed to credit receiver account " + receiverAccountNo + " in account-management-service.");
+        }
+
         // 6. Create & Post Balanced General Ledger Journal Entry
         JournalEntry journalEntry = new JournalEntry(
                 UUID.randomUUID(),

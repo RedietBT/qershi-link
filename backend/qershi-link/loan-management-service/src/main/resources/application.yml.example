@@ -1,0 +1,47 @@
+# Loan Management Service Configuration Template
+# Copy this file to application.yml and replace placeholder values for local development.
+
+server:
+  port: ${SERVER_PORT:8085}
+
+spring:
+  application:
+    name: loan-management-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/qershi-link?stringtype=unspecified}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+grpc:
+  server:
+    port: ${GRPC_SERVER_PORT:9085}
+  client:
+    notification-service:
+      address: ${GRPC_CLIENT_NOTIFICATION_SERVICE_ADDRESS:static://localhost:9086}
+      negotiation-type: plaintext
+    account-service:
+      address: ${GRPC_CLIENT_ACCOUNT_SERVICE_ADDRESS:static://localhost:9082}
+      negotiation-type: plaintext
+
+jwt:
+  secret: ${JWT_SECRET:YOUR_SECURE_256BIT_HEX_OR_BASE64_JWT_SECRET_KEY}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
