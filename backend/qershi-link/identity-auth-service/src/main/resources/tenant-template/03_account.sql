@@ -1,0 +1,72 @@
+-- 03_account.sql: Account Products, Accounts, and Liens
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'account_status') THEN
+    CREATE TYPE account_status AS ENUM ('PENDING_APPROVAL', 'ACTIVE', 'DORMANT', 'FROZEN', 'CLOSED'); END IF; END $$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'freeze_status') THEN
+    CREATE TYPE freeze_status AS ENUM ('NONE', 'DEBIT_FREEZE', 'CREDIT_FREEZE', 'FULL_FREEZE'); END IF; END $$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'lien_status') THEN
+    CREATE TYPE lien_status AS ENUM ('ACTIVE', 'RELEASED', 'EXPIRED'); END IF; END $$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'interest_posting_frequency') THEN
+    CREATE TYPE interest_posting_frequency AS ENUM ('MONTHLY', 'QUARTERLY', 'SEMI_ANNUALLY', 'ANNUALLY', 'AT_MATURITY'); END IF; END $$;
+
+CREATE TABLE IF NOT EXISTS {schema}.account_products (
+    product_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_code VARCHAR(10) NOT NULL UNIQUE,
+    product_name VARCHAR(150) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'ETB',
+    interest_rate_pa DECIMAL(7,4) NOT NULL DEFAULT 0.0000,
+    posting_frequency interest_posting_frequency NOT NULL DEFAULT 'MONTHLY',
+    min_operating_balance DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    min_monthly_contribution DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    term_period_months INT,
+    early_withdrawal_penalty_pct DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS {schema}.accounts (
+    account_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_no VARCHAR(50) NOT NULL UNIQUE,
+    user_id UUID NOT NULL,
+    sacco_code VARCHAR(20) NOT NULL,
+    branch_code VARCHAR(20) NOT NULL,
+    product_code VARCHAR(10) NOT NULL,
+    book_balance DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    lien_hold_amount DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    status account_status NOT NULL DEFAULT 'PENDING_APPROVAL',
+    freeze_status freeze_status NOT NULL DEFAULT 'NONE',
+    opened_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    approved_by_user_id UUID,
+    approval_date TIMESTAMPTZ,
+    closed_date TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (product_code) REFERENCES {schema}.account_products(product_code) ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS {schema}.account_liens (
+    lien_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_no VARCHAR(50) NOT NULL,
+    lien_amount DECIMAL(19,4) NOT NULL,
+    reason TEXT NOT NULL,
+    reference_no VARCHAR(100),
+    placed_by_user_id UUID NOT NULL,
+    released_by_user_id UUID,
+    status lien_status NOT NULL DEFAULT 'ACTIVE',
+    placed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    released_at TIMESTAMPTZ,
+    FOREIGN KEY (account_no) REFERENCES {schema}.accounts(account_no) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS {schema}.account_audit_logs (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_no VARCHAR(50),
+    user_id UUID NOT NULL,
+    performed_by_user_id UUID NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    field_name VARCHAR(100),
+    old_value TEXT,
+    new_value TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

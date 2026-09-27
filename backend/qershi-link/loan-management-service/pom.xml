@@ -16,6 +16,13 @@
     <description>Loan Management Service (LMS) - Post-origination loan lifecycle, repayment schedules, payment waterfall &amp; delinquency tracking</description>
 
     <dependencies>
+        <!-- Shared Core Library -->
+        <dependency>
+            <groupId>com.kab.qershi</groupId>
+            <artifactId>common-library</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
