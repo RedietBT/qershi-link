@@ -17,6 +17,7 @@ import { TransferPage } from '../features/transactions/pages/TransferPage';
 import { TransactionHistoryPage } from '../features/transactions/pages/TransactionHistoryPage';
 import { LoanApplicationsPage } from '../features/loans/origination/pages/LoanApplicationsPage';
 import { LoanUnderwritingPage } from '../features/loans/origination/pages/LoanUnderwritingPage';
+import { LoanAccountsPage } from '../features/loans/management/pages/LoanAccountsPage';
 import { ChangePinModal } from '../features/auth/components/ChangePinModal';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
@@ -24,7 +25,7 @@ import { useAuthStore } from '../common/store/useAuthStore';
 import { Layout } from '../common/components/Layout';
 import { PermissionGuard } from '../common/components/PermissionGuard';
 import { PERMISSIONS } from '../common/constants/permissions';
-import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact, Landmark, PackagePlus, ClipboardCheck, Banknote, ArrowLeftRight, History, FileText } from 'lucide-react';
+import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact, Landmark, PackagePlus, ClipboardCheck, Banknote, ArrowLeftRight, History, FileText, BadgePercent } from 'lucide-react';
 
 /**
  * Dashboard View Component
@@ -575,6 +576,18 @@ export const AppRoutes = () => {
             <PermissionRoute permissions={[PERMISSIONS.LOAN_APPLICATION_APPROVE]}>
               <Layout>
                 <LoanUnderwritingPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Active Loan Portfolios & Repayments */}
+        <Route
+          path="/loans/accounts"
+          element={
+            <PermissionRoute permissions={[PERMISSIONS.LOAN_ACCOUNT_VIEW, PERMISSIONS.LOAN_REPAYMENT_PROCESS]}>
+              <Layout>
+                <LoanAccountsPage />
               </Layout>
             </PermissionRoute>
           }
