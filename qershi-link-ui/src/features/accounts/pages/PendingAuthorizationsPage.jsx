@@ -4,12 +4,15 @@ import {
 } from 'lucide-react';
 import { accountLedgerApi } from '../api/accountLedgerApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
+import { useAuthStore } from '../../../common/store/useAuthStore';
+import { formatDateTime, formatCurrency } from '../../../common/utils/currency';
 
 /**
  * Pending Authorizations Page — Four-Eye Maker/Checker Approval Queue.
  * Gated: ACCOUNT_APPROVE permission or SACCO_ADMIN / ADMIN role.
  */
 const PendingAuthorizationsContent = () => {
+    const currentUser = useAuthStore((state) => state.user);
     const [accounts, setAccounts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -122,31 +125,40 @@ const PendingAuthorizationsContent = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--bdae-border)] text-xs">
-                                {filtered.map(acc => (
-                                    <tr key={acc.accountNo} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                        <td className="p-4">
-                                            <span className="font-mono font-extrabold text-[var(--bdae-primary)] tracking-widest text-xs">{acc.accountNo}</span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[var(--bdae-primary)]/10 text-[var(--bdae-primary)] border border-[var(--bdae-primary)]/20">{acc.productCode}</span>
-                                        </td>
-                                        <td className="p-4 font-mono text-[var(--bdae-text-secondary)]">{acc.branchCode || '—'}</td>
-                                        <td className="p-4 text-[var(--bdae-text-secondary)]">
-                                            {acc.openedAt ? new Date(acc.openedAt).toLocaleString() : '—'}
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            <button
-                                                onClick={() => handleApprove(acc.accountNo)}
-                                                disabled={approvingNo === acc.accountNo}
-                                                className="px-4 py-1.5 rounded-xl text-[10px] font-bold text-white bg-emerald-500 hover:bg-emerald-600 flex items-center gap-1.5 ml-auto disabled:opacity-50 transition-all"
-                                            >
-                                                {approvingNo === acc.accountNo
-                                                    ? <><RefreshCw className="w-3 h-3 animate-spin" /> Approving...</>
-                                                    : <><CheckCircle className="w-3 h-3" /> Approve &amp; Activate</>}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {filtered.map(acc => {
+                                    const isSelfMaker = acc.openedByUserId && acc.openedByUserId === currentUser?.userId;
+                                    return (
+                                        <tr key={acc.accountNo} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                            <td className="p-4">
+                                                <span className="font-mono font-extrabold text-[var(--bdae-primary)] tracking-widest text-xs">{acc.accountNo}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[var(--bdae-primary)]/10 text-[var(--bdae-primary)] border border-[var(--bdae-primary)]/20">{acc.productCode}</span>
+                                            </td>
+                                            <td className="p-4 font-mono text-[var(--bdae-text-secondary)]">{acc.branchCode || '—'}</td>
+                                            <td className="p-4 text-[var(--bdae-text-secondary)]">
+                                                {formatDateTime(acc.openedAt)}
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                {isSelfMaker ? (
+                                                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20">
+                                                        Maker (Requires 2nd Eye)
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleApprove(acc.accountNo)}
+                                                        disabled={approvingNo === acc.accountNo}
+                                                        className="px-4 py-1.5 rounded-xl text-[10px] font-bold text-white bg-emerald-500 hover:bg-emerald-600 flex items-center gap-1.5 ml-auto disabled:opacity-50 transition-all"
+                                                    >
+                                                        {approvingNo === acc.accountNo
+                                                            ? <><RefreshCw className="w-3 h-3 animate-spin" /> Approving...</>
+                                                            : <><CheckCircle className="w-3 h-3" /> Approve &amp; Activate</>}
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

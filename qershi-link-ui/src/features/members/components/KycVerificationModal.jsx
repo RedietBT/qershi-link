@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { kycApi } from '../api/kycApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
+import { useAuthStore } from '../../../common/store/useAuthStore';
+import { PERMISSIONS } from '../../../common/constants/permissions';
 import { X, ShieldCheck, CheckCircle, XCircle, RefreshCw, AlertCircle, Calendar } from 'lucide-react';
 
 export const KycVerificationModal = ({ document, onClose, onSuccess }) => {
+    const currentUser = useAuthStore((state) => state.user);
     const [notes, setNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
     const isUnverified = document.status === 'UNVERIFIED';
+    const isSelfMaker = document.submittedByUserId && document.submittedByUserId === currentUser?.userId;
 
     const handleVerify = async () => {
         if (!window.confirm("Approve this Official Identification Document?")) return;
@@ -127,26 +131,34 @@ export const KycVerificationModal = ({ document, onClose, onSuccess }) => {
 
                 {/* Footer Controls */}
                 {isUnverified && (
-                    <div className="p-5 border-t border-[var(--bdae-border)] flex justify-between gap-3 bg-black/5 dark:bg-white/5 items-center">
-                        <PermissionGuard authorities={['KYC_VERIFY']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
-                            <button
-                                onClick={handleReject}
-                                disabled={isSubmitting}
-                                className="px-5 py-2.5 rounded-xl border border-red-500/30 hover:border-red-500 text-red-500 hover:bg-red-500/10 text-xs font-bold transition-all flex items-center justify-center gap-2"
-                            >
-                                {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                                <span>Reject Document</span>
-                            </button>
+                    <div className="p-5 border-t border-[var(--bdae-border)] flex flex-col md:flex-row justify-between gap-3 bg-black/5 dark:bg-white/5 items-center">
+                        {isSelfMaker ? (
+                            <div className="text-[11px] font-bold text-amber-500 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20 text-center w-full">
+                                ⚠ Four-Eye Principle: You submitted this document. Approval must be executed by a different supervisor.
+                            </div>
+                        ) : (
+                            <PermissionGuard permissions={[PERMISSIONS.KYC_VERIFY]} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                                <div className="flex justify-between w-full items-center gap-3">
+                                    <button
+                                        onClick={handleReject}
+                                        disabled={isSubmitting}
+                                        className="px-5 py-2.5 rounded-xl border border-red-500/30 hover:border-red-500 text-red-500 hover:bg-red-500/10 text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                                        <span>Reject Document</span>
+                                    </button>
 
-                            <button
-                                onClick={handleVerify}
-                                disabled={isSubmitting}
-                                className="px-6 py-2.5 rounded-xl bdae-btn-primary shadow-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
-                            >
-                                {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                                <span>Verify Document</span>
-                            </button>
-                        </PermissionGuard>
+                                    <button
+                                        onClick={handleVerify}
+                                        disabled={isSubmitting}
+                                        className="px-6 py-2.5 rounded-xl bdae-btn-primary shadow-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                        <span>Verify Document</span>
+                                    </button>
+                                </div>
+                            </PermissionGuard>
+                        )}
                     </div>
                 )}
             </div>

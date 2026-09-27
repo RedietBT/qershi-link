@@ -36,6 +36,7 @@ const createServiceHttpClient = (baseURL) => {
       }
       if (tenantSchema) {
         config.headers['X-Tenant-Id'] = tenantSchema;
+        config.headers['X-Tenant-Schema'] = tenantSchema;
       }
       return config;
     },

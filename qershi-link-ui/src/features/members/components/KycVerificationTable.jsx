@@ -1,5 +1,7 @@
 import React from 'react';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
+import { PERMISSIONS } from '../../../common/constants/permissions';
+import { formatDate } from '../../../common/utils/currency';
 import { FileText, ShieldCheck, RefreshCw, AlertCircle, Calendar, Hash } from 'lucide-react';
 
 export const KycVerificationTable = ({
@@ -106,7 +108,7 @@ export const KycVerificationTable = ({
                                     <td className="py-3.5 px-4 text-[10px] space-y-1">
                                         <div className="flex items-center space-x-1 text-[var(--bdae-text-secondary)]">
                                             <Calendar className="w-3 h-3 opacity-60" />
-                                            <span>Sub: {new Date(doc.submittedAt).toLocaleDateString()}</span>
+                                            <span>Sub: {formatDate(doc.submittedAt)}</span>
                                         </div>
                                         {doc.verifiedByUserId && (
                                             <div className="flex items-center space-x-1 text-[var(--bdae-text-secondary)]">
@@ -119,7 +121,7 @@ export const KycVerificationTable = ({
                                     {/* Action Buttons */}
                                     <td className="py-3.5 px-4 text-right">
                                         {doc.status === 'UNVERIFIED' ? (
-                                            <PermissionGuard authorities={['KYC_VERIFY']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                                            <PermissionGuard permissions={[PERMISSIONS.KYC_VERIFY]} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
                                                 <button
                                                     onClick={() => onVerifyAction(doc)}
                                                     className="px-3 py-1.5 rounded-xl bdae-btn-primary hover:opacity-90 text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-sm"

@@ -107,19 +107,23 @@ export const useAuthStore = create(
         const { user } = get();
         if (!user) return false;
 
+        const normalize = (c) => (c ? String(c).replace(/[:_\-\s]/g, '').toUpperCase() : '');
+
         // Super Admin override
         if (
           user.globalRole === 'SUPER_ADMIN' ||
           user.globalRole === 'ROLE_SUPER_ADMIN' ||
-          user.roles?.includes('ROLE_SUPER_ADMIN') ||
-          user.roles?.includes('SUPER_ADMIN')
+          user.roles?.some((r) => normalize(r).includes('SUPERADMIN'))
         ) {
           return true;
         }
 
+        const normTarget = normalize(permission);
+        if (!normTarget) return false;
+
         return (
-          user.permissions?.includes(permission) ||
-          user.roles?.includes(permission)
+          user.permissions?.some((p) => normalize(p) === normTarget) ||
+          user.roles?.some((r) => normalize(r) === normTarget)
         );
       },
     }),

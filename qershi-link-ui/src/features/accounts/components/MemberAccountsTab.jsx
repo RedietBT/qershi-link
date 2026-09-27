@@ -6,6 +6,7 @@ import {
 import { accountLedgerApi } from '../api/accountLedgerApi';
 import { depositProductApi } from '../api/depositProductApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
+import { formatCurrency, formatDateTime } from '../../../common/utils/currency';
 
 const STATUS_STYLES = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -273,14 +274,14 @@ const ActiveLiensPanel = ({ accountNo, onRefreshAccount }) => {
                         <div key={lien.lienId} className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5">
                             <div className="flex-1 min-w-0">
                                 <p className="text-[10px] font-extrabold text-amber-600">
-                                    {Number(lien.amount || 0).toLocaleString()} ETB
+                                    {formatCurrency(lien.amount)}
                                 </p>
                                 <p className="text-[9px] text-[var(--bdae-text-secondary)] truncate">
                                     {lien.reason || 'No reason given'}
                                     {lien.referenceNo && <> — Ref: <span className="font-mono font-bold">{lien.referenceNo}</span></>}
                                 </p>
                                 <p className="text-[9px] text-[var(--bdae-text-secondary)] opacity-70">
-                                    {lien.createdAt ? new Date(lien.createdAt).toLocaleString() : ''}
+                                    {formatDateTime(lien.createdAt)}
                                 </p>
                             </div>
                             {/* Release Lien — gated by LIEN_RELEASE */}
@@ -414,7 +415,7 @@ export const MemberAccountsTab = ({ userId }) => {
                                 ].map(({ label, val, color }) => (
                                     <div key={label} className="p-2 rounded-xl bg-black/5 dark:bg-white/5 space-y-0.5">
                                         <p className="text-[8px] uppercase font-bold tracking-wide text-[var(--bdae-text-secondary)]">{label}</p>
-                                        <p className="text-xs font-extrabold" style={{ color }}>{Number(val || 0).toLocaleString()} ETB</p>
+                                        <p className="text-xs font-extrabold" style={{ color }}>{formatCurrency(val)}</p>
                                     </div>
                                 ))}
                             </div>

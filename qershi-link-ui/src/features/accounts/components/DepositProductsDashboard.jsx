@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { depositProductApi } from '../api/depositProductApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
+import { formatCurrency } from '../../../common/utils/currency';
 
 const CATEGORIES = ['SAVINGS', 'FIXED_DEPOSIT', 'CURRENT', 'SHARES', 'RECURRING'];
 const FREQUENCIES = ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY'];
@@ -317,11 +318,11 @@ export const DepositProductsDashboard = () => {
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Min Balance</span>
-                                    <span className="font-bold text-[var(--bdae-text-primary)]">{Number(product.minOperatingBalance || 0).toLocaleString()} ETB</span>
+                                    <span className="font-bold text-[var(--bdae-text-primary)] font-mono">{formatCurrency(product.minOperatingBalance || 0)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Min Monthly Contribution</span>
-                                    <span className="font-bold text-[var(--bdae-text-primary)]">{Number(product.minMonthlyContribution || 0).toLocaleString()} ETB</span>
+                                    <span className="font-bold text-[var(--bdae-text-primary)] font-mono">{formatCurrency(product.minMonthlyContribution || 0)}</span>
                                 </div>
                                 {product.termPeriodMonths && (
                                     <div className="flex justify-between">

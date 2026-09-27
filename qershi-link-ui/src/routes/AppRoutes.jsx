@@ -12,13 +12,19 @@ import { SaccoConfigPage } from '../features/accounts/pages/SaccoConfigPage';
 import { DepositProductsPage } from '../features/accounts/pages/DepositProductsPage';
 import { PendingAuthorizationsPage } from '../features/accounts/pages/PendingAuthorizationsPage';
 import { AccountManagementPage } from '../features/accounts/pages/AccountManagementPage';
+import { CashDeskPage } from '../features/transactions/pages/CashDeskPage';
+import { TransferPage } from '../features/transactions/pages/TransferPage';
+import { TransactionHistoryPage } from '../features/transactions/pages/TransactionHistoryPage';
+import { LoanApplicationsPage } from '../features/loans/origination/pages/LoanApplicationsPage';
+import { LoanUnderwritingPage } from '../features/loans/origination/pages/LoanUnderwritingPage';
 import { ChangePinModal } from '../features/auth/components/ChangePinModal';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 import { useAuthStore } from '../common/store/useAuthStore';
 import { Layout } from '../common/components/Layout';
 import { PermissionGuard } from '../common/components/PermissionGuard';
-import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact, Landmark, PackagePlus, ClipboardCheck } from 'lucide-react';
+import { PERMISSIONS } from '../common/constants/permissions';
+import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact, Landmark, PackagePlus, ClipboardCheck, Banknote, ArrowLeftRight, History, FileText } from 'lucide-react';
 
 /**
  * Dashboard View Component
@@ -258,6 +264,78 @@ function DashboardPage() {
           </div>
         </PermissionGuard>
 
+        {/* Banking Operations Engine Matrix */}
+        <PermissionGuard permissions={[PERMISSIONS.CASH_DEPOSIT, PERMISSIONS.SAVINGS_WITHDRAW, PERMISSIONS.MEMBER_TRANSFER, PERMISSIONS.TRANSACTION_VIEW]}>
+          <div className="bdae-card p-6 space-y-4 border border-[var(--bdae-border)] shadow-xl">
+            <h2 className="text-sm font-bold border-b border-[var(--bdae-border)] pb-2 flex items-center gap-2">
+              <Banknote className="w-4 h-4 text-emerald-500" />
+              <span>Core Banking & Teller Operations</span>
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              {/* Card 1: Cash Desk (OTC Deposits & Withdrawals) */}
+              <PermissionGuard permissions={[PERMISSIONS.CASH_DEPOSIT, PERMISSIONS.SAVINGS_WITHDRAW]}>
+                <div
+                  onClick={() => navigate('/transactions/cash')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-emerald-500 cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                    <Banknote className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-emerald-500 transition-colors">
+                      Teller Cash Desk (OTC)
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Execute verified cash deposits and withdrawals with real-time balance checks.
+                    </p>
+                  </div>
+                </div>
+              </PermissionGuard>
+
+              {/* Card 2: Member-to-Member Transfers */}
+              <PermissionGuard permissions={[PERMISSIONS.MEMBER_TRANSFER]}>
+                <div
+                  onClick={() => navigate('/transactions/transfer')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center font-bold">
+                    <ArrowLeftRight className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-secondary)] transition-colors">
+                      Member Funds Transfer
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Process internal intra-SACCO account transfers with balanced ledger settlement.
+                    </p>
+                  </div>
+                </div>
+              </PermissionGuard>
+
+              {/* Card 3: General Ledger Statements */}
+              <PermissionGuard permissions={[PERMISSIONS.TRANSACTION_VIEW, PERMISSIONS.ACCOUNT_VIEW]}>
+                <div
+                  onClick={() => navigate('/transactions/history')}
+                  className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-primary)] cursor-pointer space-y-2 transition-all shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[var(--bdae-primary)]/10 text-[var(--bdae-primary)] flex items-center justify-center font-bold">
+                    <History className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-[var(--bdae-primary)] transition-colors">
+                      GL Statements & Postings
+                    </p>
+                    <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                      Inquire account histories and inspect balanced double-entry journal lines.
+                    </p>
+                  </div>
+                </div>
+              </PermissionGuard>
+            </div>
+          </div>
+        </PermissionGuard>
+
         {/* Change Initial PIN Modal */}
         {isChangePinOpen && (
           <ChangePinModal
@@ -437,6 +515,66 @@ export const AppRoutes = () => {
             <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_APPROVE']}>
               <Layout>
                 <PendingAuthorizationsPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Cash Desk (OTC Deposits & Withdrawals) */}
+        <Route
+          path="/transactions/cash"
+          element={
+            <PermissionRoute permissions={[PERMISSIONS.CASH_DEPOSIT, PERMISSIONS.SAVINGS_WITHDRAW]}>
+              <Layout>
+                <CashDeskPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Internal Member Transfer */}
+        <Route
+          path="/transactions/transfer"
+          element={
+            <PermissionRoute permissions={[PERMISSIONS.MEMBER_TRANSFER]}>
+              <Layout>
+                <TransferPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Transaction Statements & GL Journal Inquiry */}
+        <Route
+          path="/transactions/history"
+          element={
+            <PermissionRoute permissions={[PERMISSIONS.TRANSACTION_VIEW, PERMISSIONS.ACCOUNT_VIEW]}>
+              <Layout>
+                <TransactionHistoryPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Loan Applications (Intake Portfolio) */}
+        <Route
+          path="/loans/applications"
+          element={
+            <PermissionRoute permissions={[PERMISSIONS.LOAN_APPLICATION_CREATE, PERMISSIONS.LOAN_APPLICATION_VIEW]}>
+              <Layout>
+                <LoanApplicationsPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Maker-Checker Underwriting Queue */}
+        <Route
+          path="/loans/underwriting"
+          element={
+            <PermissionRoute permissions={[PERMISSIONS.LOAN_APPLICATION_APPROVE]}>
+              <Layout>
+                <LoanUnderwritingPage />
               </Layout>
             </PermissionRoute>
           }

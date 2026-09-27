@@ -8,6 +8,7 @@ import { memberProfileApi } from '../../members/api/memberProfileApi';
 import { depositProductApi } from '../api/depositProductApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
 import { MemberAccountsTab } from '../components/MemberAccountsTab';
+import { formatCurrency } from '../../../common/utils/currency';
 
 // ────────────────────────────────────────────────────────────
 // Member display name helper — never shows raw UUIDs
@@ -133,7 +134,7 @@ const AccountSearchPanel = () => {
                                 </div>
                                 <div>
                                     <p className="text-[var(--bdae-text-secondary)]">Ledger Bal.</p>
-                                    <p className="font-bold text-[var(--bdae-primary)]">{Number(acc.ledgerBalance || 0).toLocaleString()} ETB</p>
+                                    <p className="font-bold text-[var(--bdae-primary)] font-mono">{formatCurrency(acc.ledgerBalance || 0)}</p>
                                 </div>
                                 <div>
                                     <p className="text-[var(--bdae-text-secondary)]">Branch</p>
