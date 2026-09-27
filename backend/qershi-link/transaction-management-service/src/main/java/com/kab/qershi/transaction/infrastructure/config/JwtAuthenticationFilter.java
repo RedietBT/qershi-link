@@ -157,6 +157,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             filterChain.doFilter(request, response);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Blocked unsafe tenant request: {}", ex.getMessage());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"status\":400,\"error\":\"Bad Request\",\"message\":\"" + ex.getMessage() + "\"}");
+            return;
         } finally {
             TenantContext.clear();
         }

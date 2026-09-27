@@ -38,12 +38,30 @@ public class PostgresSchemaConnectionProvider implements MultiTenantConnectionPr
         }
     }
 
+    private static final java.util.regex.Pattern SAFE_SCHEMA_PATTERN = java.util.regex.Pattern.compile("^[a-z][a-z0-9_]{1,62}$");
+
+    private void validateTenantIdentifier(String tenantIdentifier) {
+        if (tenantIdentifier == null || tenantIdentifier.isBlank()) {
+            return;
+        }
+        String clean = tenantIdentifier.trim().toLowerCase();
+        if (clean.equals(TenantContext.DEFAULT_TENANT) || clean.equals("public")) {
+            return;
+        }
+        if (!SAFE_SCHEMA_PATTERN.matcher(clean).matches()) {
+            throw new IllegalArgumentException(
+                "Unsafe tenant identifier rejected: '" + tenantIdentifier + "'. Only lowercase letters, digits, and underscores are allowed."
+            );
+        }
+    }
+
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
+        validateTenantIdentifier(tenantIdentifier);
         Connection connection = getAnyConnection();
         try (Statement statement = connection.createStatement()) {
             String schema = (tenantIdentifier != null && !tenantIdentifier.isBlank())
-                    ? tenantIdentifier
+                    ? tenantIdentifier.trim().toLowerCase()
                     : TenantContext.DEFAULT_TENANT;
             statement.execute("SET search_path TO " + schema + ", public");
             log.debug("Switched PostgreSQL search_path TO: {}", schema);

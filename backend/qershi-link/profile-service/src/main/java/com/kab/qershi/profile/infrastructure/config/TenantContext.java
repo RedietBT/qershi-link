@@ -23,17 +23,28 @@ public final class TenantContext {
         // Prevent utility class instantiation
     }
 
+    private static final java.util.regex.Pattern SAFE_SCHEMA_PATTERN = java.util.regex.Pattern.compile("^[a-z][a-z0-9_]{1,62}$");
+
     /**
      * Updates the active thread execution context to target a specific schema namespace.
+     * Enforces strict regex validation to prevent SQL injection.
      *
      * @param tenantSchema The sanitized physical schema identifier name string.
      */
     public static void setTenantSchema(String tenantSchema) {
         if (tenantSchema == null || tenantSchema.isBlank()) {
             CURRENT_TENANT.set(DEFAULT_TENANT);
-        } else {
-            CURRENT_TENANT.set(tenantSchema);
+            return;
         }
+        String clean = tenantSchema.trim().toLowerCase();
+        if (clean.equals(DEFAULT_TENANT) || clean.equals("master_schema") || clean.equals("public")) {
+            CURRENT_TENANT.set(clean);
+            return;
+        }
+        if (!SAFE_SCHEMA_PATTERN.matcher(clean).matches()) {
+            throw new IllegalArgumentException("Unsafe tenant schema identifier rejected: " + tenantSchema);
+        }
+        CURRENT_TENANT.set(clean);
     }
 
     /**

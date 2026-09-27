@@ -33,12 +33,30 @@ public class PostgresSchemaConnectionProvider implements MultiTenantConnectionPr
         connection.close();
     }
 
+    private static final java.util.regex.Pattern SAFE_SCHEMA_PATTERN = java.util.regex.Pattern.compile("^[a-z][a-z0-9_]{1,62}$");
+
+    private void validateTenantIdentifier(String tenantIdentifier) {
+        if (tenantIdentifier == null || tenantIdentifier.isBlank()) {
+            return;
+        }
+        String clean = tenantIdentifier.trim().toLowerCase();
+        if (clean.equals(TenantContext.DEFAULT_TENANT) || clean.equals("public")) {
+            return;
+        }
+        if (!SAFE_SCHEMA_PATTERN.matcher(clean).matches()) {
+            throw new IllegalArgumentException(
+                "Unsafe tenant identifier rejected: '" + tenantIdentifier + "'. Only lowercase letters, digits, and underscores are allowed."
+            );
+        }
+    }
+
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
+        validateTenantIdentifier(tenantIdentifier);
         final Connection connection = getAnyConnection();
         try (Statement stmt = connection.createStatement()) {
             if (tenantIdentifier != null && !tenantIdentifier.isBlank() && !tenantIdentifier.equalsIgnoreCase(TenantContext.DEFAULT_TENANT)) {
-                stmt.execute("SET search_path TO " + tenantIdentifier + ", " + TenantContext.DEFAULT_TENANT + ", public;");
+                stmt.execute("SET search_path TO " + tenantIdentifier.trim().toLowerCase() + ", " + TenantContext.DEFAULT_TENANT + ", public;");
             } else {
                 stmt.execute("SET search_path TO " + TenantContext.DEFAULT_TENANT + ", public;");
             }

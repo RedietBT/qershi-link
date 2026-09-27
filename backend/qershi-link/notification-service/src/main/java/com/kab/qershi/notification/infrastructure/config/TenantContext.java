@@ -17,13 +17,24 @@ public final class TenantContext {
 
     private TenantContext() {}
 
+    private static final java.util.regex.Pattern SAFE_SCHEMA_PATTERN = java.util.regex.Pattern.compile("^[a-z][a-z0-9_]{1,62}$");
+
     public static void setTenantSchema(String schemaName) {
-        if (schemaName != null && !schemaName.isBlank()) {
-            CURRENT_TENANT.set(schemaName.trim());
-            log.debug("TenantContext schema set to: {}", schemaName);
-        } else {
+        if (schemaName == null || schemaName.isBlank()) {
             clear();
+            return;
         }
+        String clean = schemaName.trim().toLowerCase();
+        if (clean.equals(DEFAULT_TENANT) || clean.equals("public")) {
+            CURRENT_TENANT.set(clean);
+            log.debug("TenantContext schema set to: {}", clean);
+            return;
+        }
+        if (!SAFE_SCHEMA_PATTERN.matcher(clean).matches()) {
+            throw new IllegalArgumentException("Unsafe tenant schema identifier rejected: " + schemaName);
+        }
+        CURRENT_TENANT.set(clean);
+        log.debug("TenantContext schema set to: {}", clean);
     }
 
     public static String getTenantSchema() {

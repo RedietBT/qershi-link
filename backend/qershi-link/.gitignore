@@ -35,6 +35,7 @@ build/
 ### Secret Management ###
 **/src/main/resources/application.properties
 **/src/main/resources/application.yml
+deployments/01-secrets.yaml
 .env
 *.pem
 *.jks
