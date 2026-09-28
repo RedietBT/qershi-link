@@ -12,7 +12,9 @@ import { SaccoConfigPage } from '../features/accounts/pages/SaccoConfigPage';
 import { DepositProductsPage } from '../features/accounts/pages/DepositProductsPage';
 import { PendingAuthorizationsPage } from '../features/accounts/pages/PendingAuthorizationsPage';
 import { AccountManagementPage } from '../features/accounts/pages/AccountManagementPage';
+import { BranchManagementPage } from '../features/accounts/pages/BranchManagementPage';
 import { CashDeskPage } from '../features/transactions/pages/CashDeskPage';
+import { TellerDrawerPage } from '../features/transactions/pages/TellerDrawerPage';
 import { TransferPage } from '../features/transactions/pages/TransferPage';
 import { TransactionHistoryPage } from '../features/transactions/pages/TransactionHistoryPage';
 import { LoanApplicationsPage } from '../features/loans/origination/pages/LoanApplicationsPage';
@@ -516,6 +518,30 @@ export const AppRoutes = () => {
             <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_APPROVE']}>
               <Layout>
                 <PendingAuthorizationsPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Branch Management & Hierarchy */}
+        <Route
+          path="/branches"
+          element={
+            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER', 'TELLER', 'AUDITOR']} permissions={[PERMISSIONS.BRANCH_VIEW, PERMISSIONS.ACCOUNT_VIEW]}>
+              <Layout>
+                <BranchManagementPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Teller Cash Drawer (Till) & Reconciliation */}
+        <Route
+          path="/transactions/till"
+          element={
+            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER']} permissions={[PERMISSIONS.CASH_DEPOSIT, PERMISSIONS.SAVINGS_WITHDRAW, PERMISSIONS.TELLER_TILL_VIEW]}>
+              <Layout>
+                <TellerDrawerPage />
               </Layout>
             </PermissionRoute>
           }

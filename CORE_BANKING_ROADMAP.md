@@ -28,18 +28,19 @@
 ## 📋 Comprehensive Feature Checklist
 
 ### 🏢 Day 1: Branch Management & Teller Till Hierarchy
-- [ ] **Branch Directory & Entity Model**
-  - [ ] Create `branches` table per tenant schema (`branch_id`, `branch_code`, `name`, `region`, `address`, `phone`, `manager_id`, `vault_gl_code`, `discretionary_limit`, `status`).
-  - [ ] Add `BranchController` REST endpoints (List, Get, Create, Update, Activate/Deactivate).
-  - [ ] Link `User` and `MemberProfile` to `home_branch_id`.
-- [ ] **Cash Vault & Till Hierarchy**
-  - [ ] Create `teller_tills` table (`till_id`, `branch_id`, `teller_user_id`, `till_gl_code`, `opening_balance`, `current_balance`, `status`).
-  - [ ] Morning **Vault-to-Till Requisition** (Branch Manager authorizes cash movement to teller drawer).
-  - [ ] Evening **Till-to-Vault Remittance** & Physical Banknote Counting reconciliation (denominations: 200, 100, 50, 10, 5 ETB) with variance detection.
-- [ ] **Frontend Deliverables**
-  - [ ] `BranchManagementPage.jsx`: Branch roster, add/edit branch modal, performance stats.
-  - [ ] `TellerDrawerPage.jsx`: Till opening, cash position monitor, day-end cash count balancing modal.
-  - [ ] Global Branch Switcher / Scope Header for HQ Admins.
+- [x] **Branch Directory & Entity Model**
+  - [x] Create `branches` table per tenant schema (`branch_id`, `branch_code`, `name`, `region`, `address`, `phone`, `manager_id`, `vault_gl_code`, `discretionary_limit`, `status`).
+  - [x] Add `BranchController` REST endpoints (List, Get, Create, Update, Activate/Deactivate).
+  - [x] Seed Head Office branch (`001`) and setup branch resolution in tenant provisioning.
+- [x] **Cash Vault & Till Hierarchy**
+  - [x] Create `teller_tills` table (`till_id`, `branch_id`, `teller_user_id`, `till_gl_code`, `opening_cash`, `current_cash`, `status`).
+  - [x] Morning **Vault-to-Till Opening** with live cash position tracking.
+  - [x] Evening **Till Closure & Physical Banknote Counting reconciliation** (denominations: 200, 100, 50, 10, 5 ETB) with variance detection (`till_cash_reconciliations`).
+  - [x] Atomic integration with `CashTransactionService` (cash movement validation & debit/credit on OTC deposits and withdrawals).
+- [x] **Frontend Deliverables**
+  - [x] `BranchManagementPage.jsx`: Branch roster, add/edit branch modal, active vault count, and discretionary limits.
+  - [x] `TellerDrawerPage.jsx`: Live drawer cash balance, morning drawer opening, and interactive physical banknote denomination counter modal.
+  - [x] Connected routes (`/branches`, `/transactions/till`) and navigation items in `Sidebar.jsx` and `CashDeskPage.jsx`.
 
 ---
 

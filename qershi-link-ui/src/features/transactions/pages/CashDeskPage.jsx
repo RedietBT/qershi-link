@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Banknote,
   ArrowDownToLine,
@@ -12,7 +13,8 @@ import {
   User,
   CreditCard,
   Loader2,
-  BookOpen
+  BookOpen,
+  Vault
 } from 'lucide-react';
 import { transactionApi } from '../api/transactionApi';
 import { accountLedgerApi } from '../../accounts/api/accountLedgerApi';
@@ -20,6 +22,7 @@ import { formatCurrency, formatDateTime, generateIdempotencyKey } from '../../..
 import { GLJournalModal } from '../components/GLJournalModal';
 
 export const CashDeskPage = () => {
+  const navigate = useNavigate();
   // Mode: 'DEPOSIT' | 'WITHDRAW'
   const [operationType, setOperationType] = useState('DEPOSIT');
 
@@ -151,40 +154,53 @@ export const CashDeskPage = () => {
           </p>
         </div>
 
-        {/* Operation Mode Switcher */}
-        <div className="flex items-center bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-[var(--bdae-border)]">
+        {/* Action Controls & Operation Switcher */}
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => {
-              setOperationType('DEPOSIT');
-              setReceipt(null);
-              setError(null);
-            }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              operationType === 'DEPOSIT'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
-            }`}
+            onClick={() => navigate('/transactions/till')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--bdae-border)] hover:bg-black/5 dark:hover:bg-white/5 text-xs font-bold text-[var(--bdae-text-primary)] transition-all"
+            title="Manage physical cash drawer and banknote reconciliation"
           >
-            <ArrowDownToLine className="w-4 h-4" />
-            Cash Deposit
+            <Vault className="w-4 h-4 text-amber-500" />
+            <span>Till Drawer</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setOperationType('WITHDRAW');
-              setReceipt(null);
-              setError(null);
-            }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              operationType === 'WITHDRAW'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
-            }`}
-          >
-            <ArrowUpFromLine className="w-4 h-4" />
-            Cash Withdrawal
-          </button>
+
+          {/* Operation Mode Switcher */}
+          <div className="flex items-center bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-[var(--bdae-border)]">
+            <button
+              type="button"
+              onClick={() => {
+                setOperationType('DEPOSIT');
+                setReceipt(null);
+                setError(null);
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                operationType === 'DEPOSIT'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
+              }`}
+            >
+              <ArrowDownToLine className="w-4 h-4" />
+              Cash Deposit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOperationType('WITHDRAW');
+                setReceipt(null);
+                setError(null);
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                operationType === 'WITHDRAW'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'text-[var(--bdae-text-secondary)] hover:text-[var(--bdae-text-primary)]'
+              }`}
+            >
+              <ArrowUpFromLine className="w-4 h-4" />
+              Cash Withdrawal
+            </button>
+          </div>
         </div>
       </div>
 

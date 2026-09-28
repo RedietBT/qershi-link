@@ -21,7 +21,8 @@ import {
   History,
   Briefcase,
   Shield,
-  BadgePercent
+  BadgePercent,
+  Vault
 } from 'lucide-react';
 import { PermissionGuard } from './PermissionGuard';
 import { PERMISSIONS, ROLES } from '../constants/permissions';
@@ -120,6 +121,9 @@ export const Sidebar = () => {
             <PermissionGuard permissions={[PERMISSIONS.CASH_DEPOSIT, PERMISSIONS.SAVINGS_WITHDRAW]}>
               <SubNavItem path="/transactions/cash" label="Cash Desk (Over-the-Counter)" icon={Banknote} />
             </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.CASH_DEPOSIT, PERMISSIONS.SAVINGS_WITHDRAW, PERMISSIONS.TELLER_TILL_VIEW]}>
+              <SubNavItem path="/transactions/till" label="Teller Cash Drawer (Till)" icon={Vault} />
+            </PermissionGuard>
             <PermissionGuard permissions={[PERMISSIONS.MEMBER_TRANSFER]}>
               <SubNavItem path="/transactions/transfer" label="Member Funds Transfer" icon={ArrowLeftRight} />
             </PermissionGuard>
@@ -190,6 +194,9 @@ export const Sidebar = () => {
 
           <PermissionGuard permissions={[PERMISSIONS.SACCO_CONFIG, PERMISSIONS.ACCOUNT_VIEW]}>
             <NavItem path="/accounts/config" label="SACCO Configuration" icon={Landmark} />
+          </PermissionGuard>
+          <PermissionGuard permissions={[PERMISSIONS.BRANCH_VIEW, PERMISSIONS.ACCOUNT_VIEW]}>
+            <NavItem path="/branches" label="Branch Management" icon={Building2} />
           </PermissionGuard>
         </PermissionGuard>
       </div>

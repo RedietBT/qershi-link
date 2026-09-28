@@ -66,17 +66,20 @@ public class CashTransactionService implements CashTransactionUseCase {
     private final AccountClientPort accountClientPort;
     private final com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
     private final SpringDataTransactionAuditLogRepository auditLogRepository;
+    private final TellerTillService tellerTillService;
 
     public CashTransactionService(TransactionRepositoryPort transactionRepositoryPort,
                                   JournalRepositoryPort journalRepositoryPort,
                                   AccountClientPort accountClientPort,
                                   com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
-                                  SpringDataTransactionAuditLogRepository auditLogRepository) {
+                                  SpringDataTransactionAuditLogRepository auditLogRepository,
+                                  TellerTillService tellerTillService) {
         this.transactionRepositoryPort = transactionRepositoryPort;
         this.journalRepositoryPort = journalRepositoryPort;
         this.accountClientPort = accountClientPort;
         this.notificationAdapter = notificationAdapter;
         this.auditLogRepository = auditLogRepository;
+        this.tellerTillService = tellerTillService;
     }
 
     @Override
@@ -144,6 +147,11 @@ public class CashTransactionService implements CashTransactionUseCase {
         boolean balanceUpdated = accountClientPort.postTransaction(accountNo, amount, "CREDIT");
         if (!balanceUpdated) {
             throw new RuntimeException("Failed to update account balance in account-management-service.");
+        }
+
+        // 4.6. Mutate physical cash drawer balance for operating teller
+        if (processedByUserId != null) {
+            tellerTillService.recordCashMovement(processedByUserId, amount, true);
         }
 
         // 5. Create & Post Balanced General Ledger Journal Entry
@@ -246,6 +254,11 @@ public class CashTransactionService implements CashTransactionUseCase {
             ));
         } catch (Exception ex) {
             log.warn("Failed writing withdrawal transaction audit log: {}", ex.getMessage());
+        }
+
+        // 4.4. Mutate physical cash drawer balance for operating teller (safeguards drawer balance)
+        if (processedByUserId != null) {
+            tellerTillService.recordCashMovement(processedByUserId, amount, false);
         }
 
         // 4.5. Update the actual account book balance via gRPC
