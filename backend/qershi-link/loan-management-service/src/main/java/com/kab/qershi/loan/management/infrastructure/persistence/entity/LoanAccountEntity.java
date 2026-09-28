@@ -56,6 +56,21 @@ public class LoanAccountEntity {
     @Column(name = "status", nullable = false, length = 30)
     private LoanStatus status;
 
+    @Column(name = "days_past_due", nullable = false)
+    private Integer daysPastDue = 0;
+
+    @Column(name = "par_bucket", nullable = false, length = 30)
+    private String parBucket = "CURRENT";
+
+    @Column(name = "provision_rate_pct", nullable = false, precision = 5, scale = 2)
+    private BigDecimal provisionRatePct = new BigDecimal("1.00");
+
+    @Column(name = "provision_amount", nullable = false, precision = 15, scale = 2)
+    private BigDecimal provisionAmount = BigDecimal.ZERO;
+
+    @Column(name = "last_par_evaluation_date")
+    private java.time.LocalDate lastParEvaluationDate;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -172,6 +187,21 @@ public class LoanAccountEntity {
     public void setStatus(LoanStatus status) {
         this.status = status;
     }
+
+    public Integer getDaysPastDue() { return daysPastDue; }
+    public void setDaysPastDue(Integer daysPastDue) { this.daysPastDue = daysPastDue; }
+
+    public String getParBucket() { return parBucket; }
+    public void setParBucket(String parBucket) { this.parBucket = parBucket; }
+
+    public BigDecimal getProvisionRatePct() { return provisionRatePct; }
+    public void setProvisionRatePct(BigDecimal provisionRatePct) { this.provisionRatePct = provisionRatePct; }
+
+    public BigDecimal getProvisionAmount() { return provisionAmount; }
+    public void setProvisionAmount(BigDecimal provisionAmount) { this.provisionAmount = provisionAmount; }
+
+    public java.time.LocalDate getLastParEvaluationDate() { return lastParEvaluationDate; }
+    public void setLastParEvaluationDate(java.time.LocalDate lastParEvaluationDate) { this.lastParEvaluationDate = lastParEvaluationDate; }
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;

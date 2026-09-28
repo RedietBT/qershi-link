@@ -45,27 +45,27 @@
 ---
 
 ### 🌙 Day 2: End-of-Day (EOD) Batch Runner, Accrual & PAR Delinquency
-- [ ] **Automated EOD / BOD Batch Runner**
-  - [ ] Create `system_business_date` state & batch coordinator in `account-management-service`.
-  - [ ] Automated scheduled job (`@Scheduled(cron = "0 0 0 * * ?")`) with manual trigger override.
-  - [ ] Lock transaction posting during EOD cutoff.
-- [ ] **Daily Interest Accrual & Monthly Capitalization**
-  - [ ] Compute daily savings interest: $\text{Daily Accrual} = \frac{\text{Cleared Balance} \times \text{Interest Rate}}{365}$.
-  - [ ] Post accounting accrual: `DEBIT Interest Expense` / `CREDIT Interest Payable Accrued`.
-  - [ ] End-of-Month Capitalization routine crediting accrued interest to member accounts.
-- [ ] **Portfolio at Risk (PAR) & Delinquency Aging**
-  - [ ] Calculate Days Past Due (DPD) on all active loan amortization schedules.
-  - [ ] Classify loans into regulatory buckets:
-    - [ ] `Current` (0 DPD)
-    - [ ] `Watchlist / PAR 1-30` (1–30 DPD)
-    - [ ] `Substandard / PAR 31-60` (31–60 DPD, 25% provisioning)
-    - [ ] `Doubtful / PAR 61-90` (61–90 DPD, 50% provisioning)
-    - [ ] `Loss / NPL / PAR 90+` (>90 DPD, 100% provisioning)
-- [ ] **Account Dormancy Rule**
-  - [ ] Auto-transition accounts with no activity $>180$ days to `DORMANT`.
-- [ ] **Frontend Deliverables**
-  - [ ] `EodControlPage.jsx`: Run EOD batch, inspect step logs, view business date status.
-  - [ ] `LoanDelinquencyDashboard.jsx`: PAR aging breakdown pie/bar charts, overdue member list.
+- [x] **Automated EOD / BOD Batch Runner**
+  - [x] Create `system_business_date` state & batch coordinator in `account-management-service`.
+  - [x] Automated scheduled job (`@Scheduled(cron = "0 0 0 * * ?")`) with manual trigger override.
+  - [x] Lock transaction posting during EOD cutoff.
+- [x] **Daily Interest Accrual & Monthly Capitalization**
+  - [x] Compute daily savings interest: $\text{Daily Accrual} = \frac{\text{Cleared Balance} \times \text{Interest Rate}}{365}$.
+  - [x] Post accounting accrual: `DEBIT Interest Expense` / `CREDIT Interest Payable Accrued`.
+  - [x] End-of-Month Capitalization routine crediting accrued interest to member accounts.
+- [x] **Portfolio at Risk (PAR) & Delinquency Aging**
+  - [x] Calculate Days Past Due (DPD) on all active loan amortization schedules.
+  - [x] Classify loans into regulatory buckets:
+    - [x] `Current` (0 DPD)
+    - [x] `Watchlist / PAR 1-30` (1–30 DPD)
+    - [x] `Substandard / PAR 31-60` (31–60 DPD, 25% provisioning)
+    - [x] `Doubtful / PAR 61-90` (61–90 DPD, 50% provisioning)
+    - [x] `Loss / NPL / PAR 90+` (>90 DPD, 100% provisioning)
+- [x] **Account Dormancy Rule**
+  - [x] Auto-transition accounts with no activity $>180$ days to `DORMANT`.
+- [x] **Frontend Deliverables**
+  - [x] `EodControlPage.jsx`: Run EOD batch, inspect step logs, view business date status.
+  - [x] `LoanDelinquencyDashboard.jsx`: PAR aging breakdown pie/bar charts, overdue member list.
 
 ---
 

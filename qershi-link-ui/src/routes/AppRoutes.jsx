@@ -20,6 +20,8 @@ import { TransactionHistoryPage } from '../features/transactions/pages/Transacti
 import { LoanApplicationsPage } from '../features/loans/origination/pages/LoanApplicationsPage';
 import { LoanUnderwritingPage } from '../features/loans/origination/pages/LoanUnderwritingPage';
 import { LoanAccountsPage } from '../features/loans/management/pages/LoanAccountsPage';
+import { EodControlPage } from '../features/operations/pages/EodControlPage';
+import { LoanDelinquencyDashboard } from '../features/loans/management/pages/LoanDelinquencyDashboard';
 import { ChangePinModal } from '../features/auth/components/ChangePinModal';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
@@ -27,7 +29,7 @@ import { useAuthStore } from '../common/store/useAuthStore';
 import { Layout } from '../common/components/Layout';
 import { PermissionGuard } from '../common/components/PermissionGuard';
 import { PERMISSIONS } from '../common/constants/permissions';
-import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact, Landmark, PackagePlus, ClipboardCheck, Banknote, ArrowLeftRight, History, FileText, BadgePercent } from 'lucide-react';
+import { ShieldCheck, Building2, KeyRound, ShieldAlert, Users, Shield, Contact, Landmark, PackagePlus, ClipboardCheck, Banknote, ArrowLeftRight, History, FileText, BadgePercent, Moon, AlertTriangle } from 'lucide-react';
 
 /**
  * Dashboard View Component
@@ -614,6 +616,30 @@ export const AppRoutes = () => {
             <PermissionRoute permissions={[PERMISSIONS.LOAN_ACCOUNT_VIEW, PERMISSIONS.LOAN_REPAYMENT_PROCESS]}>
               <Layout>
                 <LoanAccountsPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: End-of-Day (EOD) Batch Operations */}
+        <Route
+          path="/operations/eod"
+          element={
+            <PermissionRoute permissions={[PERMISSIONS.EOD_VIEW, PERMISSIONS.EOD_EXECUTE]}>
+              <Layout>
+                <EodControlPage />
+              </Layout>
+            </PermissionRoute>
+          }
+        />
+
+        {/* Protected Route: Portfolio at Risk (PAR) & Delinquency Aging */}
+        <Route
+          path="/loans/delinquency"
+          element={
+            <PermissionRoute permissions={[PERMISSIONS.LOAN_DELINQUENCY_VIEW, PERMISSIONS.LOAN_ACCOUNT_VIEW]}>
+              <Layout>
+                <LoanDelinquencyDashboard />
               </Layout>
             </PermissionRoute>
           }

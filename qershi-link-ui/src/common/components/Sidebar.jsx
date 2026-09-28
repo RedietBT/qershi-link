@@ -22,7 +22,9 @@ import {
   Briefcase,
   Shield,
   BadgePercent,
-  Vault
+  Vault,
+  Moon,
+  AlertTriangle
 } from 'lucide-react';
 import { PermissionGuard } from './PermissionGuard';
 import { PERMISSIONS, ROLES } from '../constants/permissions';
@@ -130,6 +132,9 @@ export const Sidebar = () => {
             <PermissionGuard permissions={[PERMISSIONS.TRANSACTION_VIEW, PERMISSIONS.ACCOUNT_VIEW]}>
               <SubNavItem path="/transactions/history" label="General Ledger Journal" icon={History} />
             </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.EOD_VIEW, PERMISSIONS.EOD_EXECUTE]}>
+              <SubNavItem path="/operations/eod" label="End-of-Day (EOD) Batch" icon={Moon} />
+            </PermissionGuard>
           </NavGroup>
         </PermissionGuard>
 
@@ -147,6 +152,9 @@ export const Sidebar = () => {
             </PermissionGuard>
             <PermissionGuard permissions={[PERMISSIONS.LOAN_ACCOUNT_VIEW, PERMISSIONS.LOAN_REPAYMENT_PROCESS]}>
               <SubNavItem path="/loans/accounts" label="Active Portfolios & Repay" icon={BadgePercent} />
+            </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.LOAN_DELINQUENCY_VIEW, PERMISSIONS.LOAN_ACCOUNT_VIEW]}>
+              <SubNavItem path="/loans/delinquency" label="PAR & Delinquency Aging" icon={AlertTriangle} />
             </PermissionGuard>
           </NavGroup>
         </PermissionGuard>

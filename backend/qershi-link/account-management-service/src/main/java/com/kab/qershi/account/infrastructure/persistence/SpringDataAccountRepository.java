@@ -1,5 +1,6 @@
 package com.kab.qershi.account.infrastructure.persistence;
 
+import com.kab.qershi.account.domain.model.AccountStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,6 +27,10 @@ public interface SpringDataAccountRepository extends JpaRepository<AccountEntity
     long countBySaccoCodeAndProductCode(String saccoCode, String productCode);
 
     boolean existsByAccountNo(String accountNo);
+
+    List<AccountEntity> findByStatus(AccountStatus status);
+
+    List<AccountEntity> findByStatusAndLastActivityDateBefore(AccountStatus status, java.time.LocalDate cutoffDate);
 
     /**
      * Native query executing tenant-isolated phone number to account lookup by joining master_schema.users identity table.

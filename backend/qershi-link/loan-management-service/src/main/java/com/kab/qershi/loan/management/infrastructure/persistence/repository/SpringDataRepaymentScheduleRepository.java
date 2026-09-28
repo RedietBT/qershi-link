@@ -1,5 +1,6 @@
 package com.kab.qershi.loan.management.infrastructure.persistence.repository;
 
+import com.kab.qershi.loan.management.domain.model.ScheduleStatus;
 import com.kab.qershi.loan.management.infrastructure.persistence.entity.RepaymentScheduleEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -17,4 +18,6 @@ import java.util.UUID;
 public interface SpringDataRepaymentScheduleRepository extends JpaRepository<RepaymentScheduleEntity, UUID> {
 
     List<RepaymentScheduleEntity> findByAccountIdOrderByInstallmentNoAsc(UUID accountId);
+
+    List<RepaymentScheduleEntity> findByAccountIdAndStatusNot(UUID accountId, ScheduleStatus status);
 }

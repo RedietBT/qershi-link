@@ -48,6 +48,18 @@ public class AccountEntity {
     @Column(name = "lien_hold_amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal lienHoldAmount;
 
+    @Column(name = "accrued_interest_payable", nullable = false, precision = 19, scale = 4)
+    private BigDecimal accruedInterestPayable = BigDecimal.ZERO;
+
+    @Column(name = "last_interest_accrual_date")
+    private java.time.LocalDate lastInterestAccrualDate;
+
+    @Column(name = "last_capitalization_date")
+    private java.time.LocalDate lastCapitalizationDate;
+
+    @Column(name = "last_activity_date")
+    private java.time.LocalDate lastActivityDate;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private AccountStatus status;
@@ -123,6 +135,18 @@ public class AccountEntity {
 
     public BigDecimal getLienHoldAmount() { return lienHoldAmount; }
     public void setLienHoldAmount(BigDecimal lienHoldAmount) { this.lienHoldAmount = lienHoldAmount; }
+
+    public BigDecimal getAccruedInterestPayable() { return accruedInterestPayable; }
+    public void setAccruedInterestPayable(BigDecimal accruedInterestPayable) { this.accruedInterestPayable = accruedInterestPayable; }
+
+    public java.time.LocalDate getLastInterestAccrualDate() { return lastInterestAccrualDate; }
+    public void setLastInterestAccrualDate(java.time.LocalDate lastInterestAccrualDate) { this.lastInterestAccrualDate = lastInterestAccrualDate; }
+
+    public java.time.LocalDate getLastCapitalizationDate() { return lastCapitalizationDate; }
+    public void setLastCapitalizationDate(java.time.LocalDate lastCapitalizationDate) { this.lastCapitalizationDate = lastCapitalizationDate; }
+
+    public java.time.LocalDate getLastActivityDate() { return lastActivityDate; }
+    public void setLastActivityDate(java.time.LocalDate lastActivityDate) { this.lastActivityDate = lastActivityDate; }
 
     public AccountStatus getStatus() { return status; }
     public void setStatus(AccountStatus status) { this.status = status; }

@@ -1,5 +1,6 @@
 package com.kab.qershi.loan.management.infrastructure.persistence.repository;
 
+import com.kab.qershi.loan.management.domain.model.LoanStatus;
 import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -20,4 +21,8 @@ public interface SpringDataLoanAccountRepository extends JpaRepository<LoanAccou
     Optional<LoanAccountEntity> findByApplicationId(UUID applicationId);
 
     List<LoanAccountEntity> findByUserId(UUID userId);
+
+    List<LoanAccountEntity> findByStatus(LoanStatus status);
+
+    List<LoanAccountEntity> findByStatusIn(List<LoanStatus> statuses);
 }
