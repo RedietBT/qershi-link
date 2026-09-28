@@ -18,7 +18,11 @@ INSERT INTO {schema}.permissions (resource, action, description) VALUES
 ('SACCO',            'ATTACH',       'Authority to link external core modules or sub-entities.'),
 ('NEXT_OF_KIN',      'VIEW',         'Authority to view member next of kin beneficiaries.'),
 ('NEXT_OF_KIN',      'MANAGE',       'Authority to add, update, or remove member next of kin beneficiaries.'),
-('USER',             'VIEW_ALL',     'Authority to list and view all user security accounts.')
+('USER',             'VIEW_ALL',     'Authority to list and view all user security accounts.'),
+('BRANCH',           'VIEW',         'Authority to view SACCO branches.'),
+('BRANCH',           'MANAGE',       'Authority to create and configure SACCO branches.'),
+('TELLER_TILL',      'VIEW',         'Authority to inspect teller cash drawers and cash positions.'),
+('TELLER_TILL',      'MANAGE',       'Authority to open, close, and reconcile teller cash drawers.')
 ON CONFLICT (resource, action) DO NOTHING;
 
 INSERT INTO {schema}.roles (role_id, role_name, is_system_defined) VALUES
@@ -31,3 +35,8 @@ SELECT r.role_id, p.permission_id
 FROM {schema}.roles r CROSS JOIN {schema}.permissions p
 WHERE p.is_active = TRUE AND r.role_name IN ('ADMIN', 'SACCO_ADMIN')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- Seed default Head Office Main Branch for every new SACCO
+INSERT INTO {schema}.branches (branch_code, branch_name, region, address, vault_gl_code, discretionary_lending_limit, status)
+VALUES ('001', 'Head Office Main Branch', 'Headquarters', 'Main Office Complex', '1010-001', 500000.0000, 'ACTIVE')
+ON CONFLICT (branch_code) DO NOTHING;

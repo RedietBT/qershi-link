@@ -104,16 +104,20 @@ public class TenantProvisioningAdapter implements TenantProvisioningPort {
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void dropTenantSchema(String schemaName) {
-        // 0. Security Guard: Validate name format before any SQL execution.
-        validateSchemaName(schemaName);
+        if (schemaName == null || schemaName.isBlank()) {
+            throw new IllegalArgumentException("Schema name must not be null or blank.");
+        }
 
-        // 1. Hard block: Forbid dropping protected platform-level schemas regardless of input.
+        // 0. Hard block: Forbid dropping protected platform-level schemas regardless of case/format.
         String sanitized = schemaName.trim().toLowerCase();
         if (sanitized.equals("public") || sanitized.equals("master_schema")) {
             throw new IllegalArgumentException(
                     "Security Guard: Dropping fundamental system platform namespaces is strictly prohibited."
             );
         }
+
+        // 1. Security Guard: Validate name format before any SQL execution.
+        validateSchemaName(sanitized);
 
         log.warn("Dropping tenant schema '{}'", sanitized);
         jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + sanitized + " CASCADE");

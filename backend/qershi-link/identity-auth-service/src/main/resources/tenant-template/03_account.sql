@@ -25,6 +25,21 @@ CREATE TABLE IF NOT EXISTS {schema}.account_products (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS {schema}.branches (
+    branch_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    branch_code VARCHAR(10) NOT NULL UNIQUE,
+    branch_name VARCHAR(150) NOT NULL,
+    region VARCHAR(100) NOT NULL,
+    address VARCHAR(255),
+    contact_phone VARCHAR(30),
+    manager_user_id UUID,
+    vault_gl_code VARCHAR(50) NOT NULL DEFAULT '1010-001',
+    discretionary_lending_limit DECIMAL(19,4) NOT NULL DEFAULT 100000.0000,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS {schema}.accounts (
     account_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_no VARCHAR(50) NOT NULL UNIQUE,
