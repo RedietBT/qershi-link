@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { branchApi } from '../api/branchApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
+import { PERMISSIONS } from '../../../common/constants/permissions';
 import { formatCurrency } from '../../../common/utils/currency';
 
 export const BranchManagementPage = () => {
@@ -156,7 +157,7 @@ export const BranchManagementPage = () => {
   return (
     <PermissionGuard
       roles={['SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER', 'TELLER', 'AUDITOR']}
-      permissions={['BRANCH:VIEW', 'ACCOUNT_VIEW']}
+      permissions={[PERMISSIONS.BRANCH_VIEW, PERMISSIONS.ACCOUNT_VIEW]}
       fallback={
         <div className="p-8 text-center max-w-lg mx-auto space-y-4 mt-10">
           <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 mx-auto flex items-center justify-center">

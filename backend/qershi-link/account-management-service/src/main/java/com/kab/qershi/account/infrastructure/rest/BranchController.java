@@ -37,7 +37,7 @@ public class BranchController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('BRANCH:MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('BRANCH_MANAGE')")
     @Operation(summary = "Create SACCO Branch", description = "Onboards a new physical or digital branch with dedicated vault GL code and lending limits.")
     public ResponseEntity<ApiResponse<BranchEntity>> createBranch(@Valid @RequestBody CreateBranchRequest request) {
         BranchEntity created = branchService.createBranch(request);
@@ -46,7 +46,7 @@ public class BranchController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('BRANCH:VIEW') or hasAuthority('ACCOUNT_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('BRANCH_VIEW') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "List Branches", description = "Retrieves all branches within the SACCO tenant, optionally filtered by status.")
     public ResponseEntity<ApiResponse<List<BranchEntity>>> getAllBranches(@RequestParam(required = false) String status) {
         List<BranchEntity> branches = branchService.getAllBranches(status);
@@ -54,7 +54,7 @@ public class BranchController {
     }
 
     @GetMapping("/{branchId}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('BRANCH:VIEW') or hasAuthority('ACCOUNT_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('BRANCH_VIEW') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "Get Branch by ID", description = "Retrieves specific branch details.")
     public ResponseEntity<ApiResponse<BranchEntity>> getBranchById(@PathVariable UUID branchId) {
         BranchEntity branch = branchService.getBranchById(branchId);
@@ -62,7 +62,7 @@ public class BranchController {
     }
 
     @GetMapping("/code/{branchCode}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('BRANCH:VIEW') or hasAuthority('ACCOUNT_VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('BRANCH_VIEW') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "Get Branch by Code", description = "Retrieves branch details by unique code (e.g. 001).")
     public ResponseEntity<ApiResponse<BranchEntity>> getBranchByCode(@PathVariable String branchCode) {
         BranchEntity branch = branchService.getBranchByCode(branchCode);
@@ -70,7 +70,7 @@ public class BranchController {
     }
 
     @PutMapping("/{branchId}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('BRANCH:MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('BRANCH_MANAGE')")
     @Operation(summary = "Update Branch", description = "Updates branch details, address, manager, vault GL code, or limits.")
     public ResponseEntity<ApiResponse<BranchEntity>> updateBranch(@PathVariable UUID branchId,
                                                                  @Valid @RequestBody UpdateBranchRequest request) {
@@ -79,7 +79,7 @@ public class BranchController {
     }
 
     @PatchMapping("/{branchId}/status")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('BRANCH:MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('BRANCH_MANAGE')")
     @Operation(summary = "Update Branch Status", description = "Activates or deactivates an operational branch.")
     public ResponseEntity<ApiResponse<BranchEntity>> updateStatus(@PathVariable UUID branchId,
                                                                  @RequestBody Map<String, String> payload) {

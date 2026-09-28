@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { tillApi } from '../api/tillApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
+import { PERMISSIONS } from '../../../common/constants/permissions';
 import { formatCurrency, formatDateTime } from '../../../common/utils/currency';
 
 export const TellerDrawerPage = () => {
@@ -114,7 +115,7 @@ export const TellerDrawerPage = () => {
   return (
     <PermissionGuard
       roles={['SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER']}
-      permissions={['TELLER_TILL:VIEW', 'TRANSACTION_DEPOSIT']}
+      permissions={[PERMISSIONS.TELLER_TILL_VIEW, PERMISSIONS.CASH_DEPOSIT]}
       fallback={
         <div className="p-8 text-center max-w-lg mx-auto space-y-4 mt-10">
           <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 mx-auto flex items-center justify-center">

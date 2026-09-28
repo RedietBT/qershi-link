@@ -41,7 +41,7 @@ public class TellerTillController {
     }
 
     @GetMapping("/my-till")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER') or hasAuthority('TELLER_TILL:VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER') or hasAuthority('TELLER_TILL_VIEW')")
     @Operation(summary = "Get Current Teller Drawer", description = "Retrieves live cash balance and status of the current teller's cash drawer.")
     public ResponseEntity<ApiResponse<TellerTillEntity>> getMyTill() {
         UUID tellerUserId = extractCurrentUserId();
@@ -50,7 +50,7 @@ public class TellerTillController {
     }
 
     @PostMapping("/open")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER') or hasAuthority('TELLER_TILL:MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER') or hasAuthority('TELLER_TILL_MANAGE')")
     @Operation(summary = "Open Teller Drawer", description = "Opens the teller till for business operations with initial opening vault cash.")
     public ResponseEntity<ApiResponse<TellerTillEntity>> openTill(@Valid @RequestBody OpenTillRequest request) {
         UUID tellerUserId = extractCurrentUserId();
@@ -59,7 +59,7 @@ public class TellerTillController {
     }
 
     @PostMapping("/close")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER') or hasAuthority('TELLER_TILL:MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER') or hasAuthority('TELLER_TILL_MANAGE')")
     @Operation(summary = "Close and Reconcile Teller Drawer", description = "Closes drawer, submits physical banknote denomination counts, calculates variance, and locks till.")
     public ResponseEntity<ApiResponse<TillCashReconciliationEntity>> closeTill(@Valid @RequestBody CloseTillRequest request) {
         UUID tellerUserId = extractCurrentUserId();
@@ -68,7 +68,7 @@ public class TellerTillController {
     }
 
     @PostMapping("/assign")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER') or hasAuthority('TELLER_TILL:MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER') or hasAuthority('TELLER_TILL_MANAGE')")
     @Operation(summary = "Assign or Configure Till", description = "Configures a dedicated cash drawer for a branch teller with ceiling limits and GL codes.")
     public ResponseEntity<ApiResponse<TellerTillEntity>> assignTill(@Valid @RequestBody AssignTillRequest request) {
         TellerTillEntity till = tillService.assignTill(request);
@@ -77,7 +77,7 @@ public class TellerTillController {
     }
 
     @GetMapping("/branch/{branchId}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('TELLER_TILL:VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('TELLER_TILL_VIEW')")
     @Operation(summary = "List Branch Tills", description = "Retrieves all teller drawers operating within a specific branch.")
     public ResponseEntity<ApiResponse<List<TellerTillEntity>>> getTillsByBranch(@PathVariable UUID branchId) {
         List<TellerTillEntity> tills = tillService.getTillsByBranch(branchId);
@@ -85,7 +85,7 @@ public class TellerTillController {
     }
 
     @GetMapping("/my-reconciliations")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER') or hasAuthority('TELLER_TILL:VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER') or hasAuthority('TELLER_TILL_VIEW')")
     @Operation(summary = "My Cash Reconciliations", description = "Retrieves historical physical cash reconciliation sheets for the authenticated teller.")
     public ResponseEntity<ApiResponse<List<TillCashReconciliationEntity>>> getMyReconciliations() {
         UUID tellerUserId = extractCurrentUserId();
@@ -94,7 +94,7 @@ public class TellerTillController {
     }
 
     @GetMapping("/{tillId}/reconciliations")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('TELLER_TILL:VIEW')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('TELLER_TILL_VIEW')")
     @Operation(summary = "Get Till Reconciliations", description = "Retrieves historical cash reconciliation sheets for a specific drawer ID.")
     public ResponseEntity<ApiResponse<List<TillCashReconciliationEntity>>> getTillReconciliations(@PathVariable UUID tillId) {
         List<TillCashReconciliationEntity> recs = tillService.getReconciliationsByTillId(tillId);
