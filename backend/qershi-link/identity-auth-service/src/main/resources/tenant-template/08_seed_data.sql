@@ -22,7 +22,10 @@ INSERT INTO {schema}.permissions (resource, action, description) VALUES
 ('BRANCH',           'VIEW',         'Authority to view SACCO branches.'),
 ('BRANCH',           'MANAGE',       'Authority to create and configure SACCO branches.'),
 ('TELLER_TILL',      'VIEW',         'Authority to inspect teller cash drawers and cash positions.'),
-('TELLER_TILL',      'MANAGE',       'Authority to open, close, and reconcile teller cash drawers.')
+('TELLER_TILL',      'MANAGE',       'Authority to open, close, and reconcile teller cash drawers.'),
+('EOD',              'VIEW',         'Authority to inspect End-of-Day batch status and execution logs.'),
+('EOD',              'EXECUTE',      'Supervisor authority to trigger End-of-Day batch processing.'),
+('LOAN_DELINQUENCY', 'VIEW',         'Authority to view Portfolio at Risk (PAR) and loan delinquency dashboard.')
 ON CONFLICT (resource, action) DO NOTHING;
 
 INSERT INTO {schema}.roles (role_id, role_name, is_system_defined) VALUES
@@ -40,3 +43,9 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 INSERT INTO {schema}.branches (branch_code, branch_name, region, address, vault_gl_code, discretionary_lending_limit, status)
 VALUES ('001', 'Head Office Main Branch', 'Headquarters', 'Main Office Complex', '1010-001', 500000.0000, 'ACTIVE')
 ON CONFLICT (branch_code) DO NOTHING;
+
+-- Seed initial Core Banking Business Date for new SACCO
+INSERT INTO {schema}.system_business_date (current_business_date, status, is_month_end)
+SELECT CURRENT_DATE, 'OPEN', FALSE
+WHERE NOT EXISTS (SELECT 1 FROM {schema}.system_business_date);
+

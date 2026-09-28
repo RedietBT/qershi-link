@@ -49,6 +49,10 @@ CREATE TABLE IF NOT EXISTS {schema}.accounts (
     product_code VARCHAR(10) NOT NULL,
     book_balance DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
     lien_hold_amount DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    accrued_interest_payable DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    last_interest_accrual_date DATE,
+    last_capitalization_date DATE,
+    last_activity_date DATE DEFAULT CURRENT_DATE,
     status account_status NOT NULL DEFAULT 'PENDING_APPROVAL',
     freeze_status freeze_status NOT NULL DEFAULT 'NONE',
     opened_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -85,3 +89,45 @@ CREATE TABLE IF NOT EXISTS {schema}.account_audit_logs (
     new_value TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- =========================================================================
+-- Day 2: Core Banking Business Date & End-of-Day (EOD) Batch Coordination
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS {schema}.system_business_date (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    current_business_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    status VARCHAR(30) NOT NULL DEFAULT 'OPEN', -- 'OPEN', 'CUTOFF_LOCKED', 'PROCESSING_EOD', 'CLOSED'
+    is_month_end BOOLEAN NOT NULL DEFAULT FALSE,
+    last_eod_completed_at TIMESTAMPTZ,
+    updated_by_user_id UUID,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS {schema}.eod_batch_executions (
+    batch_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_date DATE NOT NULL,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    status VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS', -- 'IN_PROGRESS', 'COMPLETED', 'FAILED'
+    triggered_by VARCHAR(50) NOT NULL DEFAULT 'SYSTEM_CRON', -- 'SYSTEM_CRON', 'MANUAL_OVERRIDE'
+    triggered_by_user_id UUID,
+    total_accounts_accrued INT NOT NULL DEFAULT 0,
+    total_interest_accrued DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    total_loans_evaluated INT NOT NULL DEFAULT 0,
+    total_accounts_dormant INT NOT NULL DEFAULT 0,
+    summary_notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS {schema}.eod_batch_step_logs (
+    step_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    batch_id UUID NOT NULL,
+    step_name VARCHAR(100) NOT NULL, -- 'CUTOFF_LOCK', 'SAVINGS_INTEREST_ACCRUAL', 'INTEREST_CAPITALIZATION', 'LOAN_PAR_AGING', 'DORMANCY_SWEEP', 'DATE_ROLLOVER'
+    status VARCHAR(30) NOT NULL DEFAULT 'SUCCESS', -- 'SUCCESS', 'FAILED', 'SKIPPED'
+    duration_ms BIGINT NOT NULL DEFAULT 0,
+    records_affected INT NOT NULL DEFAULT 0,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (batch_id) REFERENCES {schema}.eod_batch_executions(batch_id) ON DELETE CASCADE
+);
+
