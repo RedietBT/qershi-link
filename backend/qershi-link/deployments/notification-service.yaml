@@ -64,6 +64,8 @@ spec:
               value: "true"
             - name: SPRING_FLYWAY_BASELINE_VERSION
               value: "0"
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms128m -Xmx256m -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseSerialGC"
           resources:
             requests:
               memory: "192Mi"
@@ -73,20 +75,20 @@ spec:
               cpu: "1000m"
           livenessProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /actuator/health
               port: 8086
-            initialDelaySeconds: 180
+            initialDelaySeconds: 60
             periodSeconds: 15
-            timeoutSeconds: 5
-            failureThreshold: 3
+            timeoutSeconds: 10
+            failureThreshold: 6
           readinessProbe:
             httpGet:
-              path: /actuator/health/readiness
+              path: /actuator/health
               port: 8086
-            initialDelaySeconds: 15
+            initialDelaySeconds: 60
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
+            timeoutSeconds: 10
+            failureThreshold: 6
 ---
 apiVersion: v1
 kind: Service

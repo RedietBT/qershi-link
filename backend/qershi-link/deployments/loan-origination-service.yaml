@@ -46,6 +46,8 @@ spec:
               value: "flyway_schema_history_loan_origination"
             - name: SPRING_FLYWAY_BASELINE_ON_MIGRATE
               value: "true"
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms128m -Xmx256m -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseSerialGC"
           resources:
             requests:
               memory: "192Mi"
@@ -57,14 +59,18 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8084
-            initialDelaySeconds: 180
+            initialDelaySeconds: 60
             periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8084
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 6
 ---
 apiVersion: v1
 kind: Service
