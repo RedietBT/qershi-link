@@ -39,7 +39,7 @@ public class TransactionInquiryController {
     }
 
     @GetMapping("/account/{accountNo}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('TRANSACTION_VIEW') or hasAuthority('USER_VIEW_ALL')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('TRANSACTION_VIEW', 'TRANSACTION_VIEW_ALL', 'USER_VIEW_ALL')")
     @Operation(summary = "Get Account Transaction History", description = "Retrieves complete chronological transaction history for a specific member account.")
     public ResponseEntity<ApiResponse<List<TransactionResponse>>> getAccountTransactions(
             @PathVariable("accountNo") String accountNo) {
@@ -54,7 +54,7 @@ public class TransactionInquiryController {
     }
 
     @GetMapping("/{transactionRef}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('TRANSACTION_VIEW') or hasAuthority('USER_VIEW_ALL')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('TRANSACTION_VIEW', 'TRANSACTION_VIEW_ALL', 'USER_VIEW_ALL')")
     @Operation(summary = "Get Transaction Details by Reference", description = "Retrieves transaction details for a specific transaction reference.")
     public ResponseEntity<ApiResponse<TransactionResponse>> getTransactionByRef(
             @PathVariable("transactionRef") String transactionRef) {

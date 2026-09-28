@@ -44,7 +44,7 @@ public class AccountController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_OPEN')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ACCOUNT_OPEN', 'ACCOUNT_CREATE')")
     @Operation(summary = "Open New Member Account", description = "Opens a core ledger account for a member and generates an ISO Luhn account number (e.g. 0001-002-101-0001429).")
     public ResponseEntity<ApiResponse<Account>> openAccount(@Valid @RequestBody OpenAccountRequest request) {
         Account account = accountOpeningUseCase.openAccount(
