@@ -24,6 +24,7 @@ import {
   Shield,
   ShieldAlert,
   Landmark,
+  SlidersHorizontal,
   ChevronRight,
   ChevronDown,
   ArrowLeft,
@@ -485,6 +486,12 @@ export const Sidebar = () => {
               path="/accounts/config"
               label="SACCO Config"
               icon={Landmark}
+              isCollapsed={isCollapsed}
+            />
+            <NavItem
+              path="/governance/maker-checker-rules"
+              label="Maker-Checker Rules"
+              icon={SlidersHorizontal}
               isCollapsed={isCollapsed}
             />
           </PermissionGuard>

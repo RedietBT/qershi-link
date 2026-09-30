@@ -7,6 +7,7 @@ import { SaccoOnboardingPage } from '../../features/superadmin/pages/SaccoOnboar
 import { UserManagementPage } from '../../features/users/pages/UserManagementPage';
 import { RoleManagementPage } from '../../features/roles/pages/RoleManagementPage';
 import { AuditLogsPage } from '../../features/audit/pages/AuditLogsPage';
+import { MakerCheckerPolicyPage } from '../../features/governance/pages/MakerCheckerPolicyPage';
 
 /**
  * Super Admin & Platform Governance Routes
@@ -63,6 +64,17 @@ export const adminRoutes = [
       <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN', 'AUDITOR']}>
         <Layout>
           <AuditLogsPage />
+        </Layout>
+      </PermissionRoute>
+    }
+  />,
+  <Route
+    key="/governance/maker-checker-rules"
+    path="/governance/maker-checker-rules"
+    element={
+      <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN', 'ADMIN', 'AUDITOR']}>
+        <Layout>
+          <MakerCheckerPolicyPage />
         </Layout>
       </PermissionRoute>
     }
