@@ -15,14 +15,16 @@ import java.util.*;
 /**
  * Application service for managing the General Ledger Chart of Accounts (COA).
  * Builds dynamic recursive hierarchy trees, calculates rollup balances, and manages GL account creation.
+ * Implements strict cyclic graph protection and depth limits to prevent Denial of Service (DoS).
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @Service
 public class ChartOfAccountService {
 
     private static final Logger log = LoggerFactory.getLogger(ChartOfAccountService.class);
+    private static final int MAX_HIERARCHY_DEPTH = 6;
 
     private final SpringDataChartOfAccountRepository coaRepository;
 
@@ -33,6 +35,7 @@ public class ChartOfAccountService {
     /**
      * Builds and returns the complete Chart of Accounts hierarchy as a recursive tree.
      * Computes the aggregated rollup balance for every category and branch node.
+     * Guards against cyclic references using a visited set.
      */
     @Transactional(readOnly = true)
     public List<ChartOfAccountNodeDto> getCoaTree() {
@@ -71,19 +74,29 @@ public class ChartOfAccountService {
             }
         }
 
-        // 3. Calculate recursive rollup balances for each root branch
+        // 3. Calculate recursive rollup balances with cycle detection
+        Set<String> visited = new HashSet<>();
         for (ChartOfAccountNodeDto root : rootNodes) {
-            computeRollupBalance(root);
+            computeRollupBalance(root, visited);
         }
 
         return rootNodes;
     }
 
-    private BigDecimal computeRollupBalance(ChartOfAccountNodeDto node) {
-        BigDecimal sum = node.getBalance() != null ? node.getBalance() : BigDecimal.ZERO;
-        for (ChartOfAccountNodeDto child : node.getChildren()) {
-            sum = sum.add(computeRollupBalance(child));
+    private BigDecimal computeRollupBalance(ChartOfAccountNodeDto node, Set<String> visited) {
+        if (node == null || visited.contains(node.getGlCode())) {
+            log.warn("Cycle or duplicate traversal detected at GL Code '{}'. Aborting branch traversal.",
+                    node != null ? node.getGlCode() : "null");
+            return BigDecimal.ZERO;
         }
+
+        visited.add(node.getGlCode());
+        BigDecimal sum = node.getBalance() != null ? node.getBalance() : BigDecimal.ZERO;
+
+        for (ChartOfAccountNodeDto child : node.getChildren()) {
+            sum = sum.add(computeRollupBalance(child, visited));
+        }
+
         node.setRollupBalance(sum);
         return sum;
     }
@@ -98,7 +111,13 @@ public class ChartOfAccountService {
 
     /**
      * Creates a new General Ledger account.
-     * Validates GL Code uniqueness, parent validity, and structural type consistency.
+     * Enforces:
+     * - GL Code uniqueness
+     * - Parent existence and self-reference blocking
+     * - Circular loop prevention
+     * - Maximum hierarchy depth of 6
+     * - Structural category consistency (child type must match parent type)
+     * - Zero balance initialization (tamper protection)
      */
     @Transactional
     public ChartOfAccountEntity createAccount(CreateChartOfAccountRequest req) {
@@ -112,6 +131,10 @@ public class ChartOfAccountService {
                 : null;
 
         if (parentGl != null) {
+            if (cleanGlCode.equalsIgnoreCase(parentGl)) {
+                throw new IllegalArgumentException("Security/Integrity Error: An account cannot be its own parent.");
+            }
+
             ChartOfAccountEntity parent = coaRepository.findByGlCode(parentGl)
                     .orElseThrow(() -> new IllegalArgumentException("Parent GL Code '" + parentGl + "' not found."));
 
@@ -121,6 +144,27 @@ public class ChartOfAccountService {
                         "Accounting Integrity Violation: Sub-account type (" + req.getAccountType() +
                         ") must match parent account type (" + parent.getAccountType() + ")."
                 );
+            }
+
+            // Enforce hierarchy depth limit to prevent infinite tree bloat
+            int depth = 1;
+            String ancestorGl = parent.getParentGlCode();
+            Set<String> ancestors = new HashSet<>();
+            ancestors.add(parent.getGlCode());
+
+            while (ancestorGl != null && !ancestorGl.trim().isEmpty()) {
+                depth++;
+                if (depth > MAX_HIERARCHY_DEPTH) {
+                    throw new IllegalArgumentException("Maximum Chart of Accounts hierarchy depth of " +
+                            MAX_HIERARCHY_DEPTH + " exceeded.");
+                }
+                if (ancestors.contains(ancestorGl)) {
+                    throw new IllegalStateException("Corrupt hierarchy detected: Cycle present among ancestors of " + parentGl);
+                }
+                ancestors.add(ancestorGl);
+
+                Optional<ChartOfAccountEntity> ancestorEntity = coaRepository.findByGlCode(ancestorGl);
+                ancestorGl = ancestorEntity.map(ChartOfAccountEntity::getParentGlCode).orElse(null);
             }
         }
 
@@ -136,8 +180,11 @@ public class ChartOfAccountService {
             entity.setAllowManualJournal(req.getAllowManualJournal());
         }
 
+        // Security Guard: New GL accounts must ALWAYS start with zero balance
+        entity.setBalance(BigDecimal.ZERO);
+
         ChartOfAccountEntity saved = coaRepository.save(entity);
-        log.info("Created new General Ledger account '{}' ({}) under parent '{}'",
+        log.info("Successfully registered new GL account '{}' ({}) under parent '{}'",
                 saved.getGlCode(), saved.getAccountName(), parentGl);
 
         return saved;

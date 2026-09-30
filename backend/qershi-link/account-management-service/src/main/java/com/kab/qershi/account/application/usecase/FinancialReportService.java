@@ -22,13 +22,17 @@ import java.util.List;
  * 2. Balance Sheet (verifying Assets == Liabilities + Equity)
  * 3. Profit & Loss Statement (computing Revenue - Expenses = Net Operating Surplus)
  *
+ * Enforces strict temporal date bounds and input validation guards.
+ *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @Service
 public class FinancialReportService {
 
     private static final Logger log = LoggerFactory.getLogger(FinancialReportService.class);
+    private static final int MIN_YEAR = 2000;
+    private static final int MAX_YEAR = 2100;
 
     private final SpringDataChartOfAccountRepository coaRepository;
     private final EodBatchOrchestrator orchestrator;
@@ -40,14 +44,22 @@ public class FinancialReportService {
     }
 
     /**
-     * Resolves the effective target date: requested date or current system business date.
+     * Resolves and bounds-checks the effective financial date.
      */
-    private LocalDate resolveDate(LocalDate requestedDate) {
-        if (requestedDate != null) {
-            return requestedDate;
+    private LocalDate resolveAndValidateDate(LocalDate requestedDate) {
+        LocalDate date = requestedDate;
+        if (date == null) {
+            SystemBusinessDateEntity dateEntity = orchestrator.getOrCreateCurrentBusinessDate();
+            date = dateEntity.getCurrentBusinessDate();
         }
-        SystemBusinessDateEntity dateEntity = orchestrator.getOrCreateCurrentBusinessDate();
-        return dateEntity.getCurrentBusinessDate();
+
+        if (date.getYear() < MIN_YEAR || date.getYear() > MAX_YEAR) {
+            throw new IllegalArgumentException(
+                    "Date out of valid financial bounds. Year must be between " + MIN_YEAR + " and " + MAX_YEAR
+            );
+        }
+
+        return date;
     }
 
     /**
@@ -57,7 +69,7 @@ public class FinancialReportService {
      */
     @Transactional(readOnly = true)
     public TrialBalanceReportDto generateTrialBalance(LocalDate asOfDate) {
-        LocalDate effectiveDate = resolveDate(asOfDate);
+        LocalDate effectiveDate = resolveAndValidateDate(asOfDate);
         List<ChartOfAccountEntity> accounts = coaRepository.findAllByOrderByGlCodeAsc();
 
         List<TrialBalanceLineDto> lines = new ArrayList<>();
@@ -115,7 +127,7 @@ public class FinancialReportService {
      */
     @Transactional(readOnly = true)
     public BalanceSheetReportDto generateBalanceSheet(LocalDate asOfDate) {
-        LocalDate effectiveDate = resolveDate(asOfDate);
+        LocalDate effectiveDate = resolveAndValidateDate(asOfDate);
         List<ChartOfAccountEntity> accounts = coaRepository.findAllByOrderByGlCodeAsc();
 
         List<ReportSectionLineDto> assetLines = new ArrayList<>();
@@ -135,7 +147,6 @@ public class FinancialReportService {
 
             switch (account.getAccountType()) {
                 case ASSET -> {
-                    // Do not aggregate parent synthetic nodes if they just hold 0 or sub-sums
                     assetLines.add(new ReportSectionLineDto(account.getGlCode(), account.getAccountName(), bal));
                     totalAssets = totalAssets.add(bal);
                 }
@@ -180,8 +191,16 @@ public class FinancialReportService {
      */
     @Transactional(readOnly = true)
     public ProfitLossReportDto generateProfitLoss(LocalDate startDate, LocalDate endDate) {
-        LocalDate effectiveStart = startDate != null ? startDate : resolveDate(null).withDayOfMonth(1);
-        LocalDate effectiveEnd = resolveDate(endDate);
+        LocalDate effectiveStart = startDate != null
+                ? resolveAndValidateDate(startDate)
+                : resolveAndValidateDate(null).withDayOfMonth(1);
+        LocalDate effectiveEnd = resolveAndValidateDate(endDate);
+
+        if (effectiveStart.isAfter(effectiveEnd)) {
+            throw new IllegalArgumentException(
+                    "Invalid date range: Start date (" + effectiveStart + ") cannot be after end date (" + effectiveEnd + ")."
+            );
+        }
 
         List<ChartOfAccountEntity> accounts = coaRepository.findAllByOrderByGlCodeAsc();
 
