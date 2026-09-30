@@ -1,8 +1,11 @@
 package com.kab.qershi.account.infrastructure.rest;
 
 import com.kab.qershi.account.infrastructure.persistence.MakerCheckerRuleEntity;
+import com.kab.qershi.account.infrastructure.persistence.ProductMakerCheckerRuleEntity;
 import com.kab.qershi.account.infrastructure.persistence.SpringDataMakerCheckerRuleRepository;
+import com.kab.qershi.account.infrastructure.persistence.SpringDataProductMakerCheckerRuleRepository;
 import com.kab.qershi.account.infrastructure.rest.dto.MakerCheckerRuleRequest;
+import com.kab.qershi.account.infrastructure.rest.dto.ProductRuleUpdateRequest;
 import com.kab.qershi.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -12,27 +15,33 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
- * REST Controller for managing SACCO Maker-Checker Policies & Four-Eyes Thresholds.
+ * REST Controller for managing SACCO Maker-Checker Policies, Four-Eyes Thresholds,
+ * Domain Role Clearances, and Per-Product Risk Limits.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @RestController
 @RequestMapping("/api/v1/sacco-config/maker-checker-rules")
-@Tag(name = "SACCO Maker-Checker Policy Rules", description = "Endpoints for configuring Four-Eyes workflow toggles, transaction limits, and anti-self-approval enforcement.")
+@Tag(name = "SACCO Maker-Checker Policy Rules", description = "Endpoints for configuring Four-Eyes workflow toggles, transaction limits, anti-self-approval enforcement, and product-specific limits.")
 @SecurityRequirement(name = "bearerAuth")
 public class MakerCheckerRuleController {
 
     private final SpringDataMakerCheckerRuleRepository ruleRepository;
+    private final SpringDataProductMakerCheckerRuleRepository productRuleRepository;
 
-    public MakerCheckerRuleController(SpringDataMakerCheckerRuleRepository ruleRepository) {
+    public MakerCheckerRuleController(SpringDataMakerCheckerRuleRepository ruleRepository,
+                                      SpringDataProductMakerCheckerRuleRepository productRuleRepository) {
         this.ruleRepository = ruleRepository;
+        this.productRuleRepository = productRuleRepository;
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR') or hasAnyAuthority('SACCO_CONFIG', 'ACCOUNT_VIEW')")
-    @Operation(summary = "Get Maker-Checker Rules", description = "Retrieves active Four-Eyes governance toggles, transaction supervisor limits, and anti-self-approval status.")
+    @Operation(summary = "Get Maker-Checker Rules", description = "Retrieves active Four-Eyes governance toggles, transaction supervisor limits, and domain role assignments.")
     public ResponseEntity<ApiResponse<MakerCheckerRuleEntity>> getRules() {
         MakerCheckerRuleEntity rules = ruleRepository.findFirstByOrderByCreatedAtAsc()
                 .orElseGet(() -> {
@@ -44,7 +53,7 @@ public class MakerCheckerRuleController {
 
     @PutMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('SACCO_CONFIG', 'ROLE_MANAGE')")
-    @Operation(summary = "Update Maker-Checker Rules", description = "Configures Four-Eyes governance workflows, supervisor transaction thresholds, and anti-self-approval enforcement.")
+    @Operation(summary = "Update Maker-Checker Rules", description = "Configures Four-Eyes governance workflows, supervisor transaction thresholds, and domain Maker/Checker role clearances.")
     public ResponseEntity<ApiResponse<MakerCheckerRuleEntity>> updateRules(@Valid @RequestBody MakerCheckerRuleRequest request) {
         MakerCheckerRuleEntity rules = ruleRepository.findFirstByOrderByCreatedAtAsc()
                 .orElseGet(MakerCheckerRuleEntity::new);
@@ -73,8 +82,60 @@ public class MakerCheckerRuleController {
         if (request.enforceAntiSelfApproval() != null) {
             rules.setEnforceAntiSelfApproval(request.enforceAntiSelfApproval());
         }
+        if (request.memberMakerRoles() != null) {
+            rules.setMemberMakerRoles(request.memberMakerRoles().trim());
+        }
+        if (request.memberCheckerRoles() != null) {
+            rules.setMemberCheckerRoles(request.memberCheckerRoles().trim());
+        }
+        if (request.accountMakerRoles() != null) {
+            rules.setAccountMakerRoles(request.accountMakerRoles().trim());
+        }
+        if (request.accountCheckerRoles() != null) {
+            rules.setAccountCheckerRoles(request.accountCheckerRoles().trim());
+        }
+        if (request.loanMakerRoles() != null) {
+            rules.setLoanMakerRoles(request.loanMakerRoles().trim());
+        }
+        if (request.loanCheckerRoles() != null) {
+            rules.setLoanCheckerRoles(request.loanCheckerRoles().trim());
+        }
 
         MakerCheckerRuleEntity saved = ruleRepository.save(rules);
         return ResponseEntity.ok(ApiResponse.success(saved, "SACCO Maker-Checker policy rules updated successfully."));
+    }
+
+    @GetMapping("/products")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'AUDITOR') or hasAnyAuthority('SACCO_CONFIG', 'ACCOUNT_VIEW')")
+    @Operation(summary = "Get Per-Product Risk & Maker-Checker Rules", description = "Retrieves all account product limits, storing balance caps, and Four-Eyes settings.")
+    public ResponseEntity<ApiResponse<List<ProductMakerCheckerRuleEntity>>> getProductRules() {
+        List<ProductMakerCheckerRuleEntity> productRules = productRuleRepository.findAll();
+        return ResponseEntity.ok(ApiResponse.success(productRules, "Retrieved " + productRules.size() + " product rules."));
+    }
+
+    @PutMapping("/products/{productCode}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('SACCO_CONFIG', 'PRODUCT_MANAGE')")
+    @Operation(summary = "Update Specific Product Rules", description = "Updates max balance storing limit, single withdrawal limit, daily limit, and Four-Eyes override for an account product.")
+    public ResponseEntity<ApiResponse<ProductMakerCheckerRuleEntity>> updateProductRule(
+            @PathVariable String productCode,
+            @Valid @RequestBody ProductRuleUpdateRequest request) {
+        ProductMakerCheckerRuleEntity rule = productRuleRepository.findByProductCode(productCode)
+                .orElseGet(() -> {
+                    ProductMakerCheckerRuleEntity newRule = new ProductMakerCheckerRuleEntity();
+                    newRule.setProductCode(productCode);
+                    newRule.setProductName("Product " + productCode);
+                    return newRule;
+                });
+
+        rule.setMinOperatingBalance(request.minOperatingBalance());
+        rule.setMaxBalanceLimit(request.maxBalanceLimit());
+        rule.setSingleWithdrawalLimit(request.singleWithdrawalLimit());
+        rule.setDailyWithdrawalLimit(request.dailyWithdrawalLimit());
+        if (request.enableMakerChecker() != null) {
+            rule.setEnableMakerChecker(request.enableMakerChecker());
+        }
+
+        ProductMakerCheckerRuleEntity saved = productRuleRepository.save(rule);
+        return ResponseEntity.ok(ApiResponse.success(saved, "Product rules for " + productCode + " updated successfully."));
     }
 }

@@ -7,10 +7,11 @@ import java.util.UUID;
 
 /**
  * JPA Entity mapping sacco_xxx.sacco_maker_checker_rules database table.
- * Stores Four-Eyes operational policies, transaction thresholds, and anti-self-approval enforcement.
+ * Stores Four-Eyes operational policies, transaction thresholds, anti-self-approval enforcement,
+ * and Maker/Checker role clearances.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @Entity
 @Table(name = "sacco_maker_checker_rules")
@@ -47,6 +48,24 @@ public class MakerCheckerRuleEntity {
 
     @Column(name = "enforce_anti_self_approval", nullable = false)
     private boolean enforceAntiSelfApproval = true;
+
+    @Column(name = "member_maker_roles", nullable = false, length = 255)
+    private String memberMakerRoles = "TELLER,CUSTOMER_SERVICE,ADMIN";
+
+    @Column(name = "member_checker_roles", nullable = false, length = 255)
+    private String memberCheckerRoles = "BRANCH_MANAGER,SACCO_ADMIN,AUDITOR";
+
+    @Column(name = "account_maker_roles", nullable = false, length = 255)
+    private String accountMakerRoles = "TELLER,CUSTOMER_SERVICE,ADMIN";
+
+    @Column(name = "account_checker_roles", nullable = false, length = 255)
+    private String accountCheckerRoles = "BRANCH_MANAGER,SACCO_ADMIN";
+
+    @Column(name = "loan_maker_roles", nullable = false, length = 255)
+    private String loanMakerRoles = "LOAN_OFFICER,ADMIN";
+
+    @Column(name = "loan_checker_roles", nullable = false, length = 255)
+    private String loanCheckerRoles = "BRANCH_MANAGER,SACCO_ADMIN";
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -98,6 +117,24 @@ public class MakerCheckerRuleEntity {
 
     public boolean isEnforceAntiSelfApproval() { return enforceAntiSelfApproval; }
     public void setEnforceAntiSelfApproval(boolean enforceAntiSelfApproval) { this.enforceAntiSelfApproval = enforceAntiSelfApproval; }
+
+    public String getMemberMakerRoles() { return memberMakerRoles; }
+    public void setMemberMakerRoles(String memberMakerRoles) { this.memberMakerRoles = memberMakerRoles; }
+
+    public String getMemberCheckerRoles() { return memberCheckerRoles; }
+    public void setMemberCheckerRoles(String memberCheckerRoles) { this.memberCheckerRoles = memberCheckerRoles; }
+
+    public String getAccountMakerRoles() { return accountMakerRoles; }
+    public void setAccountMakerRoles(String accountMakerRoles) { this.accountMakerRoles = accountMakerRoles; }
+
+    public String getAccountCheckerRoles() { return accountCheckerRoles; }
+    public void setAccountCheckerRoles(String accountCheckerRoles) { this.accountCheckerRoles = accountCheckerRoles; }
+
+    public String getLoanMakerRoles() { return loanMakerRoles; }
+    public void setLoanMakerRoles(String loanMakerRoles) { this.loanMakerRoles = loanMakerRoles; }
+
+    public String getLoanCheckerRoles() { return loanCheckerRoles; }
+    public void setLoanCheckerRoles(String loanCheckerRoles) { this.loanCheckerRoles = loanCheckerRoles; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

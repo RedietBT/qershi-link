@@ -8,7 +8,7 @@ import java.math.BigDecimal;
  * Request DTO for updating SACCO Maker-Checker & Policy Rules.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 public record MakerCheckerRuleRequest(
     Boolean enableMemberOnboardingChecker,
@@ -25,5 +25,12 @@ public record MakerCheckerRuleRequest(
     @DecimalMin(value = "0.0", inclusive = true, message = "Daily account limit cannot be negative")
     BigDecimal dailyAccountLimitThreshold,
 
-    Boolean enforceAntiSelfApproval
+    Boolean enforceAntiSelfApproval,
+
+    String memberMakerRoles,
+    String memberCheckerRoles,
+    String accountMakerRoles,
+    String accountCheckerRoles,
+    String loanMakerRoles,
+    String loanCheckerRoles
 ) {}
