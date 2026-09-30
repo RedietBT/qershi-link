@@ -84,7 +84,14 @@
 
 ---
 
-### 🤝 Day 4: Peer Guarantors (Savings Liens) & Fee/Tax Engine
+### 🤝 Day 4: Peer Guarantors, Maker-Checker Policy Engine & Fee/Tax
+- [x] **SACCO Maker-Checker & Policy Rules Engine**
+  - [x] Create `sacco_maker_checker_rules` table (`V6__create_maker_checker_rules.sql`).
+  - [x] Configurable Four-Eyes toggles for Member Onboarding, Account Opening, Account Freeze, Loan Approval, and Disbursement.
+  - [x] Configurable single-transaction supervisor override threshold & daily account limit threshold.
+  - [x] Enforce anti-self-approval rule (`maker != checker`).
+  - [x] REST endpoints: `GET /api/v1/sacco-config/maker-checker-rules` and `PUT /api/v1/sacco-config/maker-checker-rules`.
+  - [x] `MakerCheckerPolicyPage.jsx`: Full SACCO governance UI with interactive domain toggles, threshold inputs, and anti-self-approval enforcement banner.
 - [ ] **Member Peer Guarantor Management**
   - [ ] Update `loan-origination-service` to accept `guarantors` array (`guarantor_user_id`, `savings_account_no`, `guaranteed_amount`).
   - [ ] Verify guarantor has sufficient unencumbered savings balance.
@@ -97,6 +104,7 @@
   - [ ] Calculate statutory 5% withholding tax during monthly interest capitalization.
   - [ ] Post: `DEBIT Interest Payable` | `CREDIT Member Savings (95%)` | `CREDIT WHT Payable to Government (5%)`.
 - [ ] **Frontend Deliverables**
+  - [x] `MakerCheckerPolicyPage.jsx`: Dedicated SACCO Maker-Checker & Four-Eyes policy management screen.
   - [ ] `GuarantorPledgingSection.jsx`: Integrated into loan application form with real-time balance check.
   - [ ] `TariffManagementPage.jsx`: Configure transaction fees, commissions, and tax rules.
 
