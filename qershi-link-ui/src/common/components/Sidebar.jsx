@@ -24,7 +24,9 @@ import {
   BadgePercent,
   Vault,
   Moon,
-  AlertTriangle
+  AlertTriangle,
+  FolderTree,
+  Scale
 } from 'lucide-react';
 import { PermissionGuard } from './PermissionGuard';
 import { PERMISSIONS, ROLES } from '../constants/permissions';
@@ -182,7 +184,25 @@ export const Sidebar = () => {
           </NavGroup>
         </PermissionGuard>
 
-        {/* ── 4. GOVERNANCE & SECURITY ── */}
+        {/* ── 4. ACCOUNTING & GENERAL LEDGER ── */}
+        <PermissionGuard
+          permissions={[PERMISSIONS.COA_VIEW, PERMISSIONS.COA_MANAGE, PERMISSIONS.FINANCIAL_REPORT_VIEW]}
+          roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN, ROLES.AUDITOR]}
+        >
+          <div className="text-[9px] font-extrabold uppercase tracking-widest text-[var(--bdae-text-secondary)]/70 px-3 pt-3 pb-1">
+            Accounting & General Ledger
+          </div>
+          <NavGroup label="General Ledger & Reports" icon={Scale}>
+            <PermissionGuard permissions={[PERMISSIONS.COA_VIEW, PERMISSIONS.COA_MANAGE]}>
+              <SubNavItem path="/accounting/chart-of-accounts" label="Chart of Accounts" icon={FolderTree} />
+            </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.FINANCIAL_REPORT_VIEW]}>
+              <SubNavItem path="/accounting/reports" label="Financial Statements" icon={FileText} />
+            </PermissionGuard>
+          </NavGroup>
+        </PermissionGuard>
+
+        {/* ── 5. GOVERNANCE & SECURITY ── */}
         <PermissionGuard roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN]}>
           <div className="text-[9px] font-extrabold uppercase tracking-widest text-[var(--bdae-text-secondary)]/70 px-3 pt-3 pb-1">
             Governance & Security

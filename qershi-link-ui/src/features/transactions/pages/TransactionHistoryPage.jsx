@@ -40,7 +40,7 @@ export const TransactionHistoryPage = () => {
       setError(null);
       setSearched(true);
       const res = await transactionApi.getAccountTransactions(query);
-      const data = res.data || [];
+      const data = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : (res?.data?.data || []));
       setTransactions(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch account transactions:', err);
