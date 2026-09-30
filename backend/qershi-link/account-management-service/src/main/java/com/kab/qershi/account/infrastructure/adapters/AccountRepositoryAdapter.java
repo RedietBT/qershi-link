@@ -77,7 +77,7 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
 
     private AccountEntity toEntity(Account domain) {
         if (domain == null) return null;
-        return new AccountEntity(
+        AccountEntity entity = new AccountEntity(
                 domain.getAccountId(),
                 domain.getAccountNo(),
                 domain.getUserId(),
@@ -95,11 +95,14 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
                 domain.getCreatedAt(),
                 domain.getUpdatedAt()
         );
+        entity.setDailyWithdrawnAmount(domain.getDailyWithdrawnAmount());
+        entity.setDailyWithdrawnDate(domain.getDailyWithdrawnDate());
+        return entity;
     }
 
     private Account toDomain(AccountEntity entity) {
         if (entity == null) return null;
-        return new Account(
+        Account domain = new Account(
                 entity.getAccountId(),
                 entity.getAccountNo(),
                 entity.getUserId(),
@@ -117,5 +120,8 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
+        domain.setDailyWithdrawnAmount(entity.getDailyWithdrawnAmount());
+        domain.setDailyWithdrawnDate(entity.getDailyWithdrawnDate());
+        return domain;
     }
 }

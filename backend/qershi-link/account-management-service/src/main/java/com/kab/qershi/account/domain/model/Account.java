@@ -29,6 +29,8 @@ public class Account {
     private LocalDateTime closedDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private BigDecimal dailyWithdrawnAmount = BigDecimal.ZERO;
+    private java.time.LocalDate dailyWithdrawnDate = java.time.LocalDate.now();
 
     public Account() {
         this.bookBalance = BigDecimal.ZERO;
@@ -38,6 +40,8 @@ public class Account {
         this.openedDate = LocalDateTime.now();
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        this.dailyWithdrawnAmount = BigDecimal.ZERO;
+        this.dailyWithdrawnDate = java.time.LocalDate.now();
     }
 
     public Account(UUID accountId, String accountNo, UUID userId, String saccoCode, String branchCode,
@@ -61,6 +65,8 @@ public class Account {
         this.closedDate = closedDate;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();
         this.updatedAt = updatedAt != null ? updatedAt : LocalDateTime.now();
+        this.dailyWithdrawnAmount = BigDecimal.ZERO;
+        this.dailyWithdrawnDate = java.time.LocalDate.now();
     }
 
     /**
@@ -119,13 +125,33 @@ public class Account {
     }
 
     /**
-     * Executes a debit transaction by updating the book balance.
+     * Calculates cumulative debits executed today. Returns 0 if new calendar day.
+     */
+    public BigDecimal getDailyWithdrawnAmountToday() {
+        if (dailyWithdrawnDate == null || !dailyWithdrawnDate.equals(java.time.LocalDate.now())) {
+            return BigDecimal.ZERO;
+        }
+        return dailyWithdrawnAmount != null ? dailyWithdrawnAmount : BigDecimal.ZERO;
+    }
+
+    /**
+     * Executes a debit transaction by updating the book balance and daily withdrawal accumulator.
      */
     public void debit(BigDecimal amount, BigDecimal minOperatingBalance) {
         if (!canPerformDebit(amount, minOperatingBalance)) {
             throw new IllegalStateException("Account cannot be debited. Insufficient funds or freeze in place.");
         }
         this.bookBalance = this.bookBalance.subtract(amount);
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (this.dailyWithdrawnDate == null || !this.dailyWithdrawnDate.equals(today)) {
+            this.dailyWithdrawnAmount = amount;
+            this.dailyWithdrawnDate = today;
+        } else {
+            BigDecimal currentDaily = this.dailyWithdrawnAmount != null ? this.dailyWithdrawnAmount : BigDecimal.ZERO;
+            this.dailyWithdrawnAmount = currentDaily.add(amount);
+        }
+
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -216,4 +242,10 @@ public class Account {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public BigDecimal getDailyWithdrawnAmount() { return dailyWithdrawnAmount; }
+    public void setDailyWithdrawnAmount(BigDecimal dailyWithdrawnAmount) { this.dailyWithdrawnAmount = dailyWithdrawnAmount; }
+
+    public java.time.LocalDate getDailyWithdrawnDate() { return dailyWithdrawnDate; }
+    public void setDailyWithdrawnDate(java.time.LocalDate dailyWithdrawnDate) { this.dailyWithdrawnDate = dailyWithdrawnDate; }
 }

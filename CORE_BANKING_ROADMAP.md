@@ -92,6 +92,13 @@
   - [x] Enforce anti-self-approval rule (`maker != checker`).
   - [x] REST endpoints: `GET /api/v1/sacco-config/maker-checker-rules` and `PUT /api/v1/sacco-config/maker-checker-rules`.
   - [x] `MakerCheckerPolicyPage.jsx`: Full SACCO governance UI with interactive domain toggles, threshold inputs, and anti-self-approval enforcement banner.
+- [x] **Account Product Risk Limits & Real-Time Enforcement Engine**
+  - [x] Create `product_maker_checker_rules` and `V7__add_daily_withdrawn_tracking_to_accounts.sql`.
+  - [x] Storage ceiling enforcement: Rejects deposits/inbound transfers if resulting balance exceeds product's `max_balance_limit`.
+  - [x] Single-withdrawal supervisor threshold: Enforces Four-Eyes Maker-Checker authorization if withdrawal exceeds `single_withdrawal_limit`.
+  - [x] Daily cumulative withdrawal limit: Tracks daily debits and blocks transactions exceeding `daily_withdrawal_limit`.
+  - [x] Minimum operating balance floor: Enforces unwithdrawable minimum contractual balance.
+  - [x] Dynamic UI: Modal for creating and editing per-account-type rules with quick presets (Student, Women, General, etc.) in `AccountsWorkflowTab.jsx`.
 - [ ] **Member Peer Guarantor Management**
   - [ ] Update `loan-origination-service` to accept `guarantors` array (`guarantor_user_id`, `savings_account_no`, `guaranteed_amount`).
   - [ ] Verify guarantor has sufficient unencumbered savings balance.

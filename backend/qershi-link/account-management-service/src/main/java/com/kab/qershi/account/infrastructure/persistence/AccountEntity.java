@@ -60,6 +60,12 @@ public class AccountEntity {
     @Column(name = "last_activity_date")
     private java.time.LocalDate lastActivityDate;
 
+    @Column(name = "daily_withdrawn_amount", nullable = false, precision = 19, scale = 4)
+    private BigDecimal dailyWithdrawnAmount = BigDecimal.ZERO;
+
+    @Column(name = "daily_withdrawn_date")
+    private java.time.LocalDate dailyWithdrawnDate = java.time.LocalDate.now();
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private AccountStatus status;
@@ -171,4 +177,10 @@ public class AccountEntity {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public BigDecimal getDailyWithdrawnAmount() { return dailyWithdrawnAmount; }
+    public void setDailyWithdrawnAmount(BigDecimal dailyWithdrawnAmount) { this.dailyWithdrawnAmount = dailyWithdrawnAmount; }
+
+    public java.time.LocalDate getDailyWithdrawnDate() { return dailyWithdrawnDate; }
+    public void setDailyWithdrawnDate(java.time.LocalDate dailyWithdrawnDate) { this.dailyWithdrawnDate = dailyWithdrawnDate; }
 }
