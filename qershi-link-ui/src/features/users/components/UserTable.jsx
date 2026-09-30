@@ -134,44 +134,52 @@ export const UserTable = ({
                   {/* Action Buttons */}
                   <td className="py-3.5 px-4 text-right space-x-1.5">
                     {/* Edit Security Parameters */}
-                    <button
-                      onClick={() => onEdit(user)}
-                      className="px-2.5 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] hover:bg-[var(--bdae-secondary)]/10 text-[var(--bdae-secondary)] text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                      title="Update Mobile Phone & Security Status"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
-                    </button>
+                    <PermissionGuard permissions={['USER_MANAGE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                      <button
+                        onClick={() => onEdit(user)}
+                        className="px-2.5 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] hover:bg-[var(--bdae-secondary)]/10 text-[var(--bdae-secondary)] text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
+                        title="Update Mobile Phone & Security Status"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+                    </PermissionGuard>
 
                     {/* Resend PIN */}
-                    <button
-                      onClick={() => onResendPin(user.userId)}
-                      className="px-2.5 py-1.5 rounded-xl border border-amber-500/30 hover:border-amber-500 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                      title="Resend Initial PIN via SMS"
-                    >
-                      <KeyRound className="w-3.5 h-3.5" />
-                      <span>PIN</span>
-                    </button>
+                    <PermissionGuard permissions={['USER_MANAGE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                      <button
+                        onClick={() => onResendPin(user.userId)}
+                        className="px-2.5 py-1.5 rounded-xl border border-amber-500/30 hover:border-amber-500 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
+                        title="Resend Initial PIN via SMS"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                        <span>PIN</span>
+                      </button>
+                    </PermissionGuard>
 
                     {/* Assign Role */}
-                    <button
-                      onClick={() => onAssignRole(user)}
-                      className="px-2.5 py-1.5 rounded-xl border border-cyan-500/30 hover:border-cyan-500 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                      title="Assign Role to User"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Role</span>
-                    </button>
+                    <PermissionGuard permissions={['USER_MANAGE', 'ROLE_MANAGE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                      <button
+                        onClick={() => onAssignRole(user)}
+                        className="px-2.5 py-1.5 rounded-xl border border-cyan-500/30 hover:border-cyan-500 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
+                        title="Assign Role to User"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Role</span>
+                      </button>
+                    </PermissionGuard>
 
                     {/* Create Profile */}
-                    <button
-                      onClick={() => onProfileCreate(user)}
-                      className="px-2.5 py-1.5 rounded-xl border border-purple-500/30 hover:border-purple-500 bg-purple-500/5 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                      title="Create Member Profile for User"
-                    >
-                      <Contact className="w-3.5 h-3.5" />
-                      <span>Profile</span>
-                    </button>
+                    <PermissionGuard permissions={['MEMBER_CREATE', 'USER_MANAGE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                      <button
+                        onClick={() => onProfileCreate(user)}
+                        className="px-2.5 py-1.5 rounded-xl border border-purple-500/30 hover:border-purple-500 bg-purple-500/5 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
+                        title="Create Member Profile for User"
+                      >
+                        <Contact className="w-3.5 h-3.5" />
+                        <span>Profile</span>
+                      </button>
+                    </PermissionGuard>
 
                     {/* Delete User (SUPER_ADMIN ONLY) */}
                     <PermissionGuard role="SUPER_ADMIN">

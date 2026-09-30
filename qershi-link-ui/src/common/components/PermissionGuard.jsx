@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/useAuthStore';
  * Component-Based Permission Guard consuming Zustand Auth Store.
  * Supports single or array of roles (e.g. roles={['SUPER_ADMIN', 'SACCO_ADMIN']}) and permissions.
  */
-export const PermissionGuard = ({ permission, permissions, role, roles, children, fallback = null }) => {
+export const PermissionGuard = ({ permission, permissions, authorities, role, roles, children, fallback = null }) => {
   const user = useAuthStore((state) => state.user);
   const hasRole = useAuthStore((state) => state.hasRole);
   const hasPermission = useAuthStore((state) => state.hasPermission);
@@ -30,7 +30,7 @@ export const PermissionGuard = ({ permission, permissions, role, roles, children
     if (!isAuthorizedRole) return fallback;
   }
 
-  const permList = permissions || (Array.isArray(permission) ? permission : permission ? [permission] : []);
+  const permList = permissions || authorities || (Array.isArray(permission) ? permission : permission ? [permission] : []);
   if (permList.length > 0) {
     const isAuthorizedPerm = permList.some((p) => hasPermission(p));
     if (!isAuthorizedPerm) return fallback;

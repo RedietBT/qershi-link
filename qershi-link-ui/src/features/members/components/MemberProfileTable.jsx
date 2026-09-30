@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, ShieldAlert, RefreshCw, BadgeInfo } from 'lucide-react';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
+import { MaskedDataField } from '../../../common/components/MaskedDataField';
 
 const formatStatus = (status) => {
     switch (status) {
@@ -69,7 +70,16 @@ export const MemberProfileTable = ({ profiles = [], isLoading, error, onViewProf
                             return (
                                 <tr key={p.userId} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
                                     <td className="py-3 px-4 font-mono text-[11px] text-[var(--bdae-primary)] font-bold">
-                                        {p.memberNo || 'N/A'}
+                                        {p.memberNo ? (
+                                            <MaskedDataField
+                                                value={p.memberNo}
+                                                type="account"
+                                                allowReveal={true}
+                                                className="font-mono text-[11px] text-[var(--bdae-primary)] font-bold"
+                                            />
+                                        ) : (
+                                            'N/A'
+                                        )}
                                     </td>
                                     <td className="py-3 px-4 font-semibold text-[var(--bdae-text-primary)]">
                                         {p.firstName} {p.middleName} {p.lastName}

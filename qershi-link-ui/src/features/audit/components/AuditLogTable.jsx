@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuditStatusBadge } from './AuditStatusBadge';
+import { MaskedDataField } from '../../../common/components/MaskedDataField';
 import { ShieldCheck, RefreshCw, AlertCircle, Calendar, Globe, ChevronDown, ChevronUp, Terminal } from 'lucide-react';
 
 export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
@@ -97,7 +98,16 @@ export const AuditLogTable = ({ logs = [], isLoading, error, onRefresh }) => {
 
                     {/* User Phone */}
                     <td className="py-3.5 px-4 font-mono text-xs text-[var(--bdae-text-primary)] font-semibold">
-                      {log.phoneNumber || 'N/A'}
+                      {log.phoneNumber ? (
+                        <MaskedDataField
+                          value={log.phoneNumber}
+                          type="phone"
+                          allowReveal={true}
+                          className="font-mono text-xs text-[var(--bdae-text-primary)] font-semibold"
+                        />
+                      ) : (
+                        'N/A'
+                      )}
                     </td>
 
                     {/* Resource Affected */}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { RoleBadge } from './RoleBadge';
+import { PermissionGuard } from '../../../common/components/PermissionGuard';
 import { 
   getPermissionDisplayName, 
   getPermissionDescription, 
@@ -182,31 +183,35 @@ export const RoleTable = ({
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right space-x-1.5">
                       {/* Edit Role Button (Always Available) */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(role);
-                        }}
-                        className="px-2.5 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] hover:bg-[var(--bdae-secondary)]/10 text-[var(--bdae-secondary)] text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                        title="Update Role & Manage Permissions"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Update Role</span>
-                      </button>
-
-                      {/* Delete Action (Custom Roles Only) */}
-                      {!isSystemDefined ? (
+                      <PermissionGuard permissions={['ROLE_MANAGE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDelete(role);
+                            onEdit(role);
                           }}
-                          className="px-2.5 py-1.5 rounded-xl border border-red-500/30 hover:border-red-500 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                          title="Delete Custom Role"
+                          className="px-2.5 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] hover:bg-[var(--bdae-secondary)]/10 text-[var(--bdae-secondary)] text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
+                          title="Update Role & Manage Permissions"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Delete</span>
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Update Role</span>
                         </button>
+                      </PermissionGuard>
+
+                      {/* Delete Action (Custom Roles Only) */}
+                      {!isSystemDefined ? (
+                        <PermissionGuard permissions={['ROLE_MANAGE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(role);
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl border border-red-500/30 hover:border-red-500 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
+                            title="Delete Custom Role"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
+                        </PermissionGuard>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-mono text-[var(--bdae-text-secondary)] italic px-1">
                           <Lock className="w-3 h-3 opacity-60" /> System
@@ -237,16 +242,18 @@ export const RoleTable = ({
 
                             <div className="flex items-center space-x-3 self-end sm:self-auto">
                               {/* Edit Button in Drawer */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEdit(role);
-                                }}
-                                className="bdae-btn-primary px-3 py-1.5 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 shadow-sm"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span>Update Role Permissions</span>
-                              </button>
+                              <PermissionGuard permissions={['ROLE_MANAGE']} roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEdit(role);
+                                  }}
+                                  className="bdae-btn-primary px-3 py-1.5 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 shadow-sm"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  <span>Update Role Permissions</span>
+                                </button>
+                              </PermissionGuard>
                             </div>
                           </div>
 

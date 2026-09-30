@@ -25,14 +25,14 @@ export const AuditLogsPage = () => {
   const [activeTab, setActiveTab] = useState('auth');
 
   return (
-    <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN']} fallback={
+    <PermissionGuard roles={['SUPER_ADMIN', 'SACCO_ADMIN', 'AUDITOR']} permissions={['AUDIT_LOG_VIEW']} fallback={
       <div className="p-8 text-center max-w-lg mx-auto space-y-4">
         <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 mx-auto flex items-center justify-center">
           <Lock className="w-6 h-6" />
         </div>
         <h2 className="text-lg font-bold">Access Restricted</h2>
         <p className="text-xs text-[var(--bdae-text-secondary)]">
-          Security Audit Engine requires Super Admin or SACCO Admin authorization.
+          Security Audit Engine requires Audit authorization (AUDIT_LOG_VIEW or Admin role).
         </p>
       </div>
     }>
