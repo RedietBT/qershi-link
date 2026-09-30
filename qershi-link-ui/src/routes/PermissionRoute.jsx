@@ -7,7 +7,7 @@ import { Lock } from 'lucide-react';
  * Guard for routes requiring specific Roles or Permissions.
  * Supports arrays of roles (e.g. roles={['SUPER_ADMIN', 'SACCO_ADMIN']}).
  */
-export const PermissionRoute = ({ role, roles, permission, permissions, children }) => {
+export const PermissionRoute = ({ role, roles, permission, permissions, authorities, children }) => {
   const user = useAuthStore((state) => state.user);
   const hasRole = useAuthStore((state) => state.hasRole);
   const hasPermission = useAuthStore((state) => state.hasPermission);
@@ -29,7 +29,7 @@ export const PermissionRoute = ({ role, roles, permission, permissions, children
   const roleList = roles || (Array.isArray(role) ? role : role ? [role] : []);
   const isRoleAuthorized = roleList.length === 0 || roleList.some((r) => hasRole(r));
 
-  const permList = permissions || (Array.isArray(permission) ? permission : permission ? [permission] : []);
+  const permList = permissions || authorities || (Array.isArray(permission) ? permission : permission ? [permission] : []);
   const isPermissionAuthorized = permList.length === 0 || permList.some((p) => hasPermission(p));
 
   if (!isRoleAuthorized || !isPermissionAuthorized) {

@@ -435,7 +435,7 @@ export const Sidebar = () => {
         </PermissionGuard>
 
         {/* ── 7. PLATFORM GOVERNANCE ── */}
-        <PermissionGuard roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN]}>
+        <PermissionGuard roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN, ROLES.AUDITOR]}>
           <SectionDivider title="Governance & Security" isCollapsed={isCollapsed} />
 
           <PermissionGuard role={ROLES.SUPER_ADMIN}>
@@ -466,6 +466,12 @@ export const Sidebar = () => {
               icon={Shield}
               isCollapsed={isCollapsed}
             />
+          </PermissionGuard>
+
+          <PermissionGuard
+            roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.AUDITOR]}
+            permissions={[PERMISSIONS.AUDIT_LOG_VIEW]}
+          >
             <NavItem
               path="/audit-logs"
               label="Security Audit Trail"

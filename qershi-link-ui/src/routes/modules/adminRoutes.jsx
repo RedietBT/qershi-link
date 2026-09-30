@@ -60,7 +60,7 @@ export const adminRoutes = [
     key="/audit-logs"
     path="/audit-logs"
     element={
-      <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN']}>
+      <PermissionRoute roles={['SUPER_ADMIN', 'SACCO_ADMIN', 'AUDITOR']}>
         <Layout>
           <AuditLogsPage />
         </Layout>
