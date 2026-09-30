@@ -2,11 +2,15 @@ import React from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { Building2, LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getUserDisplayName, formatRole } from '../utils/masking';
 
 export const Navbar = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
+
+  const displayName = getUserDisplayName(user);
+  const roleTitle = formatRole(user?.globalRole || user?.roles?.[0]);
 
   return (
     <header className="h-16 bdae-surface border-b border-[var(--bdae-border)] px-6 flex items-center justify-between sticky top-0 z-30 transition-colors duration-300">
@@ -36,8 +40,12 @@ export const Navbar = () => {
             <User className="w-4 h-4" />
           </div>
           <div className="text-left">
-            <p className="text-xs font-bold text-[var(--bdae-text-primary)] leading-none">{user?.msisdn || 'SACCO User'}</p>
-            <p className="text-[10px] text-[var(--bdae-text-secondary)] font-mono">{user?.globalRole || user?.roles?.[0] || 'ROLE_USER'}</p>
+            <p className="text-xs font-bold text-[var(--bdae-text-primary)] leading-none max-w-[140px] truncate" title={displayName}>
+              {displayName}
+            </p>
+            <p className="text-[10px] text-[var(--bdae-text-secondary)] font-medium truncate max-w-[140px]" title={roleTitle}>
+              {roleTitle}
+            </p>
           </div>
         </div>
 

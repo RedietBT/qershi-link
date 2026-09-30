@@ -2,6 +2,8 @@ import React from 'react';
 import { UserStatusBadge } from './UserStatusBadge';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
 import { Users, Phone, Calendar, Building2, RefreshCw, AlertCircle, Edit3, Trash2, KeyRound, ShieldCheck, Crown, Contact } from 'lucide-react';
+import { MaskedDataField } from '../../../common/components/MaskedDataField';
+import { formatRole } from '../../../common/utils/masking';
 
 export const UserTable = ({
   users = [],
@@ -92,9 +94,12 @@ export const UserTable = ({
                         <Phone className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="font-mono font-bold text-[var(--bdae-text-primary)] text-xs">
-                          {user.msisdn}
-                        </p>
+                        <MaskedDataField
+                          value={user.msisdn}
+                          type="phone"
+                          allowReveal={true}
+                          className="font-bold text-[var(--bdae-text-primary)] text-xs"
+                        />
                       </div>
                     </div>
                   </td>
@@ -104,11 +109,11 @@ export const UserTable = ({
                     {isSuperAdminRole ? (
                       <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-600 border border-cyan-500/30">
                         <Crown className="w-3 h-3" />
-                        <span>SUPER_ADMIN</span>
+                        <span>Platform Super Admin</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/10 text-slate-600 border border-slate-500/20">
-                        <span>{user.globalRole || 'SACCO_USER'}</span>
+                        <span>{formatRole(user.globalRole || 'SACCO_USER')}</span>
                       </span>
                     )}
                   </td>

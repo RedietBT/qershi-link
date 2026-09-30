@@ -58,10 +58,18 @@ export const useAuthStore = create(
         const msisdn = sessionData.msisdn || ctx.msisdn || jwtClaims.msisdn || jwtClaims.sub;
         const saccoId = ctx.saccoId || sessionData.saccoId || jwtClaims.saccoId || null;
         const tenantSchema = ctx.schemaName || sessionData.tenantSchema || jwtClaims.schemaName || jwtClaims.tenantSchema || 'master_schema';
+        const fullName = ctx.fullName || sessionData.fullName || jwtClaims.fullName || jwtClaims.name || null;
+        const firstName = ctx.firstName || sessionData.firstName || null;
+        const lastName = ctx.lastName || sessionData.lastName || null;
+        const branchId = ctx.branchId || sessionData.branchId || jwtClaims.branchId || null;
 
         const userData = {
           userId,
           msisdn,
+          fullName,
+          firstName,
+          lastName,
+          branchId,
           globalRole: globalRole || (roles[0] || 'ROLE_USER'),
           roles,
           permissions: Array.isArray(permissions) ? permissions : [],
