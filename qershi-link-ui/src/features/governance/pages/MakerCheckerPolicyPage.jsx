@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ShieldCheck,
   Lock,
@@ -9,7 +10,8 @@ import {
   RefreshCw,
   Sliders,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardCheck
 } from 'lucide-react';
 import { makerCheckerApi } from '../api/makerCheckerApi';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
@@ -174,7 +176,16 @@ export const MakerCheckerPolicyPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
+            <Link
+              to="/accounts/pending"
+              className="px-3.5 py-2 rounded-xl border border-[var(--bdae-border)] hover:border-[#00CDDB] hover:bg-[#00CDDB]/10 text-[#00CDDB] text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              title="Open the Pending Approvals / Checker Queue"
+            >
+              <ClipboardCheck className="w-4 h-4" />
+              <span>Checker Approval Queue ➔</span>
+            </Link>
+
             <button
               onClick={fetchRules}
               disabled={isLoading}

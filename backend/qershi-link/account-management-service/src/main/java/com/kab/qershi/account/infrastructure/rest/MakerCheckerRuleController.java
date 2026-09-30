@@ -5,12 +5,14 @@ import com.kab.qershi.account.infrastructure.persistence.ProductMakerCheckerRule
 import com.kab.qershi.account.infrastructure.persistence.SpringDataMakerCheckerRuleRepository;
 import com.kab.qershi.account.infrastructure.persistence.SpringDataProductMakerCheckerRuleRepository;
 import com.kab.qershi.account.infrastructure.rest.dto.MakerCheckerRuleRequest;
+import com.kab.qershi.account.infrastructure.rest.dto.ProductRuleCreateRequest;
 import com.kab.qershi.account.infrastructure.rest.dto.ProductRuleUpdateRequest;
 import com.kab.qershi.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -138,4 +140,41 @@ public class MakerCheckerRuleController {
         ProductMakerCheckerRuleEntity saved = productRuleRepository.save(rule);
         return ResponseEntity.ok(ApiResponse.success(saved, "Product rules for " + productCode + " updated successfully."));
     }
+
+    @PostMapping("/products")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('SACCO_CONFIG', 'PRODUCT_MANAGE')")
+    @Operation(summary = "Create Product Risk & Transaction Rule", description = "Defines transaction limits, max balance storing limit, and Maker-Checker for an account product type.")
+    public ResponseEntity<ApiResponse<ProductMakerCheckerRuleEntity>> createProductRule(
+            @Valid @RequestBody ProductRuleCreateRequest request) {
+        if (productRuleRepository.findByProductCode(request.productCode().trim()).isPresent()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Rule for product code " + request.productCode() + " already exists."));
+        }
+
+        ProductMakerCheckerRuleEntity rule = new ProductMakerCheckerRuleEntity();
+        rule.setProductCode(request.productCode().trim());
+        rule.setProductName(request.productName().trim());
+        rule.setCategory(request.category() != null ? request.category().trim() : "SAVINGS");
+        rule.setMinOperatingBalance(request.minOperatingBalance());
+        rule.setMaxBalanceLimit(request.maxBalanceLimit());
+        rule.setSingleWithdrawalLimit(request.singleWithdrawalLimit());
+        rule.setDailyWithdrawalLimit(request.dailyWithdrawalLimit());
+        rule.setEnableMakerChecker(request.enableMakerChecker() != null ? request.enableMakerChecker() : true);
+
+        ProductMakerCheckerRuleEntity saved = productRuleRepository.save(rule);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(saved, "Rule for product " + request.productName() + " created successfully."));
+    }
+
+    @DeleteMapping("/products/{productCode}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('SACCO_CONFIG', 'PRODUCT_MANAGE')")
+    @Operation(summary = "Delete Product Risk Rule", description = "Removes a specific product risk rule configuration.")
+    public ResponseEntity<ApiResponse<Void>> deleteProductRule(@PathVariable String productCode) {
+        var existing = productRuleRepository.findByProductCode(productCode);
+        if (existing.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Product rule not found: " + productCode));
+        }
+        productRuleRepository.delete(existing.get());
+        return ResponseEntity.ok(ApiResponse.success(null, "Product rule " + productCode + " deleted successfully."));
+    }
 }
+

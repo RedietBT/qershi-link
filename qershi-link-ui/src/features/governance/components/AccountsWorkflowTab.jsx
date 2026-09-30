@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Ban, Sliders, Edit3, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
+import { CreditCard, Ban, Sliders, Edit3, ShieldCheck, RefreshCw, AlertCircle, PlusCircle, Trash2 } from 'lucide-react';
 import { RoleClearanceSelector } from './RoleClearanceSelector';
 import { EditProductRuleModal } from './EditProductRuleModal';
+import { CreateProductRuleModal } from './CreateProductRuleModal';
 import { makerCheckerApi } from '../api/makerCheckerApi';
 
 export const AccountsWorkflowTab = ({ rules, onToggle, onStringChange }) => {
   const [productRules, setProductRules] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [productError, setProductError] = useState(null);
 
   const fetchProductRules = async () => {
@@ -21,6 +23,18 @@ export const AccountsWorkflowTab = ({ rules, onToggle, onStringChange }) => {
       setProductError('Failed to load product-specific risk rules.');
     } finally {
       setIsLoadingProducts(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productCode, productName) => {
+    if (!window.confirm(`Are you sure you want to remove risk rules for "${productName}" (${productCode})?`)) {
+      return;
+    }
+    try {
+      await makerCheckerApi.deleteProductRule(productCode);
+      fetchProductRules();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete product rule');
     }
   };
 
@@ -138,24 +152,34 @@ export const AccountsWorkflowTab = ({ rules, onToggle, onStringChange }) => {
 
       {/* Per-Product Rules Matrix Table */}
       <div className="space-y-3 pt-4 border-t border-[var(--bdae-border)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-0.5">
             <h3 className="text-xs font-bold text-[var(--bdae-text-primary)] flex items-center gap-1.5 uppercase">
               <Sliders className="w-4 h-4 text-[#00CDDB]" />
-              Account Product Risk Limits & Four-Eyes Matrix
+              Account Product & Type Risk Limits Matrix
             </h3>
             <p className="text-[10px] text-[var(--bdae-text-secondary)]">
-              Configure maximum storing balance, single withdrawal supervisor thresholds, and daily limits per deposit product.
+              Tailor maximum storing limits, single supervisor thresholds, and daily withdrawal caps per account product (e.g. Student, Women, General).
             </p>
           </div>
-          <button
-            type="button"
-            onClick={fetchProductRules}
-            className="px-3 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[#00CDDB] text-xs font-bold flex items-center gap-1.5 text-[var(--bdae-text-secondary)] hover:text-[#00CDDB] transition-all self-start sm:self-auto"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingProducts ? 'animate-spin' : ''}`} />
-            <span>Refresh Products</span>
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsCreatingProduct(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-[#00CDDB] hover:bg-[#00b4c0] flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Add Product / Type Rule</span>
+            </button>
+            <button
+              type="button"
+              onClick={fetchProductRules}
+              className="px-3 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[#00CDDB] text-xs font-bold flex items-center gap-1.5 text-[var(--bdae-text-secondary)] hover:text-[#00CDDB] transition-all"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingProducts ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {productError && (
@@ -171,7 +195,7 @@ export const AccountsWorkflowTab = ({ rules, onToggle, onStringChange }) => {
               <thead>
                 <tr className="border-b border-[var(--bdae-border)] bg-black/5 dark:bg-white/5 text-[10px] font-bold text-[var(--bdae-text-secondary)] uppercase tracking-wider">
                   <th className="py-3 px-4 font-mono">Code</th>
-                  <th className="py-3 px-4">Product Name</th>
+                  <th className="py-3 px-4">Account Type / Product</th>
                   <th className="py-3 px-4 text-right">Min Operating (ETB)</th>
                   <th className="py-3 px-4 text-right">Max Storing Limit (ETB)</th>
                   <th className="py-3 px-4 text-right">Supervisor Threshold (ETB)</th>
@@ -188,7 +212,9 @@ export const AccountsWorkflowTab = ({ rules, onToggle, onStringChange }) => {
                     </td>
                     <td className="py-3 px-4">
                       <span className="font-bold text-[var(--bdae-text-primary)] block">{p.productName}</span>
-                      <span className="text-[10px] text-[var(--bdae-text-secondary)] font-mono">{p.category}</span>
+                      <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-black/5 dark:bg-white/5 text-[var(--bdae-text-secondary)] border border-[var(--bdae-border)]">
+                        {p.category || 'SAVINGS'}
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-[var(--bdae-text-primary)]">
                       {(p.minOperatingBalance || 0).toLocaleString()}
@@ -214,14 +240,23 @@ export const AccountsWorkflowTab = ({ rules, onToggle, onStringChange }) => {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => setEditingProduct(p)}
-                        className="px-2.5 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[#00CDDB] hover:bg-[#00CDDB]/10 text-[#00CDDB] text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
-                        title="Configure Product Limits & Maker-Checker"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit Limits</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setEditingProduct(p)}
+                          className="px-2.5 py-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-[#00CDDB] hover:bg-[#00CDDB]/10 text-[#00CDDB] text-xs font-bold inline-flex items-center gap-1 transition-all shadow-sm"
+                          title="Configure Product Limits & Maker-Checker"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(p.productCode, p.productName)}
+                          className="p-1.5 rounded-xl border border-[var(--bdae-border)] hover:border-red-500 hover:bg-red-500/10 text-gray-400 hover:text-red-500 text-xs font-bold inline-flex items-center transition-all shadow-sm"
+                          title="Remove Product Risk Rule"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -229,7 +264,7 @@ export const AccountsWorkflowTab = ({ rules, onToggle, onStringChange }) => {
                 {productRules.length === 0 && !isLoadingProducts && (
                   <tr>
                     <td colSpan="8" className="p-8 text-center text-xs text-[var(--bdae-text-secondary)]">
-                      No products found. Products configured in Deposit Product Factory will automatically appear here.
+                      No account type rules configured yet. Click "Add Product / Type Rule" to define limits for Student, Women, or General accounts.
                     </td>
                   </tr>
                 )}
@@ -247,6 +282,16 @@ export const AccountsWorkflowTab = ({ rules, onToggle, onStringChange }) => {
           onSuccess={fetchProductRules}
         />
       )}
+
+      {/* Create Product Rule Modal */}
+      {isCreatingProduct && (
+        <CreateProductRuleModal
+          existingCodes={productRules.map((p) => p.productCode)}
+          onClose={() => setIsCreatingProduct(false)}
+          onSuccess={fetchProductRules}
+        />
+      )}
     </div>
   );
 };
+

@@ -33,5 +33,21 @@ export const makerCheckerApi = {
   updateProductRule: async (productCode, ruleData) => {
     const response = await accountHttpClient.put(`${RULES_BASE}/products/${productCode}`, ruleData);
     return response.data?.data || response.data;
+  },
+
+  /**
+   * Create a new per-product or account-type risk & transaction rule.
+   */
+  createProductRule: async (ruleData) => {
+    const response = await accountHttpClient.post(`${RULES_BASE}/products`, ruleData);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Delete a custom per-product risk rule.
+   */
+  deleteProductRule: async (productCode) => {
+    const response = await accountHttpClient.delete(`${RULES_BASE}/products/${productCode}`);
+    return response.data?.data || response.data;
   }
 };
