@@ -131,3 +131,30 @@ CREATE TABLE IF NOT EXISTS {schema}.eod_batch_step_logs (
     FOREIGN KEY (batch_id) REFERENCES {schema}.eod_batch_executions(batch_id) ON DELETE CASCADE
 );
 
+-- =========================================================================
+-- Day 3: Dynamic Chart of Accounts (COA)
+-- =========================================================================
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gl_account_type') THEN
+    CREATE TYPE gl_account_type AS ENUM ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'); END IF; END $$;
+
+CREATE TABLE IF NOT EXISTS {schema}.chart_of_accounts (
+    account_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    gl_code VARCHAR(50) NOT NULL UNIQUE,
+    account_name VARCHAR(150) NOT NULL,
+    account_type gl_account_type NOT NULL,
+    parent_gl_code VARCHAR(50),
+    currency VARCHAR(3) NOT NULL DEFAULT 'ETB',
+    balance DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    is_reconciled BOOLEAN NOT NULL DEFAULT TRUE,
+    allow_manual_journal BOOLEAN NOT NULL DEFAULT TRUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_coa_parent_gl_code ON {schema}.chart_of_accounts(parent_gl_code);
+CREATE INDEX IF NOT EXISTS idx_coa_account_type ON {schema}.chart_of_accounts(account_type);
+CREATE INDEX IF NOT EXISTS idx_coa_status ON {schema}.chart_of_accounts(status);
+
+
