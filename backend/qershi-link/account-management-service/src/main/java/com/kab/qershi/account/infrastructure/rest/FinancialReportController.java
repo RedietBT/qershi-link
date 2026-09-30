@@ -35,7 +35,7 @@ public class FinancialReportController {
     }
 
     @GetMapping("/trial-balance")
-    @PreAuthorize("hasAnyAuthority('FINANCIAL_REPORT_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('FINANCIAL_REPORT_VIEW')")
     @Operation(summary = "Generate Trial Balance", description = "Aggregates all General Ledger debit and credit balances and verifies accounting equilibrium.")
     public ResponseEntity<TrialBalanceReportDto> getTrialBalance(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOfDate) {
@@ -44,7 +44,7 @@ public class FinancialReportController {
     }
 
     @GetMapping("/balance-sheet")
-    @PreAuthorize("hasAnyAuthority('FINANCIAL_REPORT_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('FINANCIAL_REPORT_VIEW')")
     @Operation(summary = "Generate Balance Sheet", description = "Generates the institutional Balance Sheet evaluating Assets = Liabilities + Member Equity.")
     public ResponseEntity<BalanceSheetReportDto> getBalanceSheet(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOfDate) {
@@ -53,7 +53,7 @@ public class FinancialReportController {
     }
 
     @GetMapping("/profit-loss")
-    @PreAuthorize("hasAnyAuthority('FINANCIAL_REPORT_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('FINANCIAL_REPORT_VIEW')")
     @Operation(summary = "Generate Profit & Loss (Income Statement)", description = "Computes Operating Revenue minus Operating Expenses to evaluate Net Surplus over a period.")
     public ResponseEntity<ProfitLossReportDto> getProfitLoss(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

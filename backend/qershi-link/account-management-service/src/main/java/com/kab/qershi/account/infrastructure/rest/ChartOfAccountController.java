@@ -32,7 +32,7 @@ public class ChartOfAccountController {
     }
 
     @GetMapping("/tree")
-    @PreAuthorize("hasAnyAuthority('COA_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('COA_VIEW')")
     @Operation(summary = "Get Chart of Accounts Hierarchy Tree", description = "Returns the full nested hierarchical tree of General Ledger accounts with aggregated balances.")
     public ResponseEntity<List<ChartOfAccountNodeDto>> getCoaTree() {
         List<ChartOfAccountNodeDto> tree = coaService.getCoaTree();
@@ -40,7 +40,7 @@ public class ChartOfAccountController {
     }
 
     @GetMapping("/flat")
-    @PreAuthorize("hasAnyAuthority('COA_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('COA_VIEW')")
     @Operation(summary = "Get Flat Chart of Accounts List", description = "Returns all General Ledger accounts in flat order, useful for dropdown selectors.")
     public ResponseEntity<List<ChartOfAccountEntity>> getAllFlat() {
         List<ChartOfAccountEntity> list = coaService.getAllFlat();
@@ -48,7 +48,7 @@ public class ChartOfAccountController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('COA_MANAGE', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('COA_MANAGE')")
     @Operation(summary = "Create General Ledger Account", description = "Creates a new custom GL account under an existing parent category or node.")
     public ResponseEntity<ChartOfAccountEntity> createAccount(@Valid @RequestBody CreateChartOfAccountRequest request) {
         ChartOfAccountEntity created = coaService.createAccount(request);

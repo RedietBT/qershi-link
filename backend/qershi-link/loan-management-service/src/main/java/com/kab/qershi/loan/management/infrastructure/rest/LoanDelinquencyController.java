@@ -73,7 +73,7 @@ public class LoanDelinquencyController {
     }
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyAuthority('LOAN_DELINQUENCY_VIEW', 'LOAN_ACCOUNT_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('LOAN_DELINQUENCY_VIEW', 'LOAN_ACCOUNT_VIEW')")
     @Operation(summary = "Get PAR Summary & Provisioning Reserves", description = "Fetches aggregate portfolio health, delinquency breakdown by PAR bucket, and required regulatory loan loss reserve reserves.")
     public ResponseEntity<ParSummaryResponse> getParSummary() {
         List<LoanAccountEntity> loans = loanAccountRepository.findByStatusIn(
@@ -151,7 +151,7 @@ public class LoanDelinquencyController {
     }
 
     @GetMapping("/loans")
-    @PreAuthorize("hasAnyAuthority('LOAN_DELINQUENCY_VIEW', 'LOAN_ACCOUNT_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('LOAN_DELINQUENCY_VIEW', 'LOAN_ACCOUNT_VIEW')")
     @Operation(summary = "List Delinquent Loans", description = "Retrieves overdue loan accounts categorized by regulatory PAR aging buckets.")
     public ResponseEntity<List<DelinquentLoanResponse>> getDelinquentLoans(
             @RequestParam(required = false) String bucket) {

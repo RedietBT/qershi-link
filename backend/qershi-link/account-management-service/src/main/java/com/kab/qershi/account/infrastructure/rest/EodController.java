@@ -49,7 +49,7 @@ public class EodController {
     }
 
     @GetMapping("/status")
-    @PreAuthorize("hasAnyAuthority('EOD_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('EOD_VIEW')")
     @Operation(summary = "Get Business Date & EOD Status", description = "Inspect the current core banking business date and daytime operational state.")
     public ResponseEntity<EodStatusResponse> getEodStatus() {
         SystemBusinessDateEntity dateEntity = orchestrator.getOrCreateCurrentBusinessDate();
@@ -68,7 +68,7 @@ public class EodController {
     }
 
     @PostMapping("/run")
-    @PreAuthorize("hasAnyAuthority('EOD_EXECUTE', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('EOD_EXECUTE')")
     @Operation(summary = "Trigger Manual EOD Batch", description = "Executes the full End-of-Day batch pipeline: savings interest accrual, dormancy sweep, loan PAR aging, and business date rollover.")
     public ResponseEntity<EodBatchHistoryResponse> runEodBatch() {
         EodBatchExecutionEntity batch = orchestrator.runEodBatch("MANUAL_OVERRIDE", null);
@@ -78,7 +78,7 @@ public class EodController {
     }
 
     @GetMapping("/history")
-    @PreAuthorize("hasAnyAuthority('EOD_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('EOD_VIEW')")
     @Operation(summary = "List EOD Batch History", description = "Retrieves all past End-of-Day batch execution logs ordered chronologically descending.")
     public ResponseEntity<List<EodBatchHistoryResponse>> getBatchHistory() {
         List<EodBatchExecutionEntity> history = batchExecutionRepository.findAllByOrderByStartedAtDesc();
@@ -90,7 +90,7 @@ public class EodController {
     }
 
     @GetMapping("/history/{batchId}")
-    @PreAuthorize("hasAnyAuthority('EOD_VIEW', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('EOD_VIEW')")
     @Operation(summary = "Get Batch Execution Details", description = "Fetches the full details and step-by-step pipeline execution logs for a specific batch run.")
     public ResponseEntity<EodBatchHistoryResponse> getBatchDetails(@PathVariable UUID batchId) {
         return batchExecutionRepository.findById(batchId)
