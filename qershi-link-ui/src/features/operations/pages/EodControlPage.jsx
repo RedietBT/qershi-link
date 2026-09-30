@@ -19,7 +19,8 @@ import {
   UserX,
   ChevronRight,
   RefreshCw,
-  Database
+  Database,
+  History as HistoryIcon
 } from 'lucide-react';
 import { accountHttpClient } from '../../../common/api/httpClient';
 import { useAuthStore } from '../../../common/store/useAuthStore';
@@ -319,8 +320,8 @@ export const EodControlPage = () => {
       {/* ── EOD Batch History Table ── */}
       <div className="bdae-card p-6 rounded-2xl border border-[var(--bdae-border)] space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-[var(--bdae-text-primary)] uppercase tracking-wider flex items-center gap-2">
-            <History className="w-4 h-4 text-[var(--bdae-primary)]" />
+          <h2 className="text-sm font-bold text-[var(--bdae-primary)] uppercase tracking-wider flex items-center gap-2">
+            <HistoryIcon className="w-4 h-4 text-[var(--bdae-primary)]" />
             <span>Historical EOD Batch Executions</span>
           </h2>
           <span className="text-xs text-[var(--bdae-text-secondary)]">

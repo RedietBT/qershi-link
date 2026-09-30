@@ -366,29 +366,6 @@ export const CashDeskPage = () => {
                 />
               </div>
 
-              {/* Idempotency Key */}
-              <div className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--bdae-border)] flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  <div>
-                    <span className="text-[10px] text-[var(--bdae-text-secondary)] font-bold uppercase block">
-                      Idempotency Key (Double-Post Protection)
-                    </span>
-                    <span className="font-mono text-[11px] text-[var(--bdae-text-primary)]">
-                      {idempotencyKey.slice(0, 18)}...
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIdempotencyKey(generateIdempotencyKey())}
-                  className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-[var(--bdae-text-secondary)] transition-colors"
-                  title="Regenerate Key"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
               {/* Submit CTA strictly guarded by permission */}
               <PermissionGuard
                 permissions={[

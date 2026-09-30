@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: account-management-service
-          image: account-management-service:latest
+          image: account-management-service:v2
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
