@@ -31,7 +31,7 @@ public class TransactionAuditLogController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('AUDIT_LOG_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR') or hasAuthority('AUDIT_LOG_VIEW')")
     @Operation(summary = "Fetch SACCO transaction audit logs", description = "Retrieves a paginated timeline of cash deposits, withdrawals, and member transfers.")
     public ResponseEntity<List<TransactionAuditLogResponse>> getAuditLogs(
             @RequestParam(defaultValue = "0") int page,
@@ -45,7 +45,7 @@ public class TransactionAuditLogController {
     }
 
     @GetMapping("/ref/{ref}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('AUDIT_LOG_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR') or hasAuthority('AUDIT_LOG_VIEW')")
     @Operation(summary = "Fetch audit trail by transaction reference", description = "Retrieves audit log entry for a specific financial transaction reference.")
     public ResponseEntity<List<TransactionAuditLogResponse>> getAuditLogsByTransactionRef(@PathVariable String ref) {
         List<TransactionAuditLogResponse> logs = auditLogRepository.findByTransactionRefOrderByCreatedAtDesc(ref).stream()
@@ -56,7 +56,7 @@ public class TransactionAuditLogController {
     }
 
     @GetMapping("/account/{accountNo}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('AUDIT_LOG_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR') or hasAuthority('AUDIT_LOG_VIEW')")
     @Operation(summary = "Fetch transaction audit trail for account number", description = "Retrieves transaction audit logs for a specific member account number.")
     public ResponseEntity<List<TransactionAuditLogResponse>> getAuditLogsByAccountNo(@PathVariable String accountNo) {
         List<TransactionAuditLogResponse> logs = auditLogRepository.findByAccountNoOrderByCreatedAtDesc(accountNo).stream()

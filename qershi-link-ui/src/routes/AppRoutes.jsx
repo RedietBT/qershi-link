@@ -207,7 +207,7 @@ function DashboardPage() {
               </PermissionGuard>
 
               {/* Card 5: SACCO Entity Configuration (SACCO_ADMIN) */}
-              <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_VIEW']}>
+              <PermissionGuard roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN']} permissions={['ACCOUNT_VIEW', 'SACCO_CONFIG']}>
                 <div
                   onClick={() => navigate('/accounts/config')}
                   className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
@@ -227,7 +227,7 @@ function DashboardPage() {
               </PermissionGuard>
 
               {/* Card 6: Deposit Product Factory (SACCO_ADMIN + PRODUCT_VIEW) */}
-              <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['PRODUCT_VIEW']}>
+              <PermissionGuard roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN']} permissions={['PRODUCT_VIEW', 'PRODUCT_MANAGE']}>
                 <div
                   onClick={() => navigate('/accounts/products')}
                   className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
@@ -247,7 +247,7 @@ function DashboardPage() {
               </PermissionGuard>
 
               {/* Card 7: Pending Authorizations (ACCOUNT_APPROVE) */}
-              <PermissionGuard roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_APPROVE']}>
+              <PermissionGuard roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN']} permissions={['ACCOUNT_APPROVE']}>
                 <div
                   onClick={() => navigate('/accounts/pending')}
                   className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-[var(--bdae-secondary)] cursor-pointer space-y-2 transition-all shadow-sm group"
@@ -481,7 +481,7 @@ export const AppRoutes = () => {
         <Route
           path="/accounts"
           element={
-            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_VIEW']}>
+            <PermissionRoute roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'AUDITOR']} permissions={['ACCOUNT_VIEW']}>
               <Layout>
                 <AccountManagementPage />
               </Layout>
@@ -493,7 +493,7 @@ export const AppRoutes = () => {
         <Route
           path="/accounts/config"
           element={
-            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_VIEW']}>
+            <PermissionRoute roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN']} permissions={['ACCOUNT_VIEW', 'SACCO_CONFIG']}>
               <Layout>
                 <SaccoConfigPage />
               </Layout>
@@ -505,7 +505,7 @@ export const AppRoutes = () => {
         <Route
           path="/accounts/products"
           element={
-            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['PRODUCT_VIEW']}>
+            <PermissionRoute roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN']} permissions={['PRODUCT_VIEW', 'PRODUCT_MANAGE']}>
               <Layout>
                 <DepositProductsPage />
               </Layout>
@@ -517,7 +517,7 @@ export const AppRoutes = () => {
         <Route
           path="/accounts/pending"
           element={
-            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN']} permissions={['ACCOUNT_APPROVE']}>
+            <PermissionRoute roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN']} permissions={['ACCOUNT_APPROVE']}>
               <Layout>
                 <PendingAuthorizationsPage />
               </Layout>
@@ -529,7 +529,7 @@ export const AppRoutes = () => {
         <Route
           path="/branches"
           element={
-            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN', 'BRANCH_MANAGER', 'TELLER', 'AUDITOR']} permissions={[PERMISSIONS.BRANCH_VIEW, PERMISSIONS.ACCOUNT_VIEW]}>
+            <PermissionRoute roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'TELLER', 'AUDITOR']} permissions={[PERMISSIONS.BRANCH_VIEW, PERMISSIONS.ACCOUNT_VIEW]}>
               <Layout>
                 <BranchManagementPage />
               </Layout>
@@ -541,7 +541,7 @@ export const AppRoutes = () => {
         <Route
           path="/transactions/till"
           element={
-            <PermissionRoute roles={['SACCO_ADMIN', 'ADMIN', 'TELLER', 'BRANCH_MANAGER']} permissions={[PERMISSIONS.CASH_DEPOSIT, PERMISSIONS.SAVINGS_WITHDRAW, PERMISSIONS.TELLER_TILL_VIEW]}>
+            <PermissionRoute roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER', 'BRANCH_MANAGER']} permissions={[PERMISSIONS.CASH_DEPOSIT, PERMISSIONS.SAVINGS_WITHDRAW, PERMISSIONS.TELLER_TILL_VIEW]}>
               <Layout>
                 <TellerDrawerPage />
               </Layout>

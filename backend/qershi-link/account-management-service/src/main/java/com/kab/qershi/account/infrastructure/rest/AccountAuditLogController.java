@@ -32,7 +32,7 @@ public class AccountAuditLogController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('AUDIT_LOG_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR') or hasAuthority('AUDIT_LOG_VIEW')")
     @Operation(summary = "Fetch SACCO account audit logs", description = "Retrieves a paginated timeline of account state changes, approvals, freezes, and status switches.")
     public ResponseEntity<List<AccountAuditLogResponse>> getAuditLogs(
             @RequestParam(defaultValue = "0") int page,
@@ -46,7 +46,7 @@ public class AccountAuditLogController {
     }
 
     @GetMapping("/account/{accountNo}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('AUDIT_LOG_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR') or hasAuthority('AUDIT_LOG_VIEW')")
     @Operation(summary = "Fetch audit trail for a specific account number", description = "Retrieves full history of modifications made to a specific member savings account.")
     public ResponseEntity<List<AccountAuditLogResponse>> getAuditLogsByAccountNo(@PathVariable String accountNo) {
         List<AccountAuditLogResponse> logs = auditLogRepository.findByAccountNoOrderByCreatedAtDesc(accountNo).stream()
@@ -57,7 +57,7 @@ public class AccountAuditLogController {
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('AUDIT_LOG_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR') or hasAuthority('AUDIT_LOG_VIEW')")
     @Operation(summary = "Fetch audit trail for a specific member user ID", description = "Retrieves account audit logs associated with a specific member user ID.")
     public ResponseEntity<List<AccountAuditLogResponse>> getAuditLogsByUserId(@PathVariable UUID userId) {
         List<AccountAuditLogResponse> logs = auditLogRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()

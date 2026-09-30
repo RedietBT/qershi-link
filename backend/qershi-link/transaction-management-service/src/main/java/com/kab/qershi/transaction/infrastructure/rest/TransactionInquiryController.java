@@ -39,7 +39,7 @@ public class TransactionInquiryController {
     }
 
     @GetMapping("/account/{accountNo}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('TRANSACTION_VIEW', 'TRANSACTION_VIEW_ALL', 'USER_VIEW_ALL')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'TELLER', 'AUDITOR') or hasAnyAuthority('TRANSACTION_VIEW', 'TRANSACTION_VIEW_ALL', 'USER_VIEW_ALL', 'ACCOUNT_VIEW')")
     @Operation(summary = "Get Account Transaction History", description = "Retrieves complete chronological transaction history for a specific member account.")
     public ResponseEntity<ApiResponse<List<TransactionResponse>>> getAccountTransactions(
             @PathVariable("accountNo") String accountNo) {
@@ -54,7 +54,7 @@ public class TransactionInquiryController {
     }
 
     @GetMapping("/{transactionRef}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('TRANSACTION_VIEW', 'TRANSACTION_VIEW_ALL', 'USER_VIEW_ALL')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'TELLER', 'AUDITOR') or hasAnyAuthority('TRANSACTION_VIEW', 'TRANSACTION_VIEW_ALL', 'USER_VIEW_ALL', 'ACCOUNT_VIEW')")
     @Operation(summary = "Get Transaction Details by Reference", description = "Retrieves transaction details for a specific transaction reference.")
     public ResponseEntity<ApiResponse<TransactionResponse>> getTransactionByRef(
             @PathVariable("transactionRef") String transactionRef) {
@@ -66,7 +66,7 @@ public class TransactionInquiryController {
     }
 
     @GetMapping("/{transactionRef}/journal")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('TRANSACTION_VIEW') or hasAuthority('REPORT_VIEW_ALL')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'AUDITOR') or hasAnyAuthority('TRANSACTION_VIEW', 'REPORT_VIEW_ALL', 'FINANCIAL_REPORT_VIEW')")
     @Operation(summary = "Get General Ledger Journal Entry Details", description = "Retrieves General Ledger (GL) double-entry journal header and all Debit/Credit lines posted for a transaction reference.")
     public ResponseEntity<ApiResponse<JournalEntryResponse>> getJournalEntryByRef(
             @PathVariable("transactionRef") String transactionRef) {

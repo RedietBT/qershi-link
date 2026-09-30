@@ -44,7 +44,7 @@ public class CashTransactionController {
     }
 
     @PostMapping("/deposit")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('TRANSACTION_DEPOSIT') or hasAuthority('CASH_DEPOSIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER') or hasAnyAuthority('TRANSACTION_DEPOSIT', 'CASH_DEPOSIT')")
     @Operation(summary = "Process Cash Deposit", description = "Executes an over-the-counter cash deposit into a member savings account and posts balanced GL entries.")
     public ResponseEntity<ApiResponse<TransactionResponse>> processDeposit(
             @Valid @RequestBody DepositRequest request,
@@ -67,7 +67,7 @@ public class CashTransactionController {
     }
 
     @PostMapping("/withdraw")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('TRANSACTION_WITHDRAW') or hasAuthority('SAVINGS_WITHDRAW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER') or hasAnyAuthority('TRANSACTION_WITHDRAW', 'SAVINGS_WITHDRAW')")
     @Operation(summary = "Process Cash Withdrawal", description = "Executes an over-the-counter cash withdrawal from a member savings account and posts balanced GL entries.")
     public ResponseEntity<ApiResponse<TransactionResponse>> processWithdrawal(
             @Valid @RequestBody WithdrawalRequest request,

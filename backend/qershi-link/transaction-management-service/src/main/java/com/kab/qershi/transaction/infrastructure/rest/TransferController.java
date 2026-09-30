@@ -43,7 +43,7 @@ public class TransferController {
     }
 
     @PostMapping("/transfer")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('TRANSACTION_TRANSFER', 'TRANSFER_EXECUTE', 'MEMBER_TRANSFER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER') or hasAnyAuthority('TRANSACTION_TRANSFER', 'TRANSFER_EXECUTE', 'MEMBER_TRANSFER')")
     @Operation(summary = "Process Member-to-Member Transfer", description = "Transfers funds between two member accounts within the same SACCO and posts balanced GL entries.")
     public ResponseEntity<ApiResponse<TransactionResponse>> processTransfer(
             @Valid @RequestBody TransferRequest request,

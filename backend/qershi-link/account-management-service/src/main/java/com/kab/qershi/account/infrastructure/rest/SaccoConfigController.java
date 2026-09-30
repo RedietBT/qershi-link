@@ -32,21 +32,21 @@ public class SaccoConfigController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('ROLE_MANAGE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('ROLE_MANAGE', 'SACCO_CONFIG')")
     @Operation(summary = "Create or Set SACCO Code", description = "Sets the unique SACCO identification code for account opening once per SACCO tenant.")
     public ResponseEntity<ApiResponse<SaccoConfigEntity>> createSaccoConfig(@Valid @RequestBody SaccoConfigRequest request) {
         return saveOrUpdateConfig(request);
     }
 
     @PutMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('ROLE_MANAGE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('ROLE_MANAGE', 'SACCO_CONFIG')")
     @Operation(summary = "Update SACCO Code", description = "Updates the SACCO identification code for account generation.")
     public ResponseEntity<ApiResponse<SaccoConfigEntity>> updateSaccoConfig(@Valid @RequestBody SaccoConfigRequest request) {
         return saveOrUpdateConfig(request);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('ACCOUNT_VIEW', 'SACCO_CONFIG')")
     @Operation(summary = "Get SACCO Code Configuration", description = "Retrieves the active SACCO identification code for this tenant.")
     public ResponseEntity<ApiResponse<SaccoConfigEntity>> getSaccoConfig() {
         SaccoConfigEntity config = saccoConfigRepository.findFirstByOrderByCreatedAtAsc()

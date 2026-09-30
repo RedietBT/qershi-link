@@ -44,7 +44,7 @@ public class LienController {
     }
 
     @PostMapping("/{accountNo}/liens")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('LIEN_CREATE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER') or hasAnyAuthority('LIEN_CREATE', 'ACCOUNT_LIEN')")
     @Operation(summary = "Place Partial Lien Hold", description = "Blocks a specific monetary amount on an account (e.g. loan collateral or guarantee block).")
     public ResponseEntity<ApiResponse<AccountLien>> placeLien(@PathVariable String accountNo,
                                                              @Valid @RequestBody PlaceLienRequest request,
@@ -62,7 +62,7 @@ public class LienController {
     }
 
     @PutMapping("/liens/{lienId}/release")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('LIEN_RELEASE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER') or hasAnyAuthority('LIEN_RELEASE', 'ACCOUNT_LIEN')")
     @Operation(summary = "Release Lien Hold", description = "Releases an active monetary lien hold and restores available balance.")
     public ResponseEntity<ApiResponse<AccountLien>> releaseLien(@PathVariable UUID lienId, Authentication authentication) {
         UUID officerUserId = parseUserId(authentication);
@@ -71,7 +71,7 @@ public class LienController {
     }
 
     @PutMapping("/{accountNo}/freeze")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('ACCOUNT_FREEZE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('ACCOUNT_FREEZE')")
     @Operation(summary = "Administrative Freeze / Unfreeze", description = "Sets freeze status on an account (NONE, DEBIT_FREEZE, CREDIT_FREEZE, FULL_FREEZE).")
     public ResponseEntity<ApiResponse<Account>> freezeAccount(@PathVariable String accountNo,
                                                               @Valid @RequestBody FreezeAccountRequest request,
@@ -82,7 +82,7 @@ public class LienController {
     }
 
     @GetMapping("/{accountNo}/liens")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAuthority('LIEN_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'AUDITOR') or hasAnyAuthority('LIEN_VIEW', 'ACCOUNT_LIEN', 'ACCOUNT_VIEW')")
     @Operation(summary = "Get Account Liens", description = "Retrieves active monetary lien holds for a specific account.")
     public ResponseEntity<ApiResponse<List<AccountLien>>> getActiveLiensForAccount(@PathVariable String accountNo) {
         List<AccountLien> liens = lienManagementUseCase.getActiveLiensForAccount(accountNo);
