@@ -70,14 +70,14 @@
 ---
 
 ### 📊 Day 3: Dynamic Chart of Accounts (COA) & Financial Statements
-- [ ] **Dynamic Chart of Accounts Tree**
-  - [ ] Create `chart_of_accounts` table (`gl_code`, `account_name`, `account_type`: `ASSET`, `LIABILITY`, `EQUITY`, `REVENUE`, `EXPENSE`, `parent_gl_code`, `is_reconciled`).
-  - [ ] Seed default Standard Cooperative Banking Chart of Accounts.
-  - [ ] REST API to query COA hierarchy as an expandable JSON tree.
-- [ ] **Financial Reporting Generation Engine**
-  - [ ] **Trial Balance**: Aggregates all debit/credit postings per GL code; verifies $\sum \text{Debits} = \sum \text{Credits}$.
-  - [ ] **Balance Sheet**: Assets = Liabilities + Member Equity (Share Capital, Retained Earnings).
-  - [ ] **Profit & Loss (P&L)**: Interest Income + Fee Income - Interest Expense - Operating Expenses = Net Surplus.
+- [x] **Dynamic Chart of Accounts Tree**
+  - [x] Create `chart_of_accounts` table (`gl_code`, `account_name`, `account_type`: `ASSET`, `LIABILITY`, `EQUITY`, `REVENUE`, `EXPENSE`, `parent_gl_code`, `is_reconciled`).
+  - [x] Seed default Standard Cooperative Banking Chart of Accounts.
+  - [x] REST API to query COA hierarchy as an expandable JSON tree.
+- [x] **Financial Reporting Generation Engine**
+  - [x] **Trial Balance**: Aggregates all debit/credit postings per GL code; verifies $\sum \text{Debits} = \sum \text{Credits}$.
+  - [x] **Balance Sheet**: Assets = Liabilities + Member Equity (Share Capital, Retained Earnings).
+  - [x] **Profit & Loss (P&L)**: Interest Income + Fee Income - Interest Expense - Operating Expenses = Net Surplus.
 - [ ] **Frontend Deliverables**
   - [ ] `ChartOfAccountsPage.jsx`: Expandable tree-view of GL accounts with live balances.
   - [ ] `FinancialReportsPage.jsx`: Tabbed viewer for Trial Balance, Balance Sheet, and P&L with CSV / PDF print export.
