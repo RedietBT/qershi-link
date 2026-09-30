@@ -78,9 +78,9 @@
   - [x] **Trial Balance**: Aggregates all debit/credit postings per GL code; verifies $\sum \text{Debits} = \sum \text{Credits}$.
   - [x] **Balance Sheet**: Assets = Liabilities + Member Equity (Share Capital, Retained Earnings).
   - [x] **Profit & Loss (P&L)**: Interest Income + Fee Income - Interest Expense - Operating Expenses = Net Surplus.
-- [ ] **Frontend Deliverables**
-  - [ ] `ChartOfAccountsPage.jsx`: Expandable tree-view of GL accounts with live balances.
-  - [ ] `FinancialReportsPage.jsx`: Tabbed viewer for Trial Balance, Balance Sheet, and P&L with CSV / PDF print export.
+- [x] **Frontend Deliverables**
+  - [x] `ChartOfAccountsPage.jsx`: Expandable tree-view of GL accounts with live balances.
+  - [x] `FinancialReportsPage.jsx`: Tabbed viewer for Trial Balance, Balance Sheet, and P&L with CSV / PDF print export.
 
 ---
 
