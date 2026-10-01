@@ -214,16 +214,21 @@ public class CashTransactionService implements CashTransactionUseCase {
             }
         }
 
-        // 2. Validate Debit capability via gRPC
-        AccountClientPort.ValidationResult validation = accountClientPort.validateDebit(accountNo, amount);
+        // 2. Assess applicable transaction tariff fee via gRPC
+        AccountClientPort.TariffResult tariff = accountClientPort.calculateTariff("WITHDRAWAL", amount);
+        BigDecimal fee = (tariff != null && tariff.feeApplicable()) ? tariff.feeAmount() : BigDecimal.ZERO;
+        BigDecimal totalDebit = amount.add(fee);
+
+        // 3. Validate Debit capability via gRPC for total amount (withdrawal + tariff fee)
+        AccountClientPort.ValidationResult validation = accountClientPort.validateDebit(accountNo, totalDebit);
         if (!validation.isValid()) {
             throw new IllegalArgumentException("Withdrawal rejected for account " + accountNo + ": " + validation.message());
         }
 
-        // 3. Fetch Account Info for saccoCode and userId
+        // 4. Fetch Account Info for saccoCode and userId
         AccountClientPort.AccountInfo accountInfo = accountClientPort.getAccountInfo(accountNo);
 
-        // 4. Build & Save Transaction Record
+        // 5. Build & Save Transaction Record
         String txRef = generateTransactionRef("WTH");
         Transaction tx = new Transaction(
                 UUID.randomUUID(),
@@ -243,13 +248,16 @@ public class CashTransactionService implements CashTransactionUseCase {
         Transaction savedTx = transactionRepositoryPort.save(tx);
 
         try {
+            String auditDesc = "Withdrawal Amount: ETB " + amount +
+                    (fee.compareTo(BigDecimal.ZERO) > 0 ? " | Service Fee (" + tariff.tariffCode() + "): ETB " + fee : "") +
+                    " | Narration: " + narration;
             auditLogRepository.save(new TransactionAuditLogEntity(
                     null,
                     txRef,
                     accountNo,
                     processedByUserId,
                     "CASH_WITHDRAWAL",
-                    "Withdrawal Amount: ETB " + amount + " | Narration: " + narration,
+                    auditDesc,
                     OffsetDateTime.now()
             ));
         } catch (Exception ex) {
@@ -261,8 +269,8 @@ public class CashTransactionService implements CashTransactionUseCase {
             tellerTillService.recordCashMovement(processedByUserId, amount, false);
         }
 
-        // 4.5. Update the actual account book balance via gRPC
-        boolean balanceUpdated = accountClientPort.postTransaction(accountNo, amount, "DEBIT");
+        // 4.5. Update the actual account book balance via gRPC (debiting total withdrawal + tariff fee)
+        boolean balanceUpdated = accountClientPort.postTransaction(accountNo, totalDebit, "DEBIT");
         if (!balanceUpdated) {
             throw new RuntimeException("Failed to update account balance in account-management-service.");
         }
@@ -281,11 +289,11 @@ public class CashTransactionService implements CashTransactionUseCase {
                 journalEntry.getEntryId(),
                 "2010-MEMBER-SAVINGS-" + accountNo,
                 EntryType.DEBIT,
-                amount,
+                totalDebit,
                 Instant.now()
         );
 
-        JournalLine creditLine = new JournalLine(
+        JournalLine creditTellerLine = new JournalLine(
                 UUID.randomUUID(),
                 journalEntry.getEntryId(),
                 "1010-TELLER-VAULT-CASH",
@@ -294,11 +302,28 @@ public class CashTransactionService implements CashTransactionUseCase {
                 Instant.now()
         );
 
-        journalEntry.setLines(List.of(debitLine, creditLine));
+        java.util.List<JournalLine> lines = new java.util.ArrayList<>();
+        lines.add(debitLine);
+        lines.add(creditTellerLine);
+
+        if (fee.compareTo(BigDecimal.ZERO) > 0) {
+            String feeGl = (tariff != null && tariff.feeGlCode() != null) ? tariff.feeGlCode() : "4020";
+            JournalLine creditFeeLine = new JournalLine(
+                    UUID.randomUUID(),
+                    journalEntry.getEntryId(),
+                    feeGl + "-FEE-COMMISSION-INCOME",
+                    EntryType.CREDIT,
+                    fee,
+                    Instant.now()
+            );
+            lines.add(creditFeeLine);
+        }
+
+        journalEntry.setLines(lines);
         journalRepositoryPort.save(journalEntry);
 
         try {
-            BigDecimal newBal = accountInfo.availableBalance() != null ? accountInfo.availableBalance().subtract(amount) : BigDecimal.ZERO;
+            BigDecimal newBal = accountInfo.availableBalance() != null ? accountInfo.availableBalance().subtract(totalDebit) : BigDecimal.ZERO;
             notificationAdapter.sendCashWithdrawalNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
         } catch (Exception ex) {
             log.warn("Failed dispatching cash withdrawal SMS: {}", ex.getMessage());

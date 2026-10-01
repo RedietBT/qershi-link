@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ArrowLeft,
   ArrowRight,
+  Receipt,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { PermissionGuard } from './PermissionGuard';
@@ -370,6 +371,14 @@ export const Sidebar = () => {
                 path="/branches"
                 label="Branch Hierarchy"
                 icon={GitFork}
+                isCollapsed={isCollapsed}
+              />
+            </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.ACCOUNT_VIEW]}>
+              <SubNavItem
+                path="/tariffs"
+                label="Tariffs & 5% WHT"
+                icon={Receipt}
                 isCollapsed={isCollapsed}
               />
             </PermissionGuard>

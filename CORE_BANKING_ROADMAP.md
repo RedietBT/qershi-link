@@ -104,16 +104,16 @@
   - [x] Verify guarantor has sufficient unencumbered savings balance via real-time gRPC check.
   - [x] On loan disbursement: Automatically invoke `account-service` (`PlaceLien`) to place monetary **Lien Hold** on guarantor accounts.
   - [x] On final loan repayment/settlement: Automatically release guarantor liens (`ReleaseLien`) upon loan account closure.
-- [ ] **Fee & Tariff Engine**
-  - [ ] Create `tariffs` table (`transaction_type`, `fee_type`: `FLAT`, `PERCENTAGE`, `value`, `min_fee`, `max_fee`, `fee_gl_code`).
-  - [ ] Deduct configured fees automatically during cash withdrawal and internal transfers.
-- [ ] **Withholding Tax (WHT) on Savings Interest**
-  - [ ] Calculate statutory 5% withholding tax during monthly interest capitalization.
-  - [ ] Post: `DEBIT Interest Payable` | `CREDIT Member Savings (95%)` | `CREDIT WHT Payable to Government (5%)`.
-- [ ] **Frontend Deliverables**
+- [x] **Fee & Tariff Engine**
+  - [x] Create `tariffs` table (`transaction_type`, `fee_type`: `FLAT`, `PERCENTAGE`, `value`, `min_fee`, `max_fee`, `fee_gl_code`).
+  - [x] Deduct configured fees automatically during cash withdrawal and internal transfers.
+- [x] **Withholding Tax (WHT) on Savings Interest**
+  - [x] Calculate statutory 5% withholding tax during monthly interest capitalization.
+  - [x] Post: `DEBIT Interest Payable (2051)` | `CREDIT Member Savings (95%)` | `CREDIT WHT Payable to Government (2091, 5%)`.
+- [x] **Frontend Deliverables**
   - [x] `MakerCheckerPolicyPage.jsx`: Dedicated SACCO Maker-Checker & Four-Eyes policy management screen.
   - [x] `GuarantorPledgingSection.jsx`: Integrated into loan application form with real-time balance check.
-  - [ ] `TariffManagementPage.jsx`: Configure transaction fees, commissions, and tax rules.
+  - [x] `TariffManagementPage.jsx`: Configure transaction fees, commissions, real-time fee simulator, and 5% WHT governance.
 
 ---
 

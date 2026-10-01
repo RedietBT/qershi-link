@@ -100,22 +100,27 @@ public class TransferService implements TransferUseCase {
             }
         }
 
-        // 2. Validate Sender Debit capability via gRPC
-        AccountClientPort.ValidationResult senderValidation = accountClientPort.validateDebit(senderAccountNo, amount);
+        // 2. Assess applicable internal transfer fee via gRPC
+        AccountClientPort.TariffResult tariff = accountClientPort.calculateTariff("TRANSFER_INTERNAL", amount);
+        BigDecimal fee = (tariff != null && tariff.feeApplicable()) ? tariff.feeAmount() : BigDecimal.ZERO;
+        BigDecimal totalDebit = amount.add(fee);
+
+        // 3. Validate Sender Debit capability via gRPC for total amount (transfer + fee)
+        AccountClientPort.ValidationResult senderValidation = accountClientPort.validateDebit(senderAccountNo, totalDebit);
         if (!senderValidation.isValid()) {
             throw new IllegalArgumentException("Transfer rejected: Sender account " + senderAccountNo + " - " + senderValidation.message());
         }
 
-        // 3. Validate Receiver Credit capability via gRPC
+        // 4. Validate Receiver Credit capability via gRPC
         AccountClientPort.ValidationResult receiverValidation = accountClientPort.validateCredit(receiverAccountNo, amount);
         if (!receiverValidation.isValid()) {
             throw new IllegalArgumentException("Transfer rejected: Receiver account " + receiverAccountNo + " - " + receiverValidation.message());
         }
 
-        // 4. Fetch Sender Account Info
+        // 5. Fetch Sender Account Info
         AccountClientPort.AccountInfo senderInfo = accountClientPort.getAccountInfo(senderAccountNo);
 
-        // 5. Build & Save Master Transaction Record for Transfer
+        // 6. Build & Save Master Transaction Record for Transfer
         String txRef = generateTransactionRef("TRF");
         Transaction tx = new Transaction(
                 UUID.randomUUID(),
@@ -135,21 +140,24 @@ public class TransferService implements TransferUseCase {
         Transaction savedTx = transactionRepositoryPort.save(tx);
 
         try {
+            String auditDesc = "Transfer Amount: ETB " + amount +
+                    (fee.compareTo(BigDecimal.ZERO) > 0 ? " | Transfer Fee (" + tariff.tariffCode() + "): ETB " + fee : "") +
+                    " | To Account: " + receiverAccountNo + " | Narration: " + narration;
             auditLogRepository.save(new TransactionAuditLogEntity(
                     null,
                     txRef,
                     senderAccountNo,
                     processedByUserId,
                     "MEMBER_TRANSFER",
-                    "Transfer Amount: ETB " + amount + " | To Account: " + receiverAccountNo + " | Narration: " + narration,
+                    auditDesc,
                     OffsetDateTime.now()
             ));
         } catch (Exception ex) {
             log.warn("Failed writing transfer transaction audit log: {}", ex.getMessage());
         }
 
-        // 5.5. Debit Sender Account & Credit Receiver Account via gRPC
-        boolean debitSenderOk = accountClientPort.postTransaction(senderAccountNo, amount, "DEBIT");
+        // 5.5. Debit Sender Account (transfer + fee) & Credit Receiver Account (transfer amount) via gRPC
+        boolean debitSenderOk = accountClientPort.postTransaction(senderAccountNo, totalDebit, "DEBIT");
         if (!debitSenderOk) {
             throw new RuntimeException("Failed to debit sender account " + senderAccountNo + " in account-management-service.");
         }
@@ -158,9 +166,9 @@ public class TransferService implements TransferUseCase {
         if (!creditReceiverOk) {
             // Compensate sender account if receiver credit fails
             log.error("Credit to receiver account {} failed! Initiating compensation credit for sender account {}", receiverAccountNo, senderAccountNo);
-            boolean compensated = accountClientPort.postTransaction(senderAccountNo, amount, "CREDIT");
+            boolean compensated = accountClientPort.postTransaction(senderAccountNo, totalDebit, "CREDIT");
             if (!compensated) {
-                log.error("CRITICAL: Failed to compensate sender account {} for amount {} after failed transfer to {}", senderAccountNo, amount, receiverAccountNo);
+                log.error("CRITICAL: Failed to compensate sender account {} for amount {} after failed transfer to {}", senderAccountNo, totalDebit, receiverAccountNo);
             }
             throw new RuntimeException("Failed to credit receiver account " + receiverAccountNo + " in account-management-service.");
         }
@@ -179,7 +187,7 @@ public class TransferService implements TransferUseCase {
                 journalEntry.getEntryId(),
                 "2010-MEMBER-SAVINGS-" + senderAccountNo,
                 EntryType.DEBIT,
-                amount,
+                totalDebit,
                 Instant.now()
         );
 
@@ -192,11 +200,28 @@ public class TransferService implements TransferUseCase {
                 Instant.now()
         );
 
-        journalEntry.setLines(List.of(debitSenderLine, creditReceiverLine));
+        java.util.List<JournalLine> lines = new java.util.ArrayList<>();
+        lines.add(debitSenderLine);
+        lines.add(creditReceiverLine);
+
+        if (fee.compareTo(BigDecimal.ZERO) > 0) {
+            String feeGl = (tariff != null && tariff.feeGlCode() != null) ? tariff.feeGlCode() : "4020";
+            JournalLine creditFeeLine = new JournalLine(
+                    UUID.randomUUID(),
+                    journalEntry.getEntryId(),
+                    feeGl + "-FEE-COMMISSION-INCOME",
+                    EntryType.CREDIT,
+                    fee,
+                    Instant.now()
+            );
+            lines.add(creditFeeLine);
+        }
+
+        journalEntry.setLines(lines);
         journalRepositoryPort.save(journalEntry);
 
-        log.info("Member Transfer COMPLETED successfully: txRef={}, sender={}, receiver={}, amount={}",
-                txRef, senderAccountNo, receiverAccountNo, amount);
+        log.info("Member Transfer COMPLETED successfully: txRef={}, sender={}, receiver={}, amount={}, fee={}",
+                txRef, senderAccountNo, receiverAccountNo, amount, fee);
         return savedTx;
     }
 
