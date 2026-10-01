@@ -13,7 +13,9 @@ import { formatDateTime, formatCurrency } from '../../../common/utils/currency';
  */
 const PendingAuthorizationsContent = () => {
     const currentUser = useAuthStore((state) => state.user);
+    const [activeTab, setActiveTab] = useState('OPENINGS'); // 'OPENINGS' | 'DORMANCY'
     const [accounts, setAccounts] = useState([]);
+    const [reactivations, setReactivations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
@@ -24,11 +26,21 @@ const PendingAuthorizationsContent = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await accountLedgerApi.getAllAccounts();
-            const all = res.data || res || [];
-            setAccounts(all.filter(a => a.accountStatus === 'PENDING_APPROVAL'));
+            const [accRes, reactRes] = await Promise.allSettled([
+                accountLedgerApi.getAllAccounts(),
+                accountLedgerApi.getPendingReactivations()
+            ]);
+
+            if (accRes.status === 'fulfilled') {
+                const all = accRes.value?.data || accRes.value || [];
+                setAccounts(all.filter(a => a.accountStatus === 'PENDING_APPROVAL' || a.status === 'PENDING_APPROVAL'));
+            }
+            if (reactRes.status === 'fulfilled') {
+                const reactList = reactRes.value?.data || reactRes.value || [];
+                setReactivations(reactList);
+            }
         } catch (err) {
-            setError(err?.response?.data?.message || 'Failed to load pending accounts.');
+            setError(err?.response?.data?.message || 'Failed to load pending authorizations.');
         } finally {
             setIsLoading(false);
         }
@@ -52,13 +64,59 @@ const PendingAuthorizationsContent = () => {
         }
     };
 
-    const filtered = accounts.filter(a => {
+    const handleApproveReactivation = async (accountNo) => {
+        setApprovingNo(accountNo);
+        setSuccess(null);
+        setError(null);
+        try {
+            await accountLedgerApi.approveReactivation(accountNo, {
+                notes: 'Approved by Four-Eye supervisor queue'
+            });
+            setSuccess(`Dormant account ${accountNo} KYC verified and reactivated!`);
+            setTimeout(() => setSuccess(null), 4000);
+            fetchPending();
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Reactivation approval failed. Anti-Self-Approval violation.');
+        } finally {
+            setApprovingNo(null);
+        }
+    };
+
+    const handleRejectReactivation = async (accountNo) => {
+        setApprovingNo(accountNo);
+        setSuccess(null);
+        setError(null);
+        try {
+            await accountLedgerApi.rejectReactivation(accountNo, {
+                notes: 'Rejected by supervisor review'
+            });
+            setSuccess(`Reactivation request for ${accountNo} rejected.`);
+            setTimeout(() => setSuccess(null), 4000);
+            fetchPending();
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Rejection failed.');
+        } finally {
+            setApprovingNo(null);
+        }
+    };
+
+    const filteredAccounts = accounts.filter(a => {
         if (!searchTerm) return true;
         const t = searchTerm.toLowerCase();
         return (
             a.accountNo?.toLowerCase().includes(t) ||
             a.productCode?.toLowerCase().includes(t) ||
             a.userId?.toLowerCase().includes(t)
+        );
+    });
+
+    const filteredReactivations = reactivations.filter(a => {
+        if (!searchTerm) return true;
+        const t = searchTerm.toLowerCase();
+        return (
+            a.accountNo?.toLowerCase().includes(t) ||
+            a.productCode?.toLowerCase().includes(t) ||
+            a.reactivationMakerNotes?.toLowerCase().includes(t)
         );
     });
 
@@ -82,6 +140,32 @@ const PendingAuthorizationsContent = () => {
                 </div>
             </div>
 
+            {/* Queue Selector Tabs */}
+            <div className="flex items-center gap-2 border-b border-[var(--bdae-border)] pb-2">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('OPENINGS')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === 'OPENINGS'
+                            ? 'bg-[var(--bdae-primary)] text-white shadow-sm'
+                            : 'text-[var(--bdae-text-secondary)] hover:bg-black/5'
+                    }`}
+                >
+                    New Account Openings ({accounts.length})
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('DORMANCY')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === 'DORMANCY'
+                            ? 'bg-amber-600 text-white shadow-sm'
+                            : 'text-[var(--bdae-text-secondary)] hover:bg-black/5'
+                    }`}
+                >
+                    Dormancy KYC Reactivations ({reactivations.length})
+                </button>
+            </div>
+
             {/* Toolbar */}
             <div className="flex items-center gap-3 flex-wrap">
                 <div className="relative flex-1 min-w-[200px]">
@@ -89,7 +173,7 @@ const PendingAuthorizationsContent = () => {
                         type="text"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Search by account number, product, or user ID..."
+                        placeholder={activeTab === 'OPENINGS' ? "Search by account number, product, or user ID..." : "Search by account number, product, or verification notes..."}
                         className="w-full pl-9 pr-4 py-2 rounded-xl border border-[var(--bdae-border)] focus:border-[var(--bdae-secondary)] text-xs bg-transparent outline-none text-[var(--bdae-text-primary)]"
                     />
                     <Search className="w-3.5 h-3.5 text-[var(--bdae-text-secondary)] absolute left-3 top-2.5" />
@@ -106,62 +190,141 @@ const PendingAuthorizationsContent = () => {
             <div className="bdae-card border border-[var(--bdae-border)] rounded-2xl overflow-hidden">
                 {isLoading ? (
                     <div className="py-20 text-center"><RefreshCw className="w-6 h-6 animate-spin mx-auto text-[var(--bdae-secondary)]" /></div>
-                ) : filtered.length === 0 ? (
-                    <div className="py-20 text-center flex flex-col items-center gap-3 opacity-50">
-                        <ClipboardCheck className="w-10 h-10" />
-                        <p className="text-sm font-bold">No accounts pending approval</p>
-                        <p className="text-xs text-[var(--bdae-text-secondary)]">All accounts have been processed.</p>
-                    </div>
+                ) : activeTab === 'OPENINGS' ? (
+                    filteredAccounts.length === 0 ? (
+                        <div className="py-20 text-center flex flex-col items-center gap-3 opacity-50">
+                            <ClipboardCheck className="w-10 h-10" />
+                            <p className="text-sm font-bold">No accounts pending opening approval</p>
+                            <p className="text-xs text-[var(--bdae-text-secondary)]">All opened accounts have been authorized.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-black/5 dark:bg-white/5 border-b border-[var(--bdae-border)] text-[10px] uppercase font-extrabold text-[var(--bdae-text-secondary)] tracking-wider">
+                                        <th className="p-4">Account Number</th>
+                                        <th className="p-4">Product</th>
+                                        <th className="p-4">Branch</th>
+                                        <th className="p-4">Opened At</th>
+                                        <th className="p-4 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[var(--bdae-border)] text-xs">
+                                    {filteredAccounts.map(acc => {
+                                        const isSelfMaker = acc.openedByUserId && acc.openedByUserId === currentUser?.userId;
+                                        return (
+                                            <tr key={acc.accountNo} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                                <td className="p-4">
+                                                    <span className="font-mono font-extrabold text-[var(--bdae-primary)] tracking-widest text-xs">{acc.accountNo}</span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[var(--bdae-primary)]/10 text-[var(--bdae-primary)] border border-[var(--bdae-primary)]/20">{acc.productCode}</span>
+                                                </td>
+                                                <td className="p-4 font-mono text-[var(--bdae-text-secondary)]">{acc.branchCode || '—'}</td>
+                                                <td className="p-4 text-[var(--bdae-text-secondary)]">
+                                                    {formatDateTime(acc.openedDate || acc.openedAt)}
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    {isSelfMaker ? (
+                                                        <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20">
+                                                            Maker (Requires 2nd Eye)
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleApprove(acc.accountNo)}
+                                                            disabled={approvingNo === acc.accountNo}
+                                                            className="px-4 py-1.5 rounded-xl text-[10px] font-bold text-white bg-emerald-500 hover:bg-emerald-600 flex items-center gap-1.5 ml-auto disabled:opacity-50 transition-all"
+                                                        >
+                                                            {approvingNo === acc.accountNo
+                                                                ? <><RefreshCw className="w-3 h-3 animate-spin" /> Approving...</>
+                                                                : <><CheckCircle className="w-3 h-3" /> Approve &amp; Activate</>}
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-black/5 dark:bg-white/5 border-b border-[var(--bdae-border)] text-[10px] uppercase font-extrabold text-[var(--bdae-text-secondary)] tracking-wider">
-                                    <th className="p-4">Account Number</th>
-                                    <th className="p-4">Product</th>
-                                    <th className="p-4">Branch</th>
-                                    <th className="p-4">Opened At</th>
-                                    <th className="p-4 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[var(--bdae-border)] text-xs">
-                                {filtered.map(acc => {
-                                    const isSelfMaker = acc.openedByUserId && acc.openedByUserId === currentUser?.userId;
-                                    return (
-                                        <tr key={acc.accountNo} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                            <td className="p-4">
-                                                <span className="font-mono font-extrabold text-[var(--bdae-primary)] tracking-widest text-xs">{acc.accountNo}</span>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[var(--bdae-primary)]/10 text-[var(--bdae-primary)] border border-[var(--bdae-primary)]/20">{acc.productCode}</span>
-                                            </td>
-                                            <td className="p-4 font-mono text-[var(--bdae-text-secondary)]">{acc.branchCode || '—'}</td>
-                                            <td className="p-4 text-[var(--bdae-text-secondary)]">
-                                                {formatDateTime(acc.openedAt)}
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                {isSelfMaker ? (
-                                                    <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20">
-                                                        Maker (Requires 2nd Eye)
-                                                    </span>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleApprove(acc.accountNo)}
-                                                        disabled={approvingNo === acc.accountNo}
-                                                        className="px-4 py-1.5 rounded-xl text-[10px] font-bold text-white bg-emerald-500 hover:bg-emerald-600 flex items-center gap-1.5 ml-auto disabled:opacity-50 transition-all"
-                                                    >
-                                                        {approvingNo === acc.accountNo
-                                                            ? <><RefreshCw className="w-3 h-3 animate-spin" /> Approving...</>
-                                                            : <><CheckCircle className="w-3 h-3" /> Approve &amp; Activate</>}
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                    /* Dormancy KYC Reactivations Queue */
+                    filteredReactivations.length === 0 ? (
+                        <div className="py-20 text-center flex flex-col items-center gap-3 opacity-50">
+                            <ClipboardCheck className="w-10 h-10" />
+                            <p className="text-sm font-bold">No dormant accounts awaiting KYC reactivation</p>
+                            <p className="text-xs text-[var(--bdae-text-secondary)]">All dormancy reactivation requests have been resolved.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-black/5 dark:bg-white/5 border-b border-[var(--bdae-border)] text-[10px] uppercase font-extrabold text-[var(--bdae-text-secondary)] tracking-wider">
+                                        <th className="p-4">Account Number</th>
+                                        <th className="p-4">Product / Balance</th>
+                                        <th className="p-4">Dormancy Date</th>
+                                        <th className="p-4">Maker Verification Notes</th>
+                                        <th className="p-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[var(--bdae-border)] text-xs">
+                                    {filteredReactivations.map(acc => {
+                                        const isSelfMaker = acc.reactivationMakerUserId && acc.reactivationMakerUserId === currentUser?.userId;
+                                        return (
+                                            <tr key={acc.accountNo} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                                <td className="p-4">
+                                                    <span className="font-mono font-extrabold text-amber-600 tracking-widest text-xs">{acc.accountNo}</span>
+                                                    <div className="text-[10px] text-[var(--bdae-text-secondary)] font-mono">Member: {acc.userId?.slice(0, 8)}...</div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">#{acc.productCode}</span>
+                                                    <div className="font-mono font-bold text-xs mt-1">{formatCurrency(acc.bookBalance)}</div>
+                                                </td>
+                                                <td className="p-4 text-[var(--bdae-text-secondary)] font-mono text-[11px]">
+                                                    {acc.dormancyDate || 'Dormant'}
+                                                </td>
+                                                <td className="p-4 max-w-xs">
+                                                    <div className="text-[11px] text-[var(--bdae-text-primary)] font-medium truncate" title={acc.reactivationMakerNotes}>
+                                                        {acc.reactivationMakerNotes || 'In-person KYC verified'}
+                                                    </div>
+                                                    <div className="text-[9px] text-[var(--bdae-text-secondary)] font-mono">
+                                                        Maker: {acc.reactivationMakerUserId?.slice(0, 8)}...
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    {isSelfMaker ? (
+                                                        <span className="px-2.5 py-1 rounded-lg text-[9px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20">
+                                                            Maker (Requires 2nd Eye)
+                                                        </span>
+                                                    ) : (
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => handleRejectReactivation(acc.accountNo)}
+                                                                disabled={approvingNo === acc.accountNo}
+                                                                className="px-3 py-1.5 rounded-xl text-[10px] font-bold text-red-600 hover:bg-red-500/10 border border-red-500/20 disabled:opacity-50 transition-all"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleApproveReactivation(acc.accountNo)}
+                                                                disabled={approvingNo === acc.accountNo}
+                                                                className="px-3.5 py-1.5 rounded-xl text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 flex items-center gap-1.5 disabled:opacity-50 transition-all"
+                                                            >
+                                                                {approvingNo === acc.accountNo
+                                                                    ? <><RefreshCw className="w-3 h-3 animate-spin" /> Approving...</>
+                                                                    : <><CheckCircle className="w-3 h-3" /> Approve</>}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )
                 )}
             </div>
 

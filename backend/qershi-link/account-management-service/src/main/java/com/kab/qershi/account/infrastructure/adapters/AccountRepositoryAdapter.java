@@ -97,6 +97,14 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
         );
         entity.setDailyWithdrawnAmount(domain.getDailyWithdrawnAmount());
         entity.setDailyWithdrawnDate(domain.getDailyWithdrawnDate());
+        entity.setLastActivityDate(domain.getLastActivityDate());
+        entity.setDormancyDate(domain.getDormancyDate());
+        entity.setReactivationStatus(domain.getReactivationStatus());
+        entity.setReactivationMakerUserId(domain.getReactivationMakerUserId());
+        entity.setReactivationMakerNotes(domain.getReactivationMakerNotes());
+        entity.setReactivationCheckerUserId(domain.getReactivationCheckerUserId());
+        entity.setReactivationCheckerNotes(domain.getReactivationCheckerNotes());
+        entity.setReactivatedAt(domain.getReactivatedAt());
         return entity;
     }
 
@@ -122,6 +130,14 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
         );
         domain.setDailyWithdrawnAmount(entity.getDailyWithdrawnAmount());
         domain.setDailyWithdrawnDate(entity.getDailyWithdrawnDate());
+        domain.setLastActivityDate(entity.getLastActivityDate());
+        domain.setDormancyDate(entity.getDormancyDate());
+        domain.setReactivationStatus(entity.getReactivationStatus() != null ? entity.getReactivationStatus() : "NONE");
+        domain.setReactivationMakerUserId(entity.getReactivationMakerUserId());
+        domain.setReactivationMakerNotes(entity.getReactivationMakerNotes());
+        domain.setReactivationCheckerUserId(entity.getReactivationCheckerUserId());
+        domain.setReactivationCheckerNotes(entity.getReactivationCheckerNotes());
+        domain.setReactivatedAt(entity.getReactivatedAt());
         return domain;
     }
 }

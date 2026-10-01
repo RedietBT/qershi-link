@@ -31,6 +31,14 @@ public class Account {
     private LocalDateTime updatedAt;
     private BigDecimal dailyWithdrawnAmount = BigDecimal.ZERO;
     private java.time.LocalDate dailyWithdrawnDate = java.time.LocalDate.now();
+    private java.time.LocalDate lastActivityDate = java.time.LocalDate.now();
+    private java.time.LocalDate dormancyDate;
+    private String reactivationStatus = "NONE";
+    private UUID reactivationMakerUserId;
+    private String reactivationMakerNotes;
+    private UUID reactivationCheckerUserId;
+    private String reactivationCheckerNotes;
+    private LocalDateTime reactivatedAt;
 
     public Account() {
         this.bookBalance = BigDecimal.ZERO;
@@ -42,6 +50,8 @@ public class Account {
         this.updatedAt = LocalDateTime.now();
         this.dailyWithdrawnAmount = BigDecimal.ZERO;
         this.dailyWithdrawnDate = java.time.LocalDate.now();
+        this.lastActivityDate = java.time.LocalDate.now();
+        this.reactivationStatus = "NONE";
     }
 
     public Account(UUID accountId, String accountNo, UUID userId, String saccoCode, String branchCode,
@@ -114,13 +124,14 @@ public class Account {
     }
 
     /**
-     * Executes a credit transaction by updating the book balance.
+     * Executes a credit transaction by updating the book balance and resetting activity timestamp.
      */
     public void credit(BigDecimal amount) {
         if (!canPerformCredit(amount)) {
             throw new IllegalStateException("Account cannot be credited. Status: " + status + " | Freeze: " + freezeStatus);
         }
         this.bookBalance = this.bookBalance.add(amount);
+        this.lastActivityDate = java.time.LocalDate.now();
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -135,7 +146,7 @@ public class Account {
     }
 
     /**
-     * Executes a debit transaction by updating the book balance and daily withdrawal accumulator.
+     * Executes a debit transaction by updating the book balance, activity timestamp, and daily withdrawal accumulator.
      */
     public void debit(BigDecimal amount, BigDecimal minOperatingBalance) {
         if (!canPerformDebit(amount, minOperatingBalance)) {
@@ -152,6 +163,7 @@ public class Account {
             this.dailyWithdrawnAmount = currentDaily.add(amount);
         }
 
+        this.lastActivityDate = today;
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -182,7 +194,7 @@ public class Account {
     }
 
     /**
-     * Four-Eye Maker-Checker Approval workflow method.
+     * Four-Eye Maker-Checker Approval workflow method for initial account opening.
      */
     public void approveAccount(UUID checkerUserId) {
         if (checkerUserId == null) {
@@ -191,6 +203,66 @@ public class Account {
         this.status = AccountStatus.ACTIVE;
         this.approvedByUserId = checkerUserId;
         this.approvalDate = LocalDateTime.now();
+        this.lastActivityDate = java.time.LocalDate.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Maker Step: Customer Service / Teller initiates in-person KYC reactivation for a DORMANT account.
+     */
+    public void initiateReactivation(UUID makerUserId, String notes) {
+        if (this.status != AccountStatus.DORMANT) {
+            throw new IllegalStateException("Only DORMANT accounts can be submitted for KYC reactivation. Current status: " + this.status);
+        }
+        if (makerUserId == null) {
+            throw new IllegalArgumentException("Maker user ID is required to initiate KYC reactivation.");
+        }
+        this.reactivationStatus = "PENDING_CHECKER_APPROVAL";
+        this.reactivationMakerUserId = makerUserId;
+        this.reactivationMakerNotes = notes;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Checker Step: Branch Manager / Supervisor validates KYC documents and approves reactivation.
+     * Enforces Anti-Self-Approval rule (Maker != Checker).
+     */
+    public void approveReactivation(UUID checkerUserId, String notes) {
+        if (this.status != AccountStatus.DORMANT) {
+            throw new IllegalStateException("Account is not DORMANT. Current status: " + this.status);
+        }
+        if (!"PENDING_CHECKER_APPROVAL".equalsIgnoreCase(this.reactivationStatus)) {
+            throw new IllegalStateException("Account does not have a pending reactivation request. Current reactivation status: " + this.reactivationStatus);
+        }
+        if (checkerUserId == null) {
+            throw new IllegalArgumentException("Checker user ID is required to approve KYC reactivation.");
+        }
+        if (checkerUserId.equals(this.reactivationMakerUserId)) {
+            throw new IllegalStateException("Four-Eye Anti-Self-Approval Violation: The maker user (" + this.reactivationMakerUserId + ") cannot approve their own reactivation request.");
+        }
+        this.status = AccountStatus.ACTIVE;
+        this.dormancyDate = null;
+        this.lastActivityDate = java.time.LocalDate.now();
+        this.reactivationStatus = "APPROVED";
+        this.reactivationCheckerUserId = checkerUserId;
+        this.reactivationCheckerNotes = notes;
+        this.reactivatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Checker Step: Supervisor rejects KYC reactivation.
+     */
+    public void rejectReactivation(UUID checkerUserId, String reason) {
+        if (!"PENDING_CHECKER_APPROVAL".equalsIgnoreCase(this.reactivationStatus)) {
+            throw new IllegalStateException("Account does not have a pending reactivation request.");
+        }
+        if (checkerUserId != null && checkerUserId.equals(this.reactivationMakerUserId)) {
+            throw new IllegalStateException("Four-Eye Anti-Self-Approval Violation: The maker user cannot reject/decide their own request.");
+        }
+        this.reactivationStatus = "REJECTED";
+        this.reactivationCheckerUserId = checkerUserId;
+        this.reactivationCheckerNotes = reason;
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -248,4 +320,28 @@ public class Account {
 
     public java.time.LocalDate getDailyWithdrawnDate() { return dailyWithdrawnDate; }
     public void setDailyWithdrawnDate(java.time.LocalDate dailyWithdrawnDate) { this.dailyWithdrawnDate = dailyWithdrawnDate; }
+
+    public java.time.LocalDate getLastActivityDate() { return lastActivityDate; }
+    public void setLastActivityDate(java.time.LocalDate lastActivityDate) { this.lastActivityDate = lastActivityDate; }
+
+    public java.time.LocalDate getDormancyDate() { return dormancyDate; }
+    public void setDormancyDate(java.time.LocalDate dormancyDate) { this.dormancyDate = dormancyDate; }
+
+    public String getReactivationStatus() { return reactivationStatus; }
+    public void setReactivationStatus(String reactivationStatus) { this.reactivationStatus = reactivationStatus; }
+
+    public UUID getReactivationMakerUserId() { return reactivationMakerUserId; }
+    public void setReactivationMakerUserId(UUID reactivationMakerUserId) { this.reactivationMakerUserId = reactivationMakerUserId; }
+
+    public String getReactivationMakerNotes() { return reactivationMakerNotes; }
+    public void setReactivationMakerNotes(String reactivationMakerNotes) { this.reactivationMakerNotes = reactivationMakerNotes; }
+
+    public UUID getReactivationCheckerUserId() { return reactivationCheckerUserId; }
+    public void setReactivationCheckerUserId(UUID reactivationCheckerUserId) { this.reactivationCheckerUserId = reactivationCheckerUserId; }
+
+    public String getReactivationCheckerNotes() { return reactivationCheckerNotes; }
+    public void setReactivationCheckerNotes(String reactivationCheckerNotes) { this.reactivationCheckerNotes = reactivationCheckerNotes; }
+
+    public LocalDateTime getReactivatedAt() { return reactivatedAt; }
+    public void setReactivatedAt(LocalDateTime reactivatedAt) { this.reactivatedAt = reactivatedAt; }
 }

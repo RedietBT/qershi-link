@@ -66,11 +66,18 @@
     - [x] `Substandard / PAR 31-60` (31–60 DPD, 25% provisioning)
     - [x] `Doubtful / PAR 61-90` (61–90 DPD, 50% provisioning)
     - [x] `Loss / NPL / PAR 90+` (>90 DPD, 100% provisioning)
-- [x] **Account Dormancy Rule**
-  - [x] Auto-transition accounts with no activity $>180$ days to `DORMANT`.
+- [x] **Account Dormancy Rule & KYC Reactivation Lifecycle (Temenos/Finacle/WOCCU standard)**
+  - [x] Auto-transition accounts with no activity $>180$ days to `DORMANT` in EOD batch orchestrator.
+  - [x] Automated SMS security warning dispatched to member upon dormancy transition.
+  - [x] Strict debit/withdrawal blocking to prevent insider fraud.
+  - [x] Maker-Checker in-person biometric / KYC re-verification workflow with Anti-Self-Approval enforcement.
+  - [x] `last_activity_date`, `dormancy_date`, `reactivation_status`, maker/checker notes and timestamps persisted in `accounts`.
 - [x] **Frontend Deliverables**
   - [x] `EodControlPage.jsx`: Run EOD batch, inspect step logs, view business date status.
   - [x] `LoanDelinquencyDashboard.jsx`: PAR aging breakdown pie/bar charts, overdue member list.
+  - [x] `MemberAccountsTab.jsx`: Live dormancy status alert banner, withdrawals blocked warning, and KYC Reactivation trigger modal.
+  - [x] `ReactivateAccountModal.jsx`: Maker in-person KYC biometric verification submission & Checker supervisor review modal.
+  - [x] `PendingAuthorizationsPage.jsx`: Tabbed Four-Eye authorization queues for both new account openings and dormancy KYC reactivations.
 
 ---
 

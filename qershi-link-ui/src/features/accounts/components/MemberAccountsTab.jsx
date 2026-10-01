@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Snowflake,
   ShieldAlert,
+  ShieldCheck,
   FolderOpen
 } from 'lucide-react';
 import { accountLedgerApi } from '../api/accountLedgerApi';
@@ -17,11 +18,12 @@ import { MaskedDataField } from '../../../common/components/MaskedDataField';
 import { OpenAccountModal } from './OpenAccountModal';
 import { FreezeAccountModal } from './FreezeAccountModal';
 import { LienManagementModal } from './LienManagementModal';
+import { ReactivateAccountModal } from './ReactivateAccountModal';
 
 const STATUS_STYLES = {
   ACTIVE: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   PENDING_APPROVAL: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  DORMANT: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
+  DORMANT: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
   CLOSED: 'bg-red-500/10 text-red-500 border-red-500/20',
   FROZEN: 'bg-blue-500/10 text-blue-600 border-blue-500/20'
 };
@@ -35,6 +37,7 @@ export const MemberAccountsTab = ({ userId }) => {
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [freezeModalAccount, setFreezeModalAccount] = useState(null);
   const [lienModalAccount, setLienModalAccount] = useState(null);
+  const [reactivateModalAccount, setReactivateModalAccount] = useState(null);
 
   const loadAccounts = async () => {
     if (!userId) return;
@@ -177,8 +180,42 @@ export const MemberAccountsTab = ({ userId }) => {
                         <span>Liens</span>
                       </button>
                     </PermissionGuard>
+                    {/* Dormancy KYC Reactivation */}
+                    {acc.status === 'DORMANT' && (
+                      <PermissionGuard
+                        roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'TELLER', 'CUSTOMER_SERVICE']}
+                        permissions={[PERMISSIONS.ACCOUNT_OPEN, PERMISSIONS.ACCOUNT_APPROVE]}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setReactivateModalAccount(acc)}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-rose-500/30 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 transition-all"
+                          title="Initiate or Approve KYC Reactivation"
+                        >
+                          <ShieldCheck className="w-3 h-3" />
+                          <span>{acc.reactivationStatus === 'PENDING_CHECKER_APPROVAL' ? 'Review Reactivation' : 'Reactivate (KYC)'}</span>
+                        </button>
+                      </PermissionGuard>
+                    )}
                   </div>
                 </div>
+
+                {/* Dormancy Alert Banner */}
+                {acc.status === 'DORMANT' && (
+                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px]">
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 shrink-0 text-rose-600" />
+                      <span>
+                        <strong>Account DORMANT (&gt;180 Days Inactivity):</strong> Automated debits and OTC withdrawals are blocked to prevent insider fraud.
+                      </span>
+                    </div>
+                    {acc.reactivationStatus === 'PENDING_CHECKER_APPROVAL' && (
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                        Pending Four-Eye Approval
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Balances Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-2 border-t border-[var(--bdae-border)]">
@@ -245,6 +282,14 @@ export const MemberAccountsTab = ({ userId }) => {
         isOpen={!!lienModalAccount}
         account={lienModalAccount}
         onClose={() => setLienModalAccount(null)}
+        onUpdated={loadAccounts}
+      />
+
+      {/* Modular KYC Reactivation Modal */}
+      <ReactivateAccountModal
+        isOpen={!!reactivateModalAccount}
+        account={reactivateModalAccount}
+        onClose={() => setReactivateModalAccount(null)}
         onUpdated={loadAccounts}
       />
     </div>

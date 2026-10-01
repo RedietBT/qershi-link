@@ -60,6 +60,27 @@ public class AccountEntity {
     @Column(name = "last_activity_date")
     private java.time.LocalDate lastActivityDate;
 
+    @Column(name = "dormancy_date")
+    private java.time.LocalDate dormancyDate;
+
+    @Column(name = "reactivation_status", nullable = false, length = 30)
+    private String reactivationStatus = "NONE";
+
+    @Column(name = "reactivation_maker_id")
+    private UUID reactivationMakerUserId;
+
+    @Column(name = "reactivation_maker_notes")
+    private String reactivationMakerNotes;
+
+    @Column(name = "reactivation_checker_id")
+    private UUID reactivationCheckerUserId;
+
+    @Column(name = "reactivation_checker_notes")
+    private String reactivationCheckerNotes;
+
+    @Column(name = "reactivated_at")
+    private LocalDateTime reactivatedAt;
+
     @Column(name = "daily_withdrawn_amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal dailyWithdrawnAmount = BigDecimal.ZERO;
 
@@ -153,6 +174,27 @@ public class AccountEntity {
 
     public java.time.LocalDate getLastActivityDate() { return lastActivityDate; }
     public void setLastActivityDate(java.time.LocalDate lastActivityDate) { this.lastActivityDate = lastActivityDate; }
+
+    public java.time.LocalDate getDormancyDate() { return dormancyDate; }
+    public void setDormancyDate(java.time.LocalDate dormancyDate) { this.dormancyDate = dormancyDate; }
+
+    public String getReactivationStatus() { return reactivationStatus; }
+    public void setReactivationStatus(String reactivationStatus) { this.reactivationStatus = reactivationStatus; }
+
+    public UUID getReactivationMakerUserId() { return reactivationMakerUserId; }
+    public void setReactivationMakerUserId(UUID reactivationMakerUserId) { this.reactivationMakerUserId = reactivationMakerUserId; }
+
+    public String getReactivationMakerNotes() { return reactivationMakerNotes; }
+    public void setReactivationMakerNotes(String reactivationMakerNotes) { this.reactivationMakerNotes = reactivationMakerNotes; }
+
+    public UUID getReactivationCheckerUserId() { return reactivationCheckerUserId; }
+    public void setReactivationCheckerUserId(UUID reactivationCheckerUserId) { this.reactivationCheckerUserId = reactivationCheckerUserId; }
+
+    public String getReactivationCheckerNotes() { return reactivationCheckerNotes; }
+    public void setReactivationCheckerNotes(String reactivationCheckerNotes) { this.reactivationCheckerNotes = reactivationCheckerNotes; }
+
+    public LocalDateTime getReactivatedAt() { return reactivatedAt; }
+    public void setReactivatedAt(LocalDateTime reactivatedAt) { this.reactivatedAt = reactivatedAt; }
 
     public AccountStatus getStatus() { return status; }
     public void setStatus(AccountStatus status) { this.status = status; }

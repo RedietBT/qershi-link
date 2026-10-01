@@ -136,7 +136,11 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
                 if (account.getFreezeStatus() != null && account.getFreezeStatus().blocksDebit()) {
                     reason = "Debit rejected: Account debit is blocked by freeze status (" + account.getFreezeStatus() + ").";
                 } else if (account.getStatus() != com.kab.qershi.account.domain.model.AccountStatus.ACTIVE) {
-                    reason = "Debit rejected: Account is not active (status: " + account.getStatus() + ").";
+                    if (account.getStatus() == com.kab.qershi.account.domain.model.AccountStatus.DORMANT) {
+                        reason = "Debit rejected: Account is DORMANT due to prolonged inactivity (>180 days). Withdrawals are blocked to prevent insider fraud. In-person KYC re-verification required for reactivation.";
+                    } else {
+                        reason = "Debit rejected: Account is not active (status: " + account.getStatus() + ").";
+                    }
                 }
                 ValidationProtoResponse response = ValidationProtoResponse.newBuilder()
                         .setIsValid(false)

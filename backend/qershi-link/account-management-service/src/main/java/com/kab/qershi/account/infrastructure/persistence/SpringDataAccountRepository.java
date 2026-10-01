@@ -32,6 +32,14 @@ public interface SpringDataAccountRepository extends JpaRepository<AccountEntity
 
     List<AccountEntity> findByStatusAndLastActivityDateBefore(AccountStatus status, java.time.LocalDate cutoffDate);
 
+    List<AccountEntity> findByStatusAndReactivationStatus(AccountStatus status, String reactivationStatus);
+
+    @Query("SELECT a FROM AccountEntity a WHERE a.status = :status AND " +
+           "(a.lastActivityDate < :cutoffDate OR (a.lastActivityDate IS NULL AND a.openedDate < :cutoffDateTime))")
+    List<AccountEntity> findDormantCandidates(@Param("status") AccountStatus status,
+                                             @Param("cutoffDate") java.time.LocalDate cutoffDate,
+                                             @Param("cutoffDateTime") java.time.LocalDateTime cutoffDateTime);
+
     /**
      * Native query executing tenant-isolated phone number to account lookup by joining master_schema.users identity table.
      */

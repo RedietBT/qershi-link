@@ -53,5 +53,31 @@ export const accountLedgerApi = {
     freezeAccount: async (accountNo, data) => {
         const response = await accountHttpClient.put(`${BASE}/${accountNo}/freeze`, data);
         return response.data;
+    },
+
+    // Dormancy and KYC Reactivation endpoints
+    requestReactivation: async (accountNo, data) => {
+        const response = await accountHttpClient.post(`${BASE}/${accountNo}/reactivation/request`, data);
+        return response.data;
+    },
+
+    approveReactivation: async (accountNo, data) => {
+        const response = await accountHttpClient.put(`${BASE}/${accountNo}/reactivation/approve`, data);
+        return response.data;
+    },
+
+    rejectReactivation: async (accountNo, data) => {
+        const response = await accountHttpClient.put(`${BASE}/${accountNo}/reactivation/reject`, data);
+        return response.data;
+    },
+
+    getDormantAccounts: async () => {
+        const response = await accountHttpClient.get(`${BASE}/dormant`);
+        return response.data;
+    },
+
+    getPendingReactivations: async () => {
+        const response = await accountHttpClient.get(`${BASE}/reactivations/pending`);
+        return response.data;
     }
 };

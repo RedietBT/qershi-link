@@ -110,6 +110,7 @@ public class AccountOpeningService implements AccountOpeningUseCase {
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
+        account.setLastActivityDate(java.time.LocalDate.now());
 
         Account saved = accountRepositoryPort.save(account);
 
