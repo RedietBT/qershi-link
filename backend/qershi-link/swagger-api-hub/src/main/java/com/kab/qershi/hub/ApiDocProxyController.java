@@ -64,6 +64,11 @@ public class ApiDocProxyController {
         return fetchApiDocs("loan-management-service", 8085);
     }
 
+    @GetMapping(value = "/pricing", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getPricingApiDocs() {
+        return fetchApiDocs("pricing-fee-service", 8087);
+    }
+
     private ResponseEntity<String> fetchApiDocs(String serviceName, int port) {
         String[] candidateUrls = new String[]{
                 "http://" + serviceName + ":" + (serviceName.contains("identity") ? 8080 : port) + "/v3/api-docs",

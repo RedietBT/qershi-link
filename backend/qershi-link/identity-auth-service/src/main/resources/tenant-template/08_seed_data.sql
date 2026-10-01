@@ -28,7 +28,9 @@ INSERT INTO {schema}.permissions (resource, action, description) VALUES
 ('LOAN_DELINQUENCY', 'VIEW',         'Authority to view Portfolio at Risk (PAR) and loan delinquency dashboard.'),
 ('COA',              'VIEW',         'Authority to view Chart of Accounts tree and GL account balances.'),
 ('COA',              'MANAGE',       'Authority to create and configure Chart of Accounts.'),
-('FINANCIAL_REPORT', 'VIEW',         'Authority to view Trial Balance, Balance Sheet, and Profit & Loss reports.')
+('FINANCIAL_REPORT', 'VIEW',         'Authority to view Trial Balance, Balance Sheet, and Profit & Loss reports.'),
+('TARIFF',           'VIEW',         'Authority to inspect transaction fee tariffs and withholding tax records.'),
+('TARIFF',           'MANAGE',       'Authority to configure and toggle fee tariffs and tax policies.')
 ON CONFLICT (resource, action) DO NOTHING;
 
 INSERT INTO {schema}.roles (role_id, role_name, is_system_defined) VALUES
