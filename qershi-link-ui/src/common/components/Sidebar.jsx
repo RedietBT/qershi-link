@@ -30,6 +30,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Receipt,
+  CalendarClock,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { PermissionGuard } from './PermissionGuard';
@@ -371,6 +372,14 @@ export const Sidebar = () => {
                 path="/branches"
                 label="Branch Hierarchy"
                 icon={GitFork}
+                isCollapsed={isCollapsed}
+              />
+            </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.ACCOUNT_VIEW]}>
+              <SubNavItem
+                path="/accounts/term-deposits"
+                label="Term Deposits (FD)"
+                icon={CalendarClock}
                 isCollapsed={isCollapsed}
               />
             </PermissionGuard>

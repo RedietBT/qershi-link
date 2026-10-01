@@ -58,6 +58,10 @@ public class EodBatchExecutionEntity {
     @Column(name = "total_accounts_dormant", nullable = false)
     private Integer totalAccountsDormant = 0;
 
+    // Month-end only — not persisted to DB column, used in-memory during EOD run
+    @jakarta.persistence.Transient
+    private Integer totalLoansProvisioned = 0;
+
     @Column(name = "summary_notes")
     private String summaryNotes;
 
@@ -98,6 +102,9 @@ public class EodBatchExecutionEntity {
 
     public Integer getTotalAccountsDormant() { return totalAccountsDormant; }
     public void setTotalAccountsDormant(Integer totalAccountsDormant) { this.totalAccountsDormant = totalAccountsDormant; }
+
+    public Integer getTotalLoansProvisioned() { return totalLoansProvisioned; }
+    public void setTotalLoansProvisioned(Integer totalLoansProvisioned) { this.totalLoansProvisioned = totalLoansProvisioned; }
 
     public String getSummaryNotes() { return summaryNotes; }
     public void setSummaryNotes(String summaryNotes) { this.summaryNotes = summaryNotes; }

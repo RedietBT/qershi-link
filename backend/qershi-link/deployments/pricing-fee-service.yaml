@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pricing-fee-service
+  namespace: sacco-core
+  labels:
+    app: pricing-fee-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pricing-fee-service
+  template:
+    metadata:
+      labels:
+        app: pricing-fee-service
+    spec:
+      containers:
+        - name: pricing-fee-service
+          image: pricing-fee-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8087
+              name: http
+            - containerPort: 9087
+              name: grpc
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service:5432/qershi-link?stringtype=unspecified"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "postgres"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "postgres"
+            - name: SERVER_PORT
+              value: "8087"
+            - name: GRPC_SERVER_PORT
+              value: "9087"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: sacco-secrets
+                  key: JWT_SECRET
+            - name: SPRING_DATA_REDIS_HOST
+              value: "redis-service"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            - name: SPRING_FLYWAY_TABLE
+              value: "flyway_schema_history_pricing"
+            - name: SPRING_FLYWAY_BASELINE_ON_MIGRATE
+              value: "true"
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms128m -Xmx256m -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseSerialGC"
+          resources:
+            requests:
+              memory: "192Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8087
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8087
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pricing-fee-service
+  namespace: sacco-core
+  labels:
+    app: pricing-fee-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: pricing-fee-service
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8087
+      targetPort: 8087
+    - name: grpc
+      protocol: TCP
+      port: 9087
+      targetPort: 9087

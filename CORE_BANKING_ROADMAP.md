@@ -77,7 +77,34 @@
   - [x] `LoanDelinquencyDashboard.jsx`: PAR aging breakdown pie/bar charts, overdue member list.
   - [x] `MemberAccountsTab.jsx`: Live dormancy status alert banner, withdrawals blocked warning, and KYC Reactivation trigger modal.
   - [x] `ReactivateAccountModal.jsx`: Maker in-person KYC biometric verification submission & Checker supervisor review modal.
-  - [x] `PendingAuthorizationsPage.jsx`: Tabbed Four-Eye authorization queues for both new account openings and dormancy KYC reactivations.
+    - [x] `PendingAuthorizationsPage.jsx`: Tabbed Four-Eye authorization queues for both new account openings and dormancy KYC reactivations.
+- [x] **IFRS 9 / NBE Regulatory Loan Loss Provisioning (Gap 4 — NBE Directive & IFRS 9 ECL)**
+  - [x] Monthly portfolio impairment calculation with mandatory NBE five-stage risk classification:
+    - [x] `Pass` (0–29 DPD): 1.0% general reserve
+    - [x] `Special Mention` (30–89 DPD): 5.0% specific reserve
+    - [x] `Substandard` (90–179 DPD): 20.0% specific reserve
+    - [x] `Doubtful` (180–359 DPD): 50.0% specific reserve
+    - [x] `Loss` (360+ DPD): 100.0% full write-off reserve
+  - [x] Balanced GL double-entry posted automatically: `DEBIT GL 5030 — Loan Impairment Loss Expense` / `CREDIT GL 1039 — Allowance for Credit Losses (Contra-Asset)`.
+  - [x] Idempotent month-end run with unique GL journal posting reference (`JE-IFRS9-YYYYMMDD-XXXXXXXX`).
+  - [x] Per-loan ECL provision lines stored with full audit trail in `loan_impairment_provision_lines`.
+  - [x] Month-end step wired into `EodBatchOrchestrator` Step 5 (fires only when `isMonthEnd=true`) via REST call to loan service.
+  - [x] REST API: `/api/v1/loans/ifrs9-provisioning/run`, `/latest`, `/history`, `/{runId}/lines`.
+  - [x] `Ifrs9ComplianceCard.jsx`: Premium compliance card on the delinquency dashboard with animated stage breakdown bars, expandable GL journal entry panel, and manual trigger button.
+- [x] **Fixed Term Deposit (FD) Contracts & Early Penalty Break (Gap 5 — Temenos Transact / Finacle FD Standard)**
+  - [x] Multi-tenor Fixed Term Deposit lifecycle (`term_deposit_contracts` table, `V9__create_term_deposit_contracts.sql`):
+    - [x] Configurable tenors (3, 6, 12, 24, 36 months) with preferential interest rates (e.g. 10.5%–14.5% p.a.).
+    - [x] Double-entry GL integration on opening: `DEBIT GL 1010 — Member Savings Account` / `CREDIT GL 2060 — Term Deposit Liability`.
+    - [x] Automatic maturity processing with auto-rollover toggle or principal + accrued interest payout to savings.
+    - [x] Early break / premature termination engine with configurable penalty rate deducted from accrued interest.
+    - [x] Supervisor Four-Eyes authorization workflow for early termination (`maker != checker`).
+  - [x] EOD Batch integration: `TermDepositService.processMaturedContracts()` wired into `EodBatchOrchestrator` step.
+  - [x] REST API: `POST /api/v1/term-deposits/open`, `GET /account/{accountNo}`, `GET /active`, `GET /{contractId}`, `POST /{contractId}/break-early`, `POST /process-matured`.
+  - [x] Frontend deliverables:
+    - [x] `TermDepositPage.jsx`: Active FD portfolio dashboard, status filters, premature break trigger modal, and maturity projections.
+    - [x] `TermDepositCard.jsx`: Interactive card with maturity progress bar, accrued interest counter, and auto-rollover indicator.
+    - [x] `OpenTermDepositModal.jsx`: FD opening modal with tenor selection, interest rate calculations, and live GL entry preview.
+    - [x] Navigation: Integrated into `Sidebar.jsx` and `AccountManagementDeck.jsx`.
 
 ---
 

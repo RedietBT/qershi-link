@@ -8,6 +8,7 @@ import { SaccoConfigPage } from '../../features/accounts/pages/SaccoConfigPage';
 import { DepositProductsPage } from '../../features/accounts/pages/DepositProductsPage';
 import { PendingAuthorizationsPage } from '../../features/accounts/pages/PendingAuthorizationsPage';
 import { BranchManagementPage } from '../../features/accounts/pages/BranchManagementPage';
+import { TermDepositPage } from '../../features/accounts/pages/TermDepositPage';
 
 /**
  * Account Management & Branch Hierarchy Routes
@@ -79,6 +80,20 @@ export const accountRoutes = [
       >
         <Layout>
           <BranchManagementPage />
+        </Layout>
+      </PermissionRoute>
+    }
+  />,
+  <Route
+    key="/accounts/term-deposits"
+    path="/accounts/term-deposits"
+    element={
+      <PermissionRoute
+        roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER']}
+        permissions={[PERMISSIONS.ACCOUNT_VIEW]}
+      >
+        <Layout>
+          <TermDepositPage />
         </Layout>
       </PermissionRoute>
     }

@@ -39,6 +39,7 @@ public class EodBatchOrchestrator {
     private final SpringDataEodBatchStepLogRepository stepLogRepository;
     private final InterestAccrualService interestAccrualService;
     private final AccountDormancyService accountDormancyService;
+    private final TermDepositService termDepositService;
     private final RestTemplate restTemplate;
 
     @Value("${services.loan-management.url:http://loan-management-service:8085}")
@@ -49,12 +50,14 @@ public class EodBatchOrchestrator {
                                 SpringDataEodBatchStepLogRepository stepLogRepository,
                                 InterestAccrualService interestAccrualService,
                                 AccountDormancyService accountDormancyService,
+                                TermDepositService termDepositService,
                                 RestTemplateBuilder restTemplateBuilder) {
         this.businessDateRepository = businessDateRepository;
         this.batchExecutionRepository = batchExecutionRepository;
         this.stepLogRepository = stepLogRepository;
         this.interestAccrualService = interestAccrualService;
         this.accountDormancyService = accountDormancyService;
+        this.termDepositService = termDepositService;
         this.restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(15))
@@ -130,6 +133,17 @@ public class EodBatchOrchestrator {
                 return dormantCount;
             });
 
+            // STEP 3b: FIXED TERM DEPOSIT DAILY ACCRUAL + MATURITY SWEEP
+            executeStep(batchId, "TERM_DEPOSIT_ACCRUAL", () -> {
+                int fdAccrued = termDepositService.runDailyFdAccrual(businessDate);
+                return fdAccrued;
+            });
+            executeStep(batchId, "TERM_DEPOSIT_MATURITY", () -> {
+                TermDepositService.MaturityProcessResult fdResult =
+                        termDepositService.processMaturedContracts(businessDate);
+                return fdResult.contractsProcessed();
+            });
+
             // STEP 4: LOAN PORTFOLIO AT RISK (PAR) AGING
             executeStep(batchId, "LOAN_PAR_AGING", () -> {
                 int loansEvaluated = triggerLoanParAging(businessDate);
@@ -137,7 +151,18 @@ public class EodBatchOrchestrator {
                 return loansEvaluated;
             });
 
-            // STEP 5: BUSINESS DATE ROLLOVER
+            // STEP 5: IFRS 9 / NBE REGULATORY LOAN LOSS PROVISIONING (Month-End Only)
+            if (isMonthEnd) {
+                executeStep(batchId, "IFRS9_LOAN_LOSS_PROVISIONING", () -> {
+                    int loansProvisioned = triggerIfrs9Provisioning(businessDate);
+                    currentExec.setTotalLoansProvisioned(loansProvisioned);
+                    return loansProvisioned;
+                });
+            } else {
+                log.info("[EOD] Skipping IFRS9_LOAN_LOSS_PROVISIONING — not a month-end date.");
+            }
+
+            // STEP 6: BUSINESS DATE ROLLOVER
             LocalDate nextBusinessDate = businessDate.plusDays(1);
             boolean nextMonthEnd = nextBusinessDate.plusDays(1).getMonth() != nextBusinessDate.getMonth();
 
@@ -154,8 +179,13 @@ public class EodBatchOrchestrator {
 
             execution.setStatus("COMPLETED");
             execution.setCompletedAt(LocalDateTime.now());
-            execution.setSummaryNotes(String.format("Batch completed successfully. Processed %d interest accruals, %d dormant accounts, %d loans evaluated. Rolled date to %s.",
-                    execution.getTotalAccountsAccrued(), execution.getTotalAccountsDormant(), execution.getTotalLoansEvaluated(), nextBusinessDate));
+            execution.setSummaryNotes(String.format(
+                    "Batch completed successfully. Processed %d interest accruals, %d dormant accounts, " +
+                    "%d loans PAR-aged, %d loans IFRS9-provisioned (month-end=%b). Rolled date to %s.",
+                    execution.getTotalAccountsAccrued(), execution.getTotalAccountsDormant(),
+                    execution.getTotalLoansEvaluated(),
+                    execution.getTotalLoansProvisioned() != null ? execution.getTotalLoansProvisioned() : 0,
+                    isMonthEnd, nextBusinessDate));
             return batchExecutionRepository.save(execution);
 
         } catch (Exception ex) {
@@ -187,6 +217,34 @@ public class EodBatchOrchestrator {
             return 0;
         } catch (Exception e) {
             log.warn("Loan service PAR aging call failed or service unreachable: {}. Step recorded with 0 loans.", e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calls the Loan Management Service IFRS 9 provisioning endpoint.
+     * Only invoked on month-end business dates.
+     *
+     * @param businessDate the month-end date being processed
+     * @return number of loans provisioned, or 0 on failure (non-fatal)
+     */
+    private int triggerIfrs9Provisioning(LocalDate businessDate) {
+        try {
+            String url = loanServiceUrl + "/api/v1/loans/ifrs9-provisioning/run?businessDate=" + businessDate;
+            log.info("[EOD-IFRS9] Triggering IFRS 9 month-end provisioning at: {}", url);
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, null, Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Object total = response.getBody().get("totalLoansEvaluated");
+                if (total instanceof Number num) {
+                    log.info("[EOD-IFRS9] Provisioning completed. Loans provisioned: {}. GL Ref: {}",
+                            num.intValue(), response.getBody().get("glPostingRef"));
+                    return num.intValue();
+                }
+            }
+            return 0;
+        } catch (Exception e) {
+            log.warn("[EOD-IFRS9] IFRS 9 provisioning call failed or service unreachable: {}. Step recorded with 0 loans.",
+                    e.getMessage());
             return 0;
         }
     }

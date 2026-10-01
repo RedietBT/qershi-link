@@ -12,6 +12,7 @@ import { PermissionGuard } from '../../../../common/components/PermissionGuard';
 import { DelinquencyMetricsDeck } from '../components/DelinquencyMetricsDeck';
 import { DelinquencyAgingBuckets } from '../components/DelinquencyAgingBuckets';
 import { DelinquencyLoanTable } from '../components/DelinquencyLoanTable';
+import { Ifrs9ComplianceCard } from '../components/Ifrs9ComplianceCard';
 
 export const LoanDelinquencyDashboard = () => {
   const [summary, setSummary] = useState(null);
@@ -156,6 +157,9 @@ export const LoanDelinquencyDashboard = () => {
         selectedBucket={selectedBucket}
         setSelectedBucket={setSelectedBucket}
       />
+
+      {/* ── 4. IFRS 9 / NBE Regulatory Compliance Card ── */}
+      <Ifrs9ComplianceCard canTrigger={canEvaluate} />
     </div>
   );
 };

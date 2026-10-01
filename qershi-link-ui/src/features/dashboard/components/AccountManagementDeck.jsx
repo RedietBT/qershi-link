@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Landmark, PackagePlus, ClipboardCheck, GitFork, CreditCard } from 'lucide-react';
+import { Landmark, PackagePlus, ClipboardCheck, GitFork, CreditCard, CalendarClock } from 'lucide-react';
 import { PermissionGuard } from '../../../common/components/PermissionGuard';
 import { PERMISSIONS } from '../../../common/constants/permissions';
 
@@ -21,7 +21,7 @@ export const AccountManagementDeck = () => {
           <span>Core Accounts & Product Factory</span>
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 text-xs">
           {/* Card 1: Member Accounts Lookup */}
           <PermissionGuard permissions={[PERMISSIONS.ACCOUNT_VIEW]}>
             <div
@@ -117,6 +117,26 @@ export const AccountManagementDeck = () => {
                 </p>
                 <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
                   HQ, regional branches, and sub-branch physical locations.
+                </p>
+              </div>
+            </div>
+          </PermissionGuard>
+
+          {/* Card 6: Term Deposits (FD) */}
+          <PermissionGuard permissions={[PERMISSIONS.ACCOUNT_VIEW]}>
+            <div
+              onClick={() => navigate('/accounts/term-deposits')}
+              className="p-5 rounded-2xl bdae-surface border border-[var(--bdae-border)] hover:border-amber-500 cursor-pointer space-y-2 transition-all shadow-sm group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                <CalendarClock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-[var(--bdae-text-primary)] group-hover:text-amber-500 transition-colors">
+                  Term Deposits (FD)
+                </p>
+                <p className="text-[11px] text-[var(--bdae-text-secondary)] mt-1">
+                  Fixed deposit contracts, early break penalties, and rollover.
                 </p>
               </div>
             </div>
