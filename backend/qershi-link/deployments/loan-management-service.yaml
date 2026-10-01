@@ -49,30 +49,30 @@ spec:
             - name: SPRING_FLYWAY_BASELINE_ON_MIGRATE
               value: "true"
             - name: JAVA_TOOL_OPTIONS
-              value: "-Xms128m -Xmx256m -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseSerialGC"
+              value: "-Xms64m -Xmx192m -XX:MaxMetaspaceSize=128m -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseSerialGC"
           resources:
             requests:
-              memory: "192Mi"
+              memory: "160Mi"
               cpu: "100m"
             limits:
-              memory: "512Mi"
+              memory: "384Mi"
               cpu: "1000m"
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 8085
-            initialDelaySeconds: 60
+            initialDelaySeconds: 90
             periodSeconds: 10
             timeoutSeconds: 10
-            failureThreshold: 6
+            failureThreshold: 12
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8085
-            initialDelaySeconds: 60
+            initialDelaySeconds: 140
             periodSeconds: 15
             timeoutSeconds: 10
-            failureThreshold: 6
+            failureThreshold: 10
 ---
 apiVersion: v1
 kind: Service
