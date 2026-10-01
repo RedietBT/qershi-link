@@ -2,6 +2,7 @@ package com.kab.qershi.loan.origination.application.usecase;
 
 import com.kab.qershi.loan.origination.domain.model.*;
 import com.kab.qershi.loan.origination.domain.ports.inbound.LoanApplicationUseCase;
+import com.kab.qershi.loan.origination.domain.ports.outbound.AccountClientPort;
 import com.kab.qershi.loan.origination.domain.ports.outbound.LoanApplicationRepositoryPort;
 import com.kab.qershi.loan.origination.domain.ports.outbound.LoanGroupRepositoryPort;
 import com.kab.qershi.loan.origination.domain.service.ScoringEngine;
@@ -23,8 +24,8 @@ import java.util.stream.Collectors;
 
 /**
  * Application service implementing LoanApplicationUseCase.
- * Handles loan application creation, collateral checks, automated multi-factor credit scoring,
- * and application reference number generation.
+ * Handles loan application creation, collateral checks, peer guarantor validation,
+ * automated multi-factor credit scoring, and application reference number generation.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -38,15 +39,18 @@ public class OriginationService implements LoanApplicationUseCase {
     private final LoanGroupRepositoryPort groupRepositoryPort;
     private final ScoringEngine scoringEngine;
     private final JdbcTemplate jdbcTemplate;
+    private final AccountClientPort accountClientPort;
 
     public OriginationService(LoanApplicationRepositoryPort applicationRepositoryPort,
                               LoanGroupRepositoryPort groupRepositoryPort,
                               ScoringEngine scoringEngine,
-                              JdbcTemplate jdbcTemplate) {
+                              JdbcTemplate jdbcTemplate,
+                              AccountClientPort accountClientPort) {
         this.applicationRepositoryPort = applicationRepositoryPort;
         this.groupRepositoryPort = groupRepositoryPort;
         this.scoringEngine = scoringEngine;
         this.jdbcTemplate = jdbcTemplate;
+        this.accountClientPort = accountClientPort;
     }
 
     @Override
@@ -90,6 +94,55 @@ public class OriginationService implements LoanApplicationUseCase {
         UUID applicationId = UUID.randomUUID();
         String applicationNo = generateApplicationNumber();
 
+        List<LoanGuarantor> guarantors = new ArrayList<>();
+        if (command.guarantors() != null && !command.guarantors().isEmpty()) {
+            for (GuarantorInput gInput : command.guarantors()) {
+                if (command.userId().equals(gInput.guarantorUserId())) {
+                    throw new IllegalArgumentException("The applicant cannot act as their own peer guarantor.");
+                }
+                if (gInput.guaranteedAmount() == null || gInput.guaranteedAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new IllegalArgumentException("Guaranteed pledge amount must be greater than zero.");
+                }
+                if (gInput.savingsAccountNo() == null || gInput.savingsAccountNo().isBlank()) {
+                    throw new IllegalArgumentException("Guarantor savings account number is required.");
+                }
+
+                try {
+                    AccountClientPort.AccountInfo acc = accountClientPort.getAccountInfo(gInput.savingsAccountNo().trim());
+                    if (!"ACTIVE".equalsIgnoreCase(acc.status())) {
+                        throw new IllegalArgumentException("Guarantor savings account " + gInput.savingsAccountNo() + " is not ACTIVE (Status: " + acc.status() + ").");
+                    }
+                    if (acc.availableBalance() == null || acc.availableBalance().compareTo(gInput.guaranteedAmount()) < 0) {
+                        throw new IllegalArgumentException(String.format(
+                                "Guarantor %s has insufficient unencumbered savings balance. Available: %s ETB, Required: %s ETB.",
+                                gInput.guarantorName() != null ? gInput.guarantorName() : gInput.savingsAccountNo(),
+                                acc.availableBalance() != null ? acc.availableBalance().toPlainString() : "0",
+                                gInput.guaranteedAmount().toPlainString()
+                        ));
+                    }
+                } catch (IllegalArgumentException iae) {
+                    throw iae;
+                } catch (Exception ex) {
+                    log.warn("Account validation error for account {}: {}", gInput.savingsAccountNo(), ex.getMessage());
+                    throw new IllegalStateException("Unable to verify guarantor account " + gInput.savingsAccountNo() + ": " + ex.getMessage(), ex);
+                }
+
+                guarantors.add(new LoanGuarantor(
+                        UUID.randomUUID(),
+                        applicationId,
+                        gInput.guarantorUserId(),
+                        gInput.guarantorName(),
+                        gInput.guarantorPhone(),
+                        gInput.savingsAccountNo().trim(),
+                        gInput.guaranteedAmount(),
+                        null,
+                        "PENDING",
+                        Instant.now(),
+                        Instant.now()
+                ));
+            }
+        }
+
         CreditScoring scoring = scoringEngine.evaluateEligibility(
                 applicationId,
                 scoringType,
@@ -127,6 +180,7 @@ public class OriginationService implements LoanApplicationUseCase {
                 scoring,
                 collaterals,
                 List.of(submitLog),
+                guarantors,
                 Instant.now(),
                 Instant.now()
         );

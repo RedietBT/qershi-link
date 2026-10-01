@@ -14,6 +14,7 @@ import {
 import { loanOriginationApi } from '../api/loanOriginationApi';
 import { depositProductApi } from '../../../accounts/api/depositProductApi';
 import { formatCurrency } from '../../../../common/utils/currency';
+import { GuarantorPledgingSection } from './GuarantorPledgingSection';
 
 export const LoanApplicationModal = ({ isOpen, onClose, onSuccess }) => {
   const [products, setProducts] = useState([]);
@@ -30,6 +31,7 @@ export const LoanApplicationModal = ({ isOpen, onClose, onSuccess }) => {
   const [projectedYield, setProjectedYield] = useState('');
   const [landSizeHectares, setLandSizeHectares] = useState('1.5');
   const [collaterals, setCollaterals] = useState([]);
+  const [guarantors, setGuarantors] = useState([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -101,6 +103,16 @@ export const LoanApplicationModal = ({ isOpen, onClose, onSuccess }) => {
           documentUrl: c.documentUrl.trim() || undefined
         }));
 
+      const formattedGuarantors = guarantors
+        .filter((g) => g.savingsAccountNo?.trim() && Number(g.guaranteedAmount) > 0)
+        .map((g) => ({
+          guarantorUserId: g.guarantorUserId?.trim() || undefined,
+          guarantorName: g.guarantorName?.trim() || undefined,
+          guarantorPhone: g.guarantorPhone?.trim() || undefined,
+          savingsAccountNo: g.savingsAccountNo.trim(),
+          guaranteedAmount: Number(g.guaranteedAmount)
+        }));
+
       const payload = {
         userId: userId.trim(),
         groupId: scoringType === 'GROUP' && groupId ? groupId.trim() : undefined,
@@ -111,7 +123,8 @@ export const LoanApplicationModal = ({ isOpen, onClose, onSuccess }) => {
         historicalYield: historicalYield ? Number(historicalYield) : 0,
         projectedYield: projectedYield ? Number(projectedYield) : 0,
         landSizeHectares: landSizeHectares ? Number(landSizeHectares) : 1.0,
-        collaterals: formattedCollaterals
+        collaterals: formattedCollaterals,
+        guarantors: formattedGuarantors
       };
 
       const res = await loanOriginationApi.submitApplication(payload);
@@ -465,6 +478,16 @@ export const LoanApplicationModal = ({ isOpen, onClose, onSuccess }) => {
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Member Peer Guarantors & Savings Liens Section */}
+              <div className="pt-2 border-t border-[var(--bdae-border)]">
+                <GuarantorPledgingSection
+                  guarantors={guarantors}
+                  onChange={setGuarantors}
+                  applicantUserId={userId}
+                  amountRequested={amountRequested}
+                />
               </div>
             </form>
           )}

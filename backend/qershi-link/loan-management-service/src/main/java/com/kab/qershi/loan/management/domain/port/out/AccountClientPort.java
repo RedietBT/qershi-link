@@ -18,6 +18,15 @@ public interface AccountClientPort {
 
     boolean postTransaction(String accountNo, BigDecimal amount, String transactionType);
 
+    LienResult placeLien(String accountNo, BigDecimal amount, String reason, String referenceNo, String officerUserId);
+
+    boolean releaseLien(String lienId, String officerUserId);
+
+    record LienResult(
+            boolean isSuccess,
+            String lienId,
+            String message
+    ) {}
     record AccountInfo(
             String accountId,
             String accountNo,

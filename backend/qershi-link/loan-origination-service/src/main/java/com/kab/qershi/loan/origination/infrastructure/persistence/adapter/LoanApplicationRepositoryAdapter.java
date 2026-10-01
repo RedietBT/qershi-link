@@ -87,6 +87,21 @@ public class LoanApplicationRepositoryAdapter implements LoanApplicationReposito
                         l.getActionAt()
                 )).collect(Collectors.toList());
 
+        List<LoanGuarantorEntity> guarantorEntities = domain.getGuarantors().stream()
+                .map(g -> new LoanGuarantorEntity(
+                        g.getGuarantorId(),
+                        domain.getApplicationId(),
+                        g.getGuarantorUserId(),
+                        g.getGuarantorName(),
+                        g.getGuarantorPhone(),
+                        g.getSavingsAccountNo(),
+                        g.getGuaranteedAmount(),
+                        g.getLienId(),
+                        g.getStatus(),
+                        g.getCreatedAt(),
+                        g.getUpdatedAt()
+                )).collect(Collectors.toList());
+
         return new LoanApplicationEntity(
                 domain.getApplicationId(),
                 domain.getApplicationNo(),
@@ -100,6 +115,7 @@ public class LoanApplicationRepositoryAdapter implements LoanApplicationReposito
                 scoringEntity,
                 collateralEntities,
                 logEntities,
+                guarantorEntities,
                 domain.getCreatedAt(),
                 domain.getUpdatedAt()
         );
@@ -138,6 +154,21 @@ public class LoanApplicationRepositoryAdapter implements LoanApplicationReposito
                         l.getActionAt()
                 )).collect(Collectors.toList());
 
+        List<LoanGuarantor> guarantors = entity.getGuarantors() != null ? entity.getGuarantors().stream()
+                .map(g -> new LoanGuarantor(
+                        g.getGuarantorId(),
+                        entity.getApplicationId(),
+                        g.getGuarantorUserId(),
+                        g.getGuarantorName(),
+                        g.getGuarantorPhone(),
+                        g.getSavingsAccountNo(),
+                        g.getGuaranteedAmount(),
+                        g.getLienId(),
+                        g.getStatus(),
+                        g.getCreatedAt(),
+                        g.getUpdatedAt()
+                )).collect(Collectors.toList()) : List.of();
+
         return new LoanApplication(
                 entity.getApplicationId(),
                 entity.getApplicationNo(),
@@ -151,6 +182,7 @@ public class LoanApplicationRepositoryAdapter implements LoanApplicationReposito
                 scoring,
                 collaterals,
                 logs,
+                guarantors,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

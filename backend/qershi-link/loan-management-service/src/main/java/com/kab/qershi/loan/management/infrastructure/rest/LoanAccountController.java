@@ -27,9 +27,12 @@ import java.util.stream.Collectors;
 public class LoanAccountController {
 
     private final LoanScheduleUseCase scheduleUseCase;
+    private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository;
 
-    public LoanAccountController(LoanScheduleUseCase scheduleUseCase) {
+    public LoanAccountController(LoanScheduleUseCase scheduleUseCase,
+                                 com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository) {
         this.scheduleUseCase = scheduleUseCase;
+        this.guarantorRepository = guarantorRepository;
     }
 
     @GetMapping("/{id}")
@@ -60,5 +63,12 @@ public class LoanAccountController {
                 .map(LoanAccountResponse::fromDomain)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/guarantors")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_ADMIN', 'LOAN_ACCOUNT:VIEW', 'LOAN_ACCOUNT_VIEW')")
+    @Operation(summary = "Get Loan Account Peer Guarantors", description = "Retrieves peer guarantors and their active savings lien status for a loan account")
+    public ResponseEntity<List<com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountGuarantorEntity>> getAccountGuarantors(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(guarantorRepository.findByAccountId(id));
     }
 }

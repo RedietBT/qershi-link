@@ -41,19 +41,22 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
     private final NotificationGrpcClientAdapter notificationAdapter;
     private final SpringDataLoanAuditLogRepository auditLogRepository;
     private final com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort;
+    private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository;
 
     public LoanDisbursementService(LoanAccountRepositoryPort accountRepository,
                                    RepaymentScheduleRepositoryPort scheduleRepository,
                                    AmortizationEngine amortizationEngine,
                                    NotificationGrpcClientAdapter notificationAdapter,
                                    SpringDataLoanAuditLogRepository auditLogRepository,
-                                   com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort) {
+                                   com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort,
+                                   com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.amortizationEngine = amortizationEngine;
         this.notificationAdapter = notificationAdapter;
         this.auditLogRepository = auditLogRepository;
         this.accountClientPort = accountClientPort;
+        this.guarantorRepository = guarantorRepository;
     }
 
     @Override
@@ -136,6 +139,52 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
             if (!creditOk) {
                 log.error("Failed to credit savings account {} for disbursed loan {}", targetAccount, savedAccount.getAccountNo());
                 throw new RuntimeException("Failed to credit disbursed funds to borrower savings account: " + targetAccount);
+            }
+        }
+
+        // 4.6. Place monetary lien holds on member peer guarantors' savings accounts via gRPC
+        if (command.guarantors() != null && !command.guarantors().isEmpty()) {
+            for (GuarantorDisbursementInput g : command.guarantors()) {
+                log.info("Placing lien hold of {} ETB on guarantor savings account {} for loan {}",
+                        g.guaranteedAmount(), g.savingsAccountNo(), savedAccount.getAccountNo());
+                UUID lienId = null;
+                String status = "PENDING";
+                try {
+                    com.kab.qershi.loan.management.domain.port.out.AccountClientPort.LienResult lienResult =
+                            accountClientPort.placeLien(
+                                    g.savingsAccountNo(),
+                                    g.guaranteedAmount(),
+                                    "Peer Guarantor Pledge for Loan " + savedAccount.getAccountNo(),
+                                    savedAccount.getAccountNo(),
+                                    command.userId() != null ? command.userId().toString() : ""
+                            );
+                    if (lienResult.isSuccess() && lienResult.lienId() != null && !lienResult.lienId().isBlank()) {
+                        lienId = UUID.fromString(lienResult.lienId());
+                        status = "HELD";
+                        log.info("Successfully placed lien {} on guarantor account {}", lienId, g.savingsAccountNo());
+                    } else {
+                        log.warn("Lien hold placement rejected or failed for guarantor account {}: {}", g.savingsAccountNo(), lienResult.message());
+                        status = "FAILED";
+                    }
+                } catch (Exception ex) {
+                    log.error("Error calling placeLien on account {}: {}", g.savingsAccountNo(), ex.getMessage());
+                    status = "FAILED";
+                }
+
+                guarantorRepository.save(new com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountGuarantorEntity(
+                        null,
+                        savedAccount.getAccountId(),
+                        command.applicationId(),
+                        g.guarantorUserId(),
+                        g.guarantorName(),
+                        g.guarantorPhone(),
+                        g.savingsAccountNo(),
+                        g.guaranteedAmount(),
+                        lienId,
+                        status,
+                        OffsetDateTime.now(),
+                        OffsetDateTime.now()
+                ));
             }
         }
 

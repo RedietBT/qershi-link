@@ -57,5 +57,14 @@ export const loanManagementApi = {
   processRepayment: async (data) => {
     const response = await loanMgmtHttpClient.post(`${BASE}/repayments`, data);
     return response.data;
+  },
+
+  /**
+   * Get peer guarantors and active lien hold status for a loan account
+   * @param {string} accountId
+   */
+  getAccountGuarantors: async (accountId) => {
+    const response = await loanMgmtHttpClient.get(`${BASE}/accounts/${accountId}/guarantors`);
+    return response.data;
   }
 };

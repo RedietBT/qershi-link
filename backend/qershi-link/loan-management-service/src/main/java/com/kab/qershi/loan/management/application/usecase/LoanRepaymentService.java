@@ -39,19 +39,22 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
     private final PaymentWaterfallEngine waterfallEngine;
     private final com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort;
     private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataPenaltyRuleRepository penaltyRuleRepository;
+    private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository;
 
     public LoanRepaymentService(LoanAccountRepositoryPort accountRepository,
                                 RepaymentScheduleRepositoryPort scheduleRepository,
                                 LoanRepaymentRepositoryPort repaymentRepository,
                                 NotificationGrpcClientAdapter notificationAdapter,
                                 com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort,
-                                com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataPenaltyRuleRepository penaltyRuleRepository) {
+                                com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataPenaltyRuleRepository penaltyRuleRepository,
+                                com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.repaymentRepository = repaymentRepository;
         this.notificationAdapter = notificationAdapter;
         this.accountClientPort = accountClientPort;
         this.penaltyRuleRepository = penaltyRuleRepository;
+        this.guarantorRepository = guarantorRepository;
         this.waterfallEngine = new PaymentWaterfallEngine();
     }
 
@@ -126,6 +129,29 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
             account.setUpdatedAt(now);
             accountRepository.save(account);
             log.info("Loan Account {} is now fully paid and CLOSED", account.getAccountNo());
+
+            // Release all active peer guarantor lien holds
+            try {
+                List<com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountGuarantorEntity> heldGuarantors =
+                        guarantorRepository.findByAccountIdAndStatus(account.getAccountId(), "HELD");
+                for (var g : heldGuarantors) {
+                    if (g.getLienId() != null) {
+                        log.info("Releasing lien hold {} on guarantor account {} for closed loan {}",
+                                g.getLienId(), g.getSavingsAccountNo(), account.getAccountNo());
+                        boolean released = accountClientPort.releaseLien(g.getLienId().toString(), "SYSTEM_LOAN_CLOSURE");
+                        if (released) {
+                            g.setStatus("RELEASED");
+                            g.setUpdatedAt(now);
+                            guarantorRepository.save(g);
+                            log.info("Successfully released lien for guarantor account {}", g.getSavingsAccountNo());
+                        } else {
+                            log.warn("Remote ReleaseLien RPC returned false for lienId {}", g.getLienId());
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                log.error("Failed releasing guarantor liens for loan {}: {}", account.getAccountNo(), ex.getMessage());
+            }
         } else if (account.getStatus() == LoanStatus.DISBURSED) {
             account.setStatus(LoanStatus.ACTIVE);
             account.setUpdatedAt(now);

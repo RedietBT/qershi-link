@@ -99,11 +99,11 @@
   - [x] Daily cumulative withdrawal limit: Tracks daily debits and blocks transactions exceeding `daily_withdrawal_limit`.
   - [x] Minimum operating balance floor: Enforces unwithdrawable minimum contractual balance.
   - [x] Dynamic UI: Modal for creating and editing per-account-type rules with quick presets (Student, Women, General, etc.) in `AccountsWorkflowTab.jsx`.
-- [ ] **Member Peer Guarantor Management**
-  - [ ] Update `loan-origination-service` to accept `guarantors` array (`guarantor_user_id`, `savings_account_no`, `guaranteed_amount`).
-  - [ ] Verify guarantor has sufficient unencumbered savings balance.
-  - [ ] On loan disbursement: Automatically invoke `account-service` to place **Lien Hold** on guarantor accounts.
-  - [ ] On final loan repayment/settlement: Automatically release guarantor liens.
+- [x] **Member Peer Guarantor Management**
+  - [x] Update `loan-origination-service` to accept `guarantors` array (`guarantor_user_id`, `savings_account_no`, `guaranteed_amount`).
+  - [x] Verify guarantor has sufficient unencumbered savings balance via real-time gRPC check.
+  - [x] On loan disbursement: Automatically invoke `account-service` (`PlaceLien`) to place monetary **Lien Hold** on guarantor accounts.
+  - [x] On final loan repayment/settlement: Automatically release guarantor liens (`ReleaseLien`) upon loan account closure.
 - [ ] **Fee & Tariff Engine**
   - [ ] Create `tariffs` table (`transaction_type`, `fee_type`: `FLAT`, `PERCENTAGE`, `value`, `min_fee`, `max_fee`, `fee_gl_code`).
   - [ ] Deduct configured fees automatically during cash withdrawal and internal transfers.
@@ -112,7 +112,7 @@
   - [ ] Post: `DEBIT Interest Payable` | `CREDIT Member Savings (95%)` | `CREDIT WHT Payable to Government (5%)`.
 - [ ] **Frontend Deliverables**
   - [x] `MakerCheckerPolicyPage.jsx`: Dedicated SACCO Maker-Checker & Four-Eyes policy management screen.
-  - [ ] `GuarantorPledgingSection.jsx`: Integrated into loan application form with real-time balance check.
+  - [x] `GuarantorPledgingSection.jsx`: Integrated into loan application form with real-time balance check.
   - [ ] `TariffManagementPage.jsx`: Configure transaction fees, commissions, and tax rules.
 
 ---

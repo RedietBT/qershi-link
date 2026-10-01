@@ -20,6 +20,14 @@ public interface LoanApplicationUseCase {
             String documentUrl
     ) {}
 
+    record GuarantorInput(
+            UUID guarantorUserId,
+            String guarantorName,
+            String guarantorPhone,
+            String savingsAccountNo,
+            BigDecimal guaranteedAmount
+    ) {}
+
     record SubmitApplicationCommand(
             UUID userId,
             UUID groupId,
@@ -30,8 +38,25 @@ public interface LoanApplicationUseCase {
             BigDecimal historicalYield,
             BigDecimal projectedYield,
             BigDecimal landSizeHectares,
-            List<CollateralInput> collaterals
-    ) {}
+            List<CollateralInput> collaterals,
+            List<GuarantorInput> guarantors
+    ) {
+        public SubmitApplicationCommand(
+                UUID userId,
+                UUID groupId,
+                UUID productId,
+                String scoringType,
+                BigDecimal amountRequested,
+                BigDecimal savingsConsistency,
+                BigDecimal historicalYield,
+                BigDecimal projectedYield,
+                BigDecimal landSizeHectares,
+                List<CollateralInput> collaterals
+        ) {
+            this(userId, groupId, productId, scoringType, amountRequested, savingsConsistency,
+                 historicalYield, projectedYield, landSizeHectares, collaterals, List.of());
+        }
+    }
 
     LoanApplication submitApplication(SubmitApplicationCommand command);
 

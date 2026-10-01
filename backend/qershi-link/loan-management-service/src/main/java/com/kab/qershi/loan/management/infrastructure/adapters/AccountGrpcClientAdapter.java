@@ -5,8 +5,12 @@ import com.kab.qershi.account.infrastructure.grpc.AccountNoRequest;
 import com.kab.qershi.account.infrastructure.grpc.AccountProtoResponse;
 import com.kab.qershi.account.infrastructure.grpc.CreditValidationProtoRequest;
 import com.kab.qershi.account.infrastructure.grpc.DebitValidationProtoRequest;
+import com.kab.qershi.account.infrastructure.grpc.PlaceLienProtoRequest;
+import com.kab.qershi.account.infrastructure.grpc.PlaceLienProtoResponse;
 import com.kab.qershi.account.infrastructure.grpc.PostTransactionRequest;
 import com.kab.qershi.account.infrastructure.grpc.PostTransactionResponse;
+import com.kab.qershi.account.infrastructure.grpc.ReleaseLienProtoRequest;
+import com.kab.qershi.account.infrastructure.grpc.ReleaseLienProtoResponse;
 import com.kab.qershi.account.infrastructure.grpc.ValidationProtoResponse;
 import com.kab.qershi.loan.management.domain.port.out.AccountClientPort;
 import com.kab.qershi.loan.management.infrastructure.config.TenantContext;
@@ -122,6 +126,47 @@ public class AccountGrpcClientAdapter implements AccountClientPort {
             return res.getIsSuccess();
         } catch (Exception ex) {
             log.error("gRPC call PostTransaction failed for accountNo {}: {}", accountNo, ex.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public LienResult placeLien(String accountNo, BigDecimal amount, String reason, String referenceNo, String officerUserId) {
+        log.debug("Calling gRPC PlaceLien for accountNo: {}, amount: {}, ref: {}", accountNo, amount, referenceNo);
+        try {
+            String schema = TenantContext.getTenantSchema();
+            PlaceLienProtoRequest request = PlaceLienProtoRequest.newBuilder()
+                    .setAccountNo(accountNo)
+                    .setAmount(amount.toPlainString())
+                    .setReason(reason != null ? reason : "Peer Guarantor Savings Pledge")
+                    .setReferenceNo(referenceNo != null ? referenceNo : "")
+                    .setOfficerUserId(officerUserId != null ? officerUserId : "")
+                    .setTenantSchema(schema != null ? schema : "")
+                    .build();
+
+            PlaceLienProtoResponse res = accountGrpcStub.placeLien(request);
+            return new LienResult(res.getIsSuccess(), res.getLienId(), res.getMessage());
+        } catch (Exception ex) {
+            log.error("gRPC call PlaceLien failed for accountNo {}: {}", accountNo, ex.getMessage());
+            return new LienResult(false, null, "RPC error: " + ex.getMessage());
+        }
+    }
+
+    @Override
+    public boolean releaseLien(String lienId, String officerUserId) {
+        log.debug("Calling gRPC ReleaseLien for lienId: {}", lienId);
+        try {
+            String schema = TenantContext.getTenantSchema();
+            ReleaseLienProtoRequest request = ReleaseLienProtoRequest.newBuilder()
+                    .setLienId(lienId)
+                    .setOfficerUserId(officerUserId != null ? officerUserId : "")
+                    .setTenantSchema(schema != null ? schema : "")
+                    .build();
+
+            ReleaseLienProtoResponse res = accountGrpcStub.releaseLien(request);
+            return res.getIsSuccess();
+        } catch (Exception ex) {
+            log.error("gRPC call ReleaseLien failed for lienId {}: {}", lienId, ex.getMessage());
             return false;
         }
     }

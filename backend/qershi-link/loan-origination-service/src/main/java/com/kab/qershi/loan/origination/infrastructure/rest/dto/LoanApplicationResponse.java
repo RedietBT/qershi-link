@@ -26,6 +26,7 @@ public record LoanApplicationResponse(
         CreditScoring creditScoring,
         List<Collateral> collaterals,
         List<ApprovalLog> approvalLogs,
+        List<LoanGuarantor> guarantors,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -43,6 +44,7 @@ public record LoanApplicationResponse(
                 domain.getCreditScoring(),
                 domain.getCollaterals(),
                 domain.getApprovalLogs(),
+                domain.getGuarantors(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt()
         );

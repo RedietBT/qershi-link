@@ -22,6 +22,7 @@ export const DisburseLoanModal = ({ isOpen, onClose, onSuccess, initialData }) =
   const [interestType, setInterestType] = useState('REDUCING_BALANCE');
   const [targetSavingsAccountId, setTargetSavingsAccountId] = useState('');
   const [memberPhone, setMemberPhone] = useState(initialData?.phone || '');
+  const [guarantors, setGuarantors] = useState(initialData?.guarantors || []);
   const [idempotencyKey, setIdempotencyKey] = useState(generateIdempotencyKey());
 
   const [submitting, setSubmitting] = useState(false);
@@ -56,7 +57,14 @@ export const DisburseLoanModal = ({ isOpen, onClose, onSuccess, initialData }) =
         repaymentFrequency,
         interestType,
         targetSavingsAccountId: targetSavingsAccountId.trim() || undefined,
-        memberPhone: memberPhone.trim() || undefined
+        memberPhone: memberPhone.trim() || undefined,
+        guarantors: guarantors && guarantors.length > 0 ? guarantors.map(g => ({
+          guarantorUserId: g.guarantorUserId,
+          guarantorName: g.guarantorName,
+          guarantorPhone: g.guarantorPhone,
+          savingsAccountNo: g.savingsAccountNo,
+          guaranteedAmount: Number(g.guaranteedAmount)
+        })) : undefined
       };
 
       const res = await loanManagementApi.disburseLoan(payload, idempotencyKey);
@@ -333,6 +341,24 @@ export const DisburseLoanModal = ({ isOpen, onClose, onSuccess, initialData }) =
                 </div>
               </div>
 
+              {guarantors.length > 0 && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between font-bold text-emerald-400">
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4" />
+                      Pledged Peer Guarantor Liens ({guarantors.length})
+                    </span>
+                    <span className="font-mono">
+                      Total: {formatCurrency(
+                        guarantors.reduce((sum, g) => sum + (Number(g.guaranteedAmount) || 0), 0)
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[var(--bdae-text-secondary)]">
+                    Monetary lien holds will be automatically locked on the {guarantors.length} guarantor accounts upon disbursement confirmation.
+                  </p>
+                </div>
+              )}
             </form>
           )}
         </div>

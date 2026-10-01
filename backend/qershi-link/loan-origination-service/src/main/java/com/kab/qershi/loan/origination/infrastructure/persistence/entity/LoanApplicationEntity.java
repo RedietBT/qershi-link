@@ -58,6 +58,10 @@ public class LoanApplicationEntity {
     @JoinColumn(name = "application_id")
     private List<ApprovalWorkflowLogEntity> approvalLogs = new ArrayList<>();
 
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JoinColumn(name = "application_id")
+    private List<LoanGuarantorEntity> guarantors = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -67,10 +71,11 @@ public class LoanApplicationEntity {
     public LoanApplicationEntity() {}
 
     public LoanApplicationEntity(UUID applicationId, String applicationNo, UUID userId, UUID groupId,
-                                UUID productId, String scoringType, BigDecimal amountRequested,
-                                BigDecimal amountApproved, String status, LoanCreditScoringEntity creditScoring,
-                                List<LoanCollateralEntity> collaterals, List<ApprovalWorkflowLogEntity> approvalLogs,
-                                Instant createdAt, Instant updatedAt) {
+                                 UUID productId, String scoringType, BigDecimal amountRequested,
+                                 BigDecimal amountApproved, String status, LoanCreditScoringEntity creditScoring,
+                                 List<LoanCollateralEntity> collaterals, List<ApprovalWorkflowLogEntity> approvalLogs,
+                                 List<LoanGuarantorEntity> guarantors,
+                                 Instant createdAt, Instant updatedAt) {
         this.applicationId = applicationId;
         this.applicationNo = applicationNo;
         this.userId = userId;
@@ -83,8 +88,19 @@ public class LoanApplicationEntity {
         this.creditScoring = creditScoring;
         this.collaterals = collaterals != null ? collaterals : new ArrayList<>();
         this.approvalLogs = approvalLogs != null ? approvalLogs : new ArrayList<>();
+        this.guarantors = guarantors != null ? guarantors : new ArrayList<>();
         this.createdAt = createdAt != null ? createdAt : Instant.now();
         this.updatedAt = updatedAt != null ? updatedAt : Instant.now();
+    }
+
+    public LoanApplicationEntity(UUID applicationId, String applicationNo, UUID userId, UUID groupId,
+                                 UUID productId, String scoringType, BigDecimal amountRequested,
+                                 BigDecimal amountApproved, String status, LoanCreditScoringEntity creditScoring,
+                                 List<LoanCollateralEntity> collaterals, List<ApprovalWorkflowLogEntity> approvalLogs,
+                                 Instant createdAt, Instant updatedAt) {
+        this(applicationId, applicationNo, userId, groupId, productId, scoringType, amountRequested,
+             amountApproved, status, creditScoring, collaterals, approvalLogs, new ArrayList<>(),
+             createdAt, updatedAt);
     }
 
     public UUID getApplicationId() {
@@ -181,6 +197,14 @@ public class LoanApplicationEntity {
 
     public void setApprovalLogs(List<ApprovalWorkflowLogEntity> approvalLogs) {
         this.approvalLogs = approvalLogs;
+    }
+
+    public List<LoanGuarantorEntity> getGuarantors() {
+        return guarantors;
+    }
+
+    public void setGuarantors(List<LoanGuarantorEntity> guarantors) {
+        this.guarantors = guarantors;
     }
 
     public Instant getCreatedAt() {

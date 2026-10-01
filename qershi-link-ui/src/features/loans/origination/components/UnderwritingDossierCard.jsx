@@ -140,6 +140,58 @@ export const UnderwritingDossierCard = ({
         </div>
       )}
 
+      {/* Member Peer Guarantors & Savings Liens */}
+      {application.guarantors && application.guarantors.length > 0 && (
+        <div className="p-4 rounded-xl border border-[var(--bdae-border)] space-y-3 bg-black/5 dark:bg-white/5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--bdae-text-primary)] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+              Pledged Peer Guarantors ({application.guarantors.length})
+            </h3>
+            <span className="text-xs font-mono font-bold text-emerald-500">
+              Total Lien: {formatCurrency(
+                application.guarantors.reduce((sum, g) => sum + (Number(g.guaranteedAmount) || 0), 0)
+              )}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {application.guarantors.map((g, idx) => (
+              <div
+                key={idx}
+                className="p-3 rounded-lg border border-[var(--bdae-border)] bg-[var(--bdae-card)] flex items-center justify-between text-xs"
+              >
+                <div>
+                  <div className="font-bold text-[var(--bdae-text-primary)]">
+                    {g.guarantorName || 'Guarantor #' + (idx + 1)}
+                  </div>
+                  <div className="text-[11px] font-mono text-[var(--bdae-text-secondary)]">
+                    {g.savingsAccountNo} {g.guarantorPhone && `• ${g.guarantorPhone}`}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="font-mono font-bold text-emerald-500">
+                    {formatCurrency(g.guaranteedAmount)}
+                  </div>
+                  <span
+                    className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                      g.status === 'HELD'
+                        ? 'bg-amber-500/10 text-amber-500'
+                        : g.status === 'RELEASED'
+                        ? 'bg-emerald-500/10 text-emerald-500'
+                        : 'bg-slate-500/10 text-slate-400'
+                    }`}
+                  >
+                    {g.status || 'PENDING'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Underwriting Action CTA strictly guarded by LOAN_APPLICATION_APPROVE */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-[var(--bdae-border)]">
         <span className="text-xs text-[var(--bdae-text-secondary)]">

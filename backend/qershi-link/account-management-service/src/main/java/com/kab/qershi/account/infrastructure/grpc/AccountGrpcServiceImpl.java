@@ -1,8 +1,10 @@
 package com.kab.qershi.account.infrastructure.grpc;
 
 import com.kab.qershi.account.domain.model.Account;
+import com.kab.qershi.account.domain.model.AccountLien;
 import com.kab.qershi.account.domain.model.AccountProduct;
 import com.kab.qershi.account.domain.ports.inbound.AccountOpeningUseCase;
+import com.kab.qershi.account.domain.ports.inbound.LienManagementUseCase;
 import com.kab.qershi.account.domain.ports.inbound.ProductManagementUseCase;
 import com.kab.qershi.account.domain.ports.outbound.AccountRepositoryPort;
 import com.kab.qershi.account.domain.ports.outbound.ProfileValidationPort;
@@ -15,13 +17,14 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * gRPC Service Server implementation exposing high-speed inter-service RPCs for Core Account management.
- * Allows transaction and loan services to validate account balances, product risk limits, and freeze states.
+ * Allows transaction and loan services to validate account balances, product risk limits, freeze states, and manage liens.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 @GrpcService
 public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcServiceImplBase {
@@ -33,17 +36,20 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
     private final AccountRepositoryPort accountRepositoryPort;
     private final ProfileValidationPort profileValidationPort;
     private final SpringDataProductMakerCheckerRuleRepository productRuleRepository;
+    private final LienManagementUseCase lienManagementUseCase;
 
     public AccountGrpcServiceImpl(AccountOpeningUseCase accountOpeningUseCase,
                                   ProductManagementUseCase productManagementUseCase,
                                   AccountRepositoryPort accountRepositoryPort,
                                   ProfileValidationPort profileValidationPort,
-                                  SpringDataProductMakerCheckerRuleRepository productRuleRepository) {
+                                  SpringDataProductMakerCheckerRuleRepository productRuleRepository,
+                                  LienManagementUseCase lienManagementUseCase) {
         this.accountOpeningUseCase = accountOpeningUseCase;
         this.productManagementUseCase = productManagementUseCase;
         this.accountRepositoryPort = accountRepositoryPort;
         this.profileValidationPort = profileValidationPort;
         this.productRuleRepository = productRuleRepository;
+        this.lienManagementUseCase = lienManagementUseCase;
     }
 
     private Account resolveAccount(String identifier) {
@@ -315,6 +321,76 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
                     .setIsSuccess(false)
                     .setMessage(ex.getMessage())
                     .setNewBalance("0.00")
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } finally {
+            com.kab.qershi.account.infrastructure.config.TenantContext.clear();
+        }
+    }
+
+    @Override
+    public void placeLien(PlaceLienProtoRequest request, StreamObserver<PlaceLienProtoResponse> responseObserver) {
+        log.info("gRPC PlaceLien for accountNo: {}, amount: {}, referenceNo: {}",
+                request.getAccountNo(), request.getAmount(), request.getReferenceNo());
+        try {
+            if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
+                com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
+            }
+            UUID officerId = null;
+            if (request.getOfficerUserId() != null && !request.getOfficerUserId().isBlank()) {
+                try { officerId = UUID.fromString(request.getOfficerUserId().trim()); } catch (Exception ignored) {}
+            }
+            AccountLien lien = lienManagementUseCase.placeLien(
+                    request.getAccountNo(),
+                    new BigDecimal(request.getAmount()),
+                    request.getReason(),
+                    request.getReferenceNo(),
+                    officerId
+            );
+            PlaceLienProtoResponse response = PlaceLienProtoResponse.newBuilder()
+                    .setIsSuccess(true)
+                    .setLienId(lien.getLienId().toString())
+                    .setMessage("Lien hold placed successfully.")
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            log.error("gRPC PlaceLien failed: {}", ex.getMessage(), ex);
+            PlaceLienProtoResponse response = PlaceLienProtoResponse.newBuilder()
+                    .setIsSuccess(false)
+                    .setMessage("Failed placing lien: " + ex.getMessage())
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } finally {
+            com.kab.qershi.account.infrastructure.config.TenantContext.clear();
+        }
+    }
+
+    @Override
+    public void releaseLien(ReleaseLienProtoRequest request, StreamObserver<ReleaseLienProtoResponse> responseObserver) {
+        log.info("gRPC ReleaseLien for lienId: {}", request.getLienId());
+        try {
+            if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
+                com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
+            }
+            UUID officerId = null;
+            if (request.getOfficerUserId() != null && !request.getOfficerUserId().isBlank()) {
+                try { officerId = UUID.fromString(request.getOfficerUserId().trim()); } catch (Exception ignored) {}
+            }
+            lienManagementUseCase.releaseLien(UUID.fromString(request.getLienId()), officerId);
+            ReleaseLienProtoResponse response = ReleaseLienProtoResponse.newBuilder()
+                    .setIsSuccess(true)
+                    .setMessage("Lien hold released successfully.")
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            log.error("gRPC ReleaseLien failed: {}", ex.getMessage(), ex);
+            ReleaseLienProtoResponse response = ReleaseLienProtoResponse.newBuilder()
+                    .setIsSuccess(false)
+                    .setMessage("Failed releasing lien: " + ex.getMessage())
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();

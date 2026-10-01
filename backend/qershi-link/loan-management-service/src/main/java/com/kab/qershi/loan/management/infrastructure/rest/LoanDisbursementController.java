@@ -50,7 +50,8 @@ public class LoanDisbursementController {
                 request.interestType(),
                 request.targetSavingsAccountId(),
                 request.memberPhone(),
-                idempotencyKey
+                idempotencyKey,
+                request.guarantors() != null ? request.guarantors() : java.util.List.of()
         );
 
         LoanAccount account = disbursementUseCase.disburseLoan(command);

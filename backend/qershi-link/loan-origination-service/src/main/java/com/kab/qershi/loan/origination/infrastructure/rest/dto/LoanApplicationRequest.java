@@ -1,6 +1,7 @@
 package com.kab.qershi.loan.origination.infrastructure.rest.dto;
 
 import com.kab.qershi.loan.origination.domain.ports.inbound.LoanApplicationUseCase.CollateralInput;
+import com.kab.qershi.loan.origination.domain.ports.inbound.LoanApplicationUseCase.GuarantorInput;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
@@ -32,5 +33,6 @@ public record LoanApplicationRequest(
         BigDecimal historicalYield,
         BigDecimal projectedYield,
         BigDecimal landSizeHectares,
-        List<CollateralInput> collaterals
+        List<CollateralInput> collaterals,
+        List<GuarantorInput> guarantors
 ) {}

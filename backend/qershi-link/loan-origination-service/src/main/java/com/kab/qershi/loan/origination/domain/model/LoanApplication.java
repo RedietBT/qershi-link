@@ -28,6 +28,7 @@ public class LoanApplication {
     private CreditScoring creditScoring;
     private final List<Collateral> collaterals;
     private final List<ApprovalLog> approvalLogs;
+    private final List<LoanGuarantor> guarantors;
     private final Instant createdAt;
     private Instant updatedAt;
 
@@ -35,6 +36,7 @@ public class LoanApplication {
                            UUID productId, String scoringType, BigDecimal amountRequested,
                            BigDecimal amountApproved, ApplicationStatus status, CreditScoring creditScoring,
                            List<Collateral> collaterals, List<ApprovalLog> approvalLogs,
+                           List<LoanGuarantor> guarantors,
                            Instant createdAt, Instant updatedAt) {
         this.applicationId = applicationId != null ? applicationId : UUID.randomUUID();
         this.applicationNo = applicationNo;
@@ -48,8 +50,19 @@ public class LoanApplication {
         this.creditScoring = creditScoring;
         this.collaterals = collaterals != null ? new ArrayList<>(collaterals) : new ArrayList<>();
         this.approvalLogs = approvalLogs != null ? new ArrayList<>(approvalLogs) : new ArrayList<>();
+        this.guarantors = guarantors != null ? new ArrayList<>(guarantors) : new ArrayList<>();
         this.createdAt = createdAt != null ? createdAt : Instant.now();
         this.updatedAt = updatedAt != null ? updatedAt : Instant.now();
+    }
+
+    public LoanApplication(UUID applicationId, String applicationNo, UUID userId, UUID groupId,
+                           UUID productId, String scoringType, BigDecimal amountRequested,
+                           BigDecimal amountApproved, ApplicationStatus status, CreditScoring creditScoring,
+                           List<Collateral> collaterals, List<ApprovalLog> approvalLogs,
+                           Instant createdAt, Instant updatedAt) {
+        this(applicationId, applicationNo, userId, groupId, productId, scoringType, amountRequested,
+             amountApproved, status, creditScoring, collaterals, approvalLogs, Collections.emptyList(),
+             createdAt, updatedAt);
     }
 
     public UUID getApplicationId() {
@@ -100,6 +113,10 @@ public class LoanApplication {
         return Collections.unmodifiableList(approvalLogs);
     }
 
+    public List<LoanGuarantor> getGuarantors() {
+        return Collections.unmodifiableList(guarantors);
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -133,6 +150,13 @@ public class LoanApplication {
     public void addApprovalLog(ApprovalLog log) {
         if (log != null) {
             this.approvalLogs.add(log);
+            this.updatedAt = Instant.now();
+        }
+    }
+
+    public void addGuarantor(LoanGuarantor guarantor) {
+        if (guarantor != null) {
+            this.guarantors.add(guarantor);
             this.updatedAt = Instant.now();
         }
     }

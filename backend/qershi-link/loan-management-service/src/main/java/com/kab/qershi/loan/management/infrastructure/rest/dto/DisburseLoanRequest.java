@@ -40,5 +40,7 @@ public record DisburseLoanRequest(
         UUID targetSavingsAccountId,
 
         @Pattern(regexp = "^\\+?[0-9]{9,15}$", message = "Member phone number must be a valid phone number")
-        String memberPhone
+        String memberPhone,
+
+        java.util.List<com.kab.qershi.loan.management.domain.port.in.LoanDisbursementUseCase.GuarantorDisbursementInput> guarantors
 ) {}

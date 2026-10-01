@@ -57,7 +57,8 @@ public class LoanOriginationController {
                 request.historicalYield(),
                 request.projectedYield(),
                 request.landSizeHectares(),
-                request.collaterals()
+                request.collaterals(),
+                request.guarantors() != null ? request.guarantors() : List.of()
         );
 
         LoanApplication application = loanApplicationUseCase.submitApplication(command);
