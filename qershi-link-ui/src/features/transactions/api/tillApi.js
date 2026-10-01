@@ -65,4 +65,28 @@ export const tillApi = {
     const response = await transactionHttpClient.get(`${TILL_BASE}/${tillId}/reconciliations`);
     return response.data;
   },
+
+  /**
+   * Supervisor sign-off / approval on till cash variance
+   * @param {string} reconciliationId
+   * @param {string} supervisorNotes
+   */
+  supervisorApproveReconciliation: async (reconciliationId, supervisorNotes) => {
+    const response = await transactionHttpClient.post(
+      `${TILL_BASE}/reconciliations/${reconciliationId}/supervisor-approve`,
+      { supervisorNotes }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get itemized banknote denominations for a reconciliation sheet
+   * @param {string} reconciliationId
+   */
+  getDenominations: async (reconciliationId) => {
+    const response = await transactionHttpClient.get(
+      `${TILL_BASE}/reconciliations/${reconciliationId}/denominations`
+    );
+    return response.data;
+  },
 };

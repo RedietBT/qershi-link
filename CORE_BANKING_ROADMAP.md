@@ -35,11 +35,16 @@
 - [x] **Cash Vault & Till Hierarchy**
   - [x] Create `teller_tills` table (`till_id`, `branch_id`, `teller_user_id`, `till_gl_code`, `opening_cash`, `current_cash`, `status`).
   - [x] Morning **Vault-to-Till Opening** with live cash position tracking.
-  - [x] Evening **Till Closure & Physical Banknote Counting reconciliation** (denominations: 200, 100, 50, 10, 5 ETB) with variance detection (`till_cash_reconciliations`).
+  - [x] Evening **Blind Till Closure & Banknote Denominations (Temenos/Finacle Tier-1 standard)**:
+    - [x] Blind reconciliation (system ledger hidden to prevent teller guessing).
+    - [x] Itemized denomination persistence (`till_denominations` table for 200, 100, 50, 10, 5 ETB notes and coins).
+    - [x] Automated double-entry GL variance adjustments (`5090-CASH-SHORTAGE-EXPENSE` or `4090-CASH-OVERAGE-INCOME`).
+    - [x] Four-Eyes Supervisor sign-off workflow when variance exceeds threshold (> 100.00 ETB).
+    - [x] Complete closing audit trail (`till_closing_logs` table).
   - [x] Atomic integration with `CashTransactionService` (cash movement validation & debit/credit on OTC deposits and withdrawals).
 - [x] **Frontend Deliverables**
   - [x] `BranchManagementPage.jsx`: Branch roster, add/edit branch modal, active vault count, and discretionary limits.
-  - [x] `TellerDrawerPage.jsx`: Live drawer cash balance, morning drawer opening, and interactive physical banknote denomination counter modal.
+  - [x] `TellerDrawerPage.jsx`: Live drawer cash balance, morning drawer opening, blind physical banknote denomination counter modal with supervisor peek & variance audit alerts.
   - [x] Connected routes (`/branches`, `/transactions/till`) and navigation items in `Sidebar.jsx` and `CashDeskPage.jsx`.
 
 ---

@@ -101,6 +101,28 @@ public class TellerTillController {
         return ResponseEntity.ok(ApiResponse.success(recs, "Retrieved " + recs.size() + " reconciliation records."));
     }
 
+    @PostMapping("/reconciliations/{reconciliationId}/supervisor-approve")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER') or hasAuthority('TELLER_TILL_MANAGE')")
+    @Operation(summary = "Supervisor Approve Till Cash Variance", description = "Authorizes and signs off on an end-of-shift till cash shortage or overage.")
+    public ResponseEntity<ApiResponse<TillCashReconciliationEntity>> supervisorApprove(
+            @PathVariable UUID reconciliationId,
+            @Valid @RequestBody com.kab.qershi.transaction.infrastructure.rest.dto.SupervisorApprovalRequest request) {
+        UUID supervisorUserId = extractCurrentUserId();
+        TillCashReconciliationEntity approved = tillService.supervisorApproveReconciliation(
+                reconciliationId, supervisorUserId, request.supervisorNotes());
+        return ResponseEntity.ok(ApiResponse.success(approved, "Cash reconciliation variance approved by supervisor successfully."));
+    }
+
+    @GetMapping("/reconciliations/{reconciliationId}/denominations")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('TELLER_TILL_VIEW')")
+    @Operation(summary = "Get Banknote Denominations Breakdown", description = "Retrieves itemized physical banknote denomination quantities counted during blind balancing.")
+    public ResponseEntity<ApiResponse<List<com.kab.qershi.transaction.infrastructure.persistence.TillDenominationEntity>>> getDenominations(
+            @PathVariable UUID reconciliationId) {
+        List<com.kab.qershi.transaction.infrastructure.persistence.TillDenominationEntity> denoms =
+                tillService.getDenominationsByReconciliation(reconciliationId);
+        return ResponseEntity.ok(ApiResponse.success(denoms, "Retrieved " + denoms.size() + " denomination entries."));
+    }
+
     private UUID extractCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated()) {

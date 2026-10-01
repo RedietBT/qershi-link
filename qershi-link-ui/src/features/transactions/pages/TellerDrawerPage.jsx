@@ -35,8 +35,10 @@ export const TellerDrawerPage = () => {
     notes50: 0,
     notes10: 0,
     notes5: 0,
+    coins: 0,
   });
   const [recNotes, setRecNotes] = useState('');
+  const [reconciliationResult, setReconciliationResult] = useState(null);
 
   const loadTillData = async () => {
     try {
@@ -60,11 +62,12 @@ export const TellerDrawerPage = () => {
   }, []);
 
   const totalPhysicalCash =
-    notes.notes200 * 200 +
-    notes.notes100 * 100 +
-    notes.notes50 * 50 +
-    notes.notes10 * 10 +
-    notes.notes5 * 5;
+    (Number(notes.notes200) || 0) * 200 +
+    (Number(notes.notes100) || 0) * 100 +
+    (Number(notes.notes50) || 0) * 50 +
+    (Number(notes.notes10) || 0) * 10 +
+    (Number(notes.notes5) || 0) * 5 +
+    (Number(notes.coins) || 0);
 
   const electronicBalance = Number(till?.currentCash) || 0;
   const variance = totalPhysicalCash - electronicBalance;
@@ -88,6 +91,7 @@ export const TellerDrawerPage = () => {
     setCloseSubmitting(true);
     setCloseError(null);
     setCloseSuccess(null);
+    setReconciliationResult(null);
 
     try {
       const payload = {
@@ -97,20 +101,35 @@ export const TellerDrawerPage = () => {
         notes50Count: Number(notes.notes50) || 0,
         notes10Count: Number(notes.notes10) || 0,
         notes5Count: Number(notes.notes5) || 0,
+        coinsAmount: Number(notes.coins) || 0,
         reconciliationNotes:
           recNotes || (variance === 0 ? 'Balanced drawer' : `Variance: ETB ${variance}`),
       };
 
       const res = await tillApi.closeTill(payload);
-      setCloseSuccess(`Drawer closed! Variance: ETB ${res.data?.cashVariance || variance}`);
+      const rec = res.data;
+      setReconciliationResult(rec);
+      setCloseSuccess(`Drawer closed! Variance: ETB ${rec?.cashVariance != null ? rec.cashVariance : variance} (${rec?.varianceType || 'BALANCED'})`);
       await loadTillData();
       setTimeout(() => {
         setCloseModalOpen(false);
-      }, 1200);
+      }, 3500);
     } catch (err) {
       setCloseError(err?.response?.data?.message || 'Failed to close drawer.');
     } finally {
       setCloseSubmitting(false);
+    }
+  };
+
+  const handleSupervisorApprove = async (reconciliationId) => {
+    const reason = window.prompt('Enter supervisor authorization notes for this cash variance:');
+    if (!reason || !reason.trim()) return;
+    try {
+      await tillApi.supervisorApproveReconciliation(reconciliationId, reason.trim());
+      await loadTillData();
+      alert('Cash reconciliation variance approved successfully.');
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to approve variance.');
     }
   };
 
@@ -207,7 +226,10 @@ export const TellerDrawerPage = () => {
         />
 
         {/* Reconciliations History Table Component */}
-        <TillReconciliationTable reconciliations={reconciliations} />
+        <TillReconciliationTable
+          reconciliations={reconciliations}
+          onApproveVariance={handleSupervisorApprove}
+        />
 
         {/* Open Drawer Modal Component */}
         <OpenTillModal
@@ -230,13 +252,18 @@ export const TellerDrawerPage = () => {
           notes50={notes.notes50}
           notes10={notes.notes10}
           notes5={notes.notes5}
+          coins={notes.coins}
           recNotes={recNotes}
           closeSubmitting={closeSubmitting}
           closeError={closeError}
           closeSuccess={closeSuccess}
+          reconciliationResult={reconciliationResult}
           onNotesChange={(key, val) => setNotes((prev) => ({ ...prev, [key]: val }))}
           onRecNotesChange={setRecNotes}
-          onClose={() => setCloseModalOpen(false)}
+          onClose={() => {
+            setCloseModalOpen(false);
+            setReconciliationResult(null);
+          }}
           onSubmit={handleCloseAndReconcile}
         />
       </div>

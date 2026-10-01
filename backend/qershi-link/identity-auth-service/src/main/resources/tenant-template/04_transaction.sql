@@ -82,7 +82,42 @@ CREATE TABLE IF NOT EXISTS {schema}.till_cash_reconciliations (
     notes_50_count INT NOT NULL DEFAULT 0,
     notes_10_count INT NOT NULL DEFAULT 0,
     notes_5_count INT NOT NULL DEFAULT 0,
+    coins_amount DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    variance_type VARCHAR(20) NOT NULL DEFAULT 'NONE',
+    variance_amount DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    variance_gl_code VARCHAR(50),
+    journal_entry_id UUID,
+    status VARCHAR(40) NOT NULL DEFAULT 'BALANCED',
+    supervisor_approved_by UUID,
+    supervisor_approved_at TIMESTAMPTZ,
+    supervisor_notes TEXT,
     reconciliation_notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     FOREIGN KEY (till_id) REFERENCES {schema}.teller_tills(till_id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS {schema}.till_denominations (
+    denomination_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reconciliation_id UUID NOT NULL,
+    denomination_value DECIMAL(10,2) NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    total_amount DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (reconciliation_id) REFERENCES {schema}.till_cash_reconciliations(reconciliation_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS {schema}.till_closing_logs (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reconciliation_id UUID NOT NULL,
+    till_id UUID NOT NULL,
+    teller_user_id UUID NOT NULL,
+    closing_mode VARCHAR(20) NOT NULL DEFAULT 'BLIND',
+    electronic_balance DECIMAL(19,4) NOT NULL,
+    physical_total DECIMAL(19,4) NOT NULL,
+    variance DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+    status VARCHAR(40) NOT NULL DEFAULT 'BALANCED',
+    journal_entry_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (reconciliation_id) REFERENCES {schema}.till_cash_reconciliations(reconciliation_id) ON DELETE CASCADE
+);
+
