@@ -374,14 +374,6 @@ export const Sidebar = () => {
                 isCollapsed={isCollapsed}
               />
             </PermissionGuard>
-            <PermissionGuard permissions={[PERMISSIONS.ACCOUNT_VIEW]}>
-              <SubNavItem
-                path="/tariffs"
-                label="Tariffs & 5% WHT"
-                icon={Receipt}
-                isCollapsed={isCollapsed}
-              />
-            </PermissionGuard>
           </NavGroup>
         </PermissionGuard>
 
@@ -407,6 +399,20 @@ export const Sidebar = () => {
               isCollapsed={isCollapsed}
             />
           </PermissionGuard>
+        </PermissionGuard>
+
+        {/* ── 5. PRICING & TARIFF ENGINE ── */}
+        <PermissionGuard
+          permissions={[PERMISSIONS.ACCOUNT_VIEW]}
+          roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN, ROLES.AUDITOR]}
+        >
+          <SectionDivider title="Pricing & Tariffs" isCollapsed={isCollapsed} />
+          <NavItem
+            path="/pricing"
+            label="Tariffs & 5% WHT"
+            icon={Receipt}
+            isCollapsed={isCollapsed}
+          />
         </PermissionGuard>
 
         {/* ── 5. CORE BATCH & OPERATIONS ── */}

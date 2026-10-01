@@ -16,7 +16,7 @@ import {
     CheckCircle2,
     AlertCircle
 } from 'lucide-react';
-import { tariffApi } from '../api/tariffApi';
+import { pricingApi, tariffApi } from '../api/pricingApi';
 import { TariffFormModal } from '../components/TariffFormModal';
 import { TariffSimulatorCard } from '../components/TariffSimulatorCard';
 import { WithholdingTaxGovernanceCard } from '../components/WithholdingTaxGovernanceCard';

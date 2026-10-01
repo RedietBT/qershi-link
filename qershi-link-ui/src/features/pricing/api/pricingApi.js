@@ -2,7 +2,7 @@ import { pricingHttpClient } from '../../../common/api/httpClient';
 
 const BASE = '/tariffs';
 
-export const tariffApi = {
+export const pricingApi = {
     getAllTariffs: async () => {
         const response = await pricingHttpClient.get(BASE);
         return response.data;
@@ -44,3 +44,5 @@ export const tariffApi = {
         return response.data;
     }
 };
+
+export const tariffApi = pricingApi; // backwards-compatible alias

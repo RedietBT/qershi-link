@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, ArrowRight, CheckCircle2, AlertTriangle, ShieldCheck, Sparkles } from 'lucide-react';
-import { tariffApi } from '../api/tariffApi';
+import { pricingApi } from '../api/pricingApi';
 
 const TX_TYPES = [
     { value: 'WITHDRAWAL', label: 'Cash Withdrawal (OTC)' },
@@ -25,7 +25,7 @@ export const TariffSimulatorCard = ({ tariffs = [] }) => {
 
         try {
             setLoading(true);
-            const res = await tariffApi.calculateFee(type, numAmt);
+            const res = await pricingApi.calculateFee(type, numAmt);
             if (res.data) {
                 setCalculation(res.data);
                 return;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Calendar, FileText, Download, Landmark, Search, Filter, RefreshCw } from 'lucide-react';
-import { tariffApi } from '../api/tariffApi';
+import { pricingApi } from '../api/pricingApi';
 
 export const WithholdingTaxGovernanceCard = () => {
     const [taxLogs, setTaxLogs] = useState([]);
@@ -17,7 +17,7 @@ export const WithholdingTaxGovernanceCard = () => {
     const loadTaxLogs = async () => {
         try {
             setLoading(true);
-            const res = await tariffApi.getTaxLogs(searchAccount.trim() || undefined);
+            const res = await pricingApi.getTaxLogs(searchAccount.trim() || undefined);
             setTaxLogs(res.data || []);
         } catch (err) {
             console.error('Failed fetching tax logs:', err);
@@ -64,7 +64,7 @@ export const WithholdingTaxGovernanceCard = () => {
 
     const loadSummary = async () => {
         try {
-            const res = await tariffApi.getTaxSummary(startDate, endDate);
+            const res = await pricingApi.getTaxSummary(startDate, endDate);
             setTaxSummary(res.data);
         } catch (err) {
             // Calculate from local logs
