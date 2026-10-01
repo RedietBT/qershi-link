@@ -2,6 +2,8 @@ package com.kab.qershi.pricing.domain.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -23,6 +25,7 @@ public class Tariff {
     private String currency;
     private boolean active;
     private String description;
+    private List<TariffSlab> slabs = new java.util.ArrayList<>();
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -31,6 +34,14 @@ public class Tariff {
     public Tariff(UUID tariffId, String tariffCode, String tariffName, String transactionType,
                   String feeType, BigDecimal feeValue, BigDecimal minFee, BigDecimal maxFee,
                   String feeGlCode, String currency, boolean active, String description) {
+        this(tariffId, tariffCode, tariffName, transactionType, feeType, feeValue, minFee, maxFee,
+                feeGlCode, currency, active, description, new java.util.ArrayList<>());
+    }
+
+    public Tariff(UUID tariffId, String tariffCode, String tariffName, String transactionType,
+                  String feeType, BigDecimal feeValue, BigDecimal minFee, BigDecimal maxFee,
+                  String feeGlCode, String currency, boolean active, String description,
+                  List<TariffSlab> slabs) {
         this.tariffId = tariffId;
         this.tariffCode = tariffCode;
         this.tariffName = tariffName;
@@ -43,6 +54,7 @@ public class Tariff {
         this.currency = currency != null ? currency : "ETB";
         this.active = active;
         this.description = description;
+        this.slabs = slabs != null ? slabs : new java.util.ArrayList<>();
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
@@ -82,6 +94,9 @@ public class Tariff {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public List<TariffSlab> getSlabs() { return slabs; }
+    public void setSlabs(List<TariffSlab> slabs) { this.slabs = slabs != null ? slabs : new java.util.ArrayList<>(); }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

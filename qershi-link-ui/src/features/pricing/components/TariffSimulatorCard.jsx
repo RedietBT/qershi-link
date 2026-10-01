@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, ArrowRight, CheckCircle2, AlertTriangle, ShieldCheck, Sparkles } from 'lucide-react';
+import { Calculator, ArrowRight, CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Layers } from 'lucide-react';
 import { pricingApi } from '../api/pricingApi';
 
 const TX_TYPES = [
     { value: 'WITHDRAWAL', label: 'Cash Withdrawal (OTC)' },
+    { value: 'WITHDRAWAL_TIERED', label: 'Cash Withdrawal (Tiered Brackets)' },
     { value: 'TRANSFER_INTERNAL', label: 'Internal Transfer (Member-to-Member)' },
     { value: 'TRANSFER_EXTERNAL', label: 'External Transfer (Inter-Bank)' },
     { value: 'STATEMENT_PRINT', label: 'Physical Statement Print' },
@@ -43,13 +44,40 @@ export const TariffSimulatorCard = ({ tariffs = [] }) => {
                     rateOrFlatValue: 0,
                     calculatedFee: 0,
                     feeGlCode: '4020',
-                    totalDebitRequired: numAmt
+                    totalDebitRequired: numAmt,
+                    matchedSlabDetails: null
                 });
                 return;
             }
 
             let fee = 0;
-            if (matchedTariff.feeType === 'FLAT') {
+            let matchedSlabDetails = null;
+
+            if (matchedTariff.feeType === 'TIERED') {
+                const slabs = matchedTariff.slabs || [];
+                const matchedSlab = slabs.find(s => {
+                    const from = parseFloat(s.fromAmount) || 0;
+                    const to = s.toAmount ? parseFloat(s.toAmount) : null;
+                    return numAmt >= from && (to == null || to === 0 || numAmt <= to);
+                });
+
+                if (matchedSlab) {
+                    const sVal = parseFloat(matchedSlab.feeValue) || 0;
+                    const toText = matchedSlab.toAmount ? ` - ${parseFloat(matchedSlab.toAmount).toLocaleString()} ETB` : '+';
+                    if (matchedSlab.feeType === 'FLAT') {
+                        fee = sVal;
+                        matchedSlabDetails = `Tier Bracket [${parseFloat(matchedSlab.fromAmount).toLocaleString()} ETB${toText}]: ${sVal.toFixed(2)} ETB Flat`;
+                    } else if (matchedSlab.feeType === 'PERCENTAGE') {
+                        fee = (numAmt * sVal) / 100;
+                        if (matchedSlab.minFee != null && fee < parseFloat(matchedSlab.minFee)) fee = parseFloat(matchedSlab.minFee);
+                        if (matchedSlab.maxFee != null && fee > parseFloat(matchedSlab.maxFee)) fee = parseFloat(matchedSlab.maxFee);
+                        matchedSlabDetails = `Tier Bracket [${parseFloat(matchedSlab.fromAmount).toLocaleString()} ETB${toText}]: ${sVal}%`;
+                    }
+                } else {
+                    fee = parseFloat(matchedTariff.feeValue) || 0;
+                    matchedSlabDetails = 'Default Out-of-Bracket Fee';
+                }
+            } else if (matchedTariff.feeType === 'FLAT') {
                 fee = parseFloat(matchedTariff.feeValue);
             } else if (matchedTariff.feeType === 'PERCENTAGE') {
                 fee = (numAmt * parseFloat(matchedTariff.feeValue)) / 100;
@@ -70,7 +98,8 @@ export const TariffSimulatorCard = ({ tariffs = [] }) => {
                 rateOrFlatValue: matchedTariff.feeValue,
                 calculatedFee: fee,
                 feeGlCode: matchedTariff.feeGlCode || '4020',
-                totalDebitRequired: numAmt + fee
+                totalDebitRequired: numAmt + fee,
+                matchedSlabDetails: matchedSlabDetails
             });
         } finally {
             setLoading(false);
@@ -81,7 +110,7 @@ export const TariffSimulatorCard = ({ tariffs = [] }) => {
         performCalculation(selectedType, amount);
     }, [selectedType, amount, tariffs]);
 
-    const presets = [500, 2000, 5000, 20000, 100000];
+    const presets = [500, 2000, 5000, 20000, 65000, 100000];
 
     return (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
@@ -93,11 +122,11 @@ export const TariffSimulatorCard = ({ tariffs = [] }) => {
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         Live Real-Time Tariff Simulator
                         <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-medium">
-                            Double-Entry GL
+                            Tier-1 CBS Engine
                         </span>
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Simulate member fee deductions, min/max caps enforcement, and GL routing before posting transactions.
+                        Simulate member fee deductions, tiered bracket evaluation, min/max caps enforcement, and GL routing before posting transactions.
                     </p>
                 </div>
             </div>
@@ -195,12 +224,22 @@ export const TariffSimulatorCard = ({ tariffs = [] }) => {
                                         </span>
                                     </div>
 
+                                    {calculation.matchedSlabDetails && (
+                                        <div className="p-2.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-xs text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                                            <Layers className="w-4 h-4 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+                                            <div>
+                                                <span className="font-bold">Matched Bracket: </span>
+                                                {calculation.matchedSlabDetails}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                         <span>Fee Assessment:</span>
                                         <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                                             + {parseFloat(calculation.calculatedFee || 0).toFixed(2)} ETB
                                             <span className="text-xs text-slate-400 ml-1">
-                                                ({calculation.feeType === 'PERCENTAGE' ? `${calculation.rateOrFlatValue}%` : 'Flat'})
+                                                ({calculation.feeType === 'TIERED' ? 'Tiered Bracket' : calculation.feeType === 'PERCENTAGE' ? `${calculation.rateOrFlatValue}%` : 'Flat'})
                                             </span>
                                         </span>
                                     </div>
@@ -244,3 +283,4 @@ export const TariffSimulatorCard = ({ tariffs = [] }) => {
         </div>
     );
 };
+export default TariffSimulatorCard;

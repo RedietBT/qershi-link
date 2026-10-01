@@ -20,8 +20,25 @@ public record FeeCalculationResult(
         BigDecimal minFee,
         BigDecimal maxFee,
         String feeGlCode,
-        BigDecimal totalDebitRequired
+        BigDecimal totalDebitRequired,
+        String matchedSlabDetails
 ) {
+    public FeeCalculationResult(
+            boolean feeApplicable,
+            String tariffCode,
+            String tariffName,
+            String transactionType,
+            String feeType,
+            BigDecimal rateOrFlatValue,
+            BigDecimal calculatedFee,
+            BigDecimal minFee,
+            BigDecimal maxFee,
+            String feeGlCode,
+            BigDecimal totalDebitRequired) {
+        this(feeApplicable, tariffCode, tariffName, transactionType, feeType,
+                rateOrFlatValue, calculatedFee, minFee, maxFee, feeGlCode, totalDebitRequired, null);
+    }
+
     public static FeeCalculationResult zero(String transactionType, BigDecimal amount) {
         BigDecimal amt = amount != null ? amount : BigDecimal.ZERO;
         return new FeeCalculationResult(
@@ -35,7 +52,8 @@ public record FeeCalculationResult(
                 null,
                 null,
                 "4020",
-                amt.setScale(2, RoundingMode.HALF_UP)
+                amt.setScale(2, RoundingMode.HALF_UP),
+                null
         );
     }
 }

@@ -112,6 +112,25 @@ export const TariffManagementPage = () => {
                     feeGlCode: '4021',
                     active: true,
                     description: '1.0% origination appraisal charge on approved loans'
+                },
+                {
+                    tariffId: '6',
+                    tariffCode: 'TAR-WTH-TIER',
+                    tariffName: 'Tiered OTC Cash Withdrawal Tariff',
+                    transactionType: 'WITHDRAWAL_TIERED',
+                    feeType: 'TIERED',
+                    feeValue: 0.00,
+                    minFee: null,
+                    maxFee: null,
+                    feeGlCode: '4020',
+                    active: true,
+                    description: 'Tiered bracket withdrawal schedule: 0-1k (5 ETB), 1k-10k (15 ETB), 10k-50k (25 ETB), 50k+ (0.25% max 100 ETB)',
+                    slabs: [
+                        { slabOrder: 1, fromAmount: 0.00, toAmount: 1000.00, feeType: 'FLAT', feeValue: 5.00 },
+                        { slabOrder: 2, fromAmount: 1000.01, toAmount: 10000.00, feeType: 'FLAT', feeValue: 15.00 },
+                        { slabOrder: 3, fromAmount: 10000.01, toAmount: 50000.00, feeType: 'FLAT', feeValue: 25.00 },
+                        { slabOrder: 4, fromAmount: 50000.01, toAmount: null, feeType: 'PERCENTAGE', feeValue: 0.25, minFee: 30.00, maxFee: 100.00 }
+                    ]
                 }
             ]);
         } finally {
@@ -337,7 +356,8 @@ export const TariffManagementPage = () => {
                                 className="px-3 py-2 text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none"
                             >
                                 <option value="ALL">All Transaction Types</option>
-                                <option value="WITHDRAWAL">Cash Withdrawal</option>
+                                <option value="WITHDRAWAL">Cash Withdrawal (OTC)</option>
+                                <option value="WITHDRAWAL_TIERED">Cash Withdrawal (Tiered Slabs)</option>
                                 <option value="TRANSFER_INTERNAL">Internal Transfer</option>
                                 <option value="TRANSFER_EXTERNAL">External Transfer</option>
                                 <option value="STATEMENT_PRINT">Statement Print</option>
@@ -400,17 +420,25 @@ export const TariffManagementPage = () => {
                                                 </td>
                                                 <td className="py-3.5 px-4">
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                                        t.feeType === 'FLAT'
-                                                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
-                                                            : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                                                        t.feeType === 'TIERED'
+                                                            ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
+                                                            : t.feeType === 'FLAT'
+                                                                ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                                                                : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
                                                     }`}>
-                                                        {t.feeType === 'FLAT' ? `${parseFloat(t.feeValue).toFixed(2)} ETB (Flat)` : `${t.feeValue}% (Percentage)`}
+                                                        {t.feeType === 'TIERED'
+                                                            ? `Tiered (${t.slabs?.length || 4} Brackets)`
+                                                            : t.feeType === 'FLAT'
+                                                                ? `${parseFloat(t.feeValue).toFixed(2)} ETB (Flat)`
+                                                                : `${t.feeValue}% (Percentage)`}
                                                     </span>
                                                 </td>
                                                 <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400 font-mono">
-                                                    {t.feeType === 'PERCENTAGE'
-                                                        ? `${t.minFee != null ? t.minFee + ' ETB' : '—'} / ${t.maxFee != null ? t.maxFee + ' ETB' : '—'}`
-                                                        : 'N/A (Flat)'}
+                                                    {t.feeType === 'TIERED'
+                                                        ? 'Tier-Specific'
+                                                        : t.feeType === 'PERCENTAGE'
+                                                            ? `${t.minFee != null ? t.minFee + ' ETB' : '—'} / ${t.maxFee != null ? t.maxFee + ' ETB' : '—'}`
+                                                            : 'N/A (Flat)'}
                                                 </td>
                                                 <td className="py-3.5 px-4">
                                                     <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">

@@ -109,6 +109,12 @@
   - [x] Create `tariffs` and `interest_tax_deduction_logs` tables and seed default cooperative fee policies.
   - [x] High-performance gRPC interfaces for `CalculateFee`, `CalculateWithholdingTax`, and `GetActiveTariffs`.
   - [x] Dynamic fee calculation for Cash Withdrawals, Member Transfers, and Loan Processing.
+  - [x] **Tiered / Amount-Bracket Slab Pricing Engine (Tier-1 CBS Temenos/Finacle Standard)**:
+    - [x] Multi-tenant `tariff_slabs` table schema (`from_amount`, `to_amount`, `fee_type`, `fee_value`, `min_fee`, `max_fee`, `slab_order`).
+    - [x] Sequential volume brackets evaluation with support for uncapped upper limits, flat ETB fees, percentage rates with min/max caps, and graceful fallbacks.
+    - [x] Full backward compatibility with legacy FLAT and PERCENTAGE tariffs.
+    - [x] Seeded `TAR-WTH-TIER` enterprise ladder: 0-1k (5 ETB), 1k-10k (15 ETB), 10k-50k (25 ETB), 50k+ (0.25% max 100 ETB).
+    - [x] Interactive UI: Visual Slab Ladder Editor with presets in `TariffFormModal.jsx`, live matched-bracket breakdown in `TariffSimulatorCard.jsx`, and tiered badges in `TariffManagementPage.jsx`.
   - [x] Loan Origination Fee Option A (Net Disbursement): Upfront fee deducted at source, credited to Fee Income GL (4021), with principal schedule intact.
 - [x] **Withholding Tax (WHT) on Savings Interest**
   - [x] Calculate statutory 5% withholding tax during monthly interest capitalization via `pricing-fee-service` gRPC.

@@ -22,12 +22,12 @@ public class TariffRequest {
     @NotBlank(message = "Transaction type is required")
     private String transactionType;
 
-    @NotBlank(message = "Fee type is required (FLAT or PERCENTAGE)")
+    @NotBlank(message = "Fee type is required (FLAT, PERCENTAGE, or TIERED)")
     private String feeType;
 
     @NotNull(message = "Fee value is required")
     @PositiveOrZero(message = "Fee value must be greater than or equal to 0")
-    private BigDecimal feeValue;
+    private BigDecimal feeValue = BigDecimal.ZERO;
 
     private BigDecimal minFee;
     private BigDecimal maxFee;
@@ -36,6 +36,8 @@ public class TariffRequest {
     private String currency = "ETB";
     private Boolean isActive = true;
     private String description;
+
+    private java.util.List<TariffSlabRequest> slabs = new java.util.ArrayList<>();
 
     public TariffRequest() {}
 
@@ -71,4 +73,7 @@ public class TariffRequest {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public java.util.List<TariffSlabRequest> getSlabs() { return slabs; }
+    public void setSlabs(java.util.List<TariffSlabRequest> slabs) { this.slabs = slabs != null ? slabs : new java.util.ArrayList<>(); }
 }

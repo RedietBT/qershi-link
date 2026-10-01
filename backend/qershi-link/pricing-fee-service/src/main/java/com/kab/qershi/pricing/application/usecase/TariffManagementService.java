@@ -62,6 +62,7 @@ public class TariffManagementService implements TariffManagementUseCase {
         existing.setFeeGlCode(updated.getFeeGlCode());
         existing.setActive(updated.isActive());
         existing.setDescription(updated.getDescription());
+        existing.setSlabs(updated.getSlabs());
         existing.setUpdatedAt(Instant.now());
 
         return tariffRepositoryPort.save(existing);

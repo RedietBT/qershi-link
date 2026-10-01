@@ -56,6 +56,10 @@ public class TariffEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @OneToMany(mappedBy = "tariff", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("slabOrder ASC, fromAmount ASC")
+    private java.util.List<TariffSlabEntity> slabs = new java.util.ArrayList<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -85,6 +89,7 @@ public class TariffEntity {
         this.currency = currency != null ? currency : "ETB";
         this.active = active;
         this.description = description;
+        this.slabs = new java.util.ArrayList<>();
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
@@ -99,6 +104,29 @@ public class TariffEntity {
     protected void onUpdate() {
         updatedAt = Instant.now();
     }
+
+    public void addSlab(TariffSlabEntity slab) {
+        if (slab != null) {
+            slab.setTariff(this);
+            this.slabs.add(slab);
+        }
+    }
+
+    public void clearSlabs() {
+        this.slabs.clear();
+    }
+
+    public void setSlabs(java.util.List<TariffSlabEntity> newSlabs) {
+        this.slabs.clear();
+        if (newSlabs != null) {
+            for (TariffSlabEntity s : newSlabs) {
+                s.setTariff(this);
+                this.slabs.add(s);
+            }
+        }
+    }
+
+    public java.util.List<TariffSlabEntity> getSlabs() { return slabs; }
 
     public UUID getTariffId() { return tariffId; }
     public void setTariffId(UUID tariffId) { this.tariffId = tariffId; }

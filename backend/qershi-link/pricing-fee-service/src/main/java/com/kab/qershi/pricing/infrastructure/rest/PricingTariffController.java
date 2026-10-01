@@ -58,8 +58,9 @@ public class PricingTariffController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('TARIFF_MANAGE')")
-    @Operation(summary = "Create Tariff Rule", description = "Creates a new transaction tariff rule with flat or percentage fee logic.")
+    @Operation(summary = "Create Tariff Rule", description = "Creates a new transaction tariff rule with flat, percentage, or tiered slab fee logic.")
     public ResponseEntity<ApiResponse<Tariff>> createTariff(@Valid @RequestBody TariffRequest request) {
+        List<com.kab.qershi.pricing.domain.model.TariffSlab> slabs = mapSlabs(request.getSlabs(), null);
         Tariff tariff = new Tariff(
                 null,
                 request.getTariffCode(),
@@ -72,7 +73,8 @@ public class PricingTariffController {
                 request.getFeeGlCode() != null ? request.getFeeGlCode() : "4020",
                 request.getCurrency() != null ? request.getCurrency() : "ETB",
                 request.getIsActive() != null ? request.getIsActive() : true,
-                request.getDescription()
+                request.getDescription(),
+                slabs
         );
         Tariff saved = tariffManagementUseCase.createTariff(tariff);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -84,6 +86,7 @@ public class PricingTariffController {
     @Operation(summary = "Update Tariff Rule", description = "Updates an existing tariff configuration.")
     public ResponseEntity<ApiResponse<Tariff>> updateTariff(@PathVariable UUID id,
                                                             @Valid @RequestBody TariffRequest request) {
+        List<com.kab.qershi.pricing.domain.model.TariffSlab> slabs = mapSlabs(request.getSlabs(), id);
         Tariff tariff = new Tariff(
                 id,
                 request.getTariffCode(),
@@ -96,10 +99,26 @@ public class PricingTariffController {
                 request.getFeeGlCode() != null ? request.getFeeGlCode() : "4020",
                 request.getCurrency() != null ? request.getCurrency() : "ETB",
                 request.getIsActive() != null ? request.getIsActive() : true,
-                request.getDescription()
+                request.getDescription(),
+                slabs
         );
         Tariff updated = tariffManagementUseCase.updateTariff(id, tariff);
         return ResponseEntity.ok(ApiResponse.success(updated, "Tariff rule updated successfully."));
+    }
+
+    private List<com.kab.qershi.pricing.domain.model.TariffSlab> mapSlabs(List<com.kab.qershi.pricing.infrastructure.rest.dto.TariffSlabRequest> requests, UUID tariffId) {
+        if (requests == null || requests.isEmpty()) return new java.util.ArrayList<>();
+        return requests.stream().map(req -> new com.kab.qershi.pricing.domain.model.TariffSlab(
+                null,
+                tariffId,
+                req.getSlabOrder(),
+                req.getFromAmount(),
+                req.getToAmount(),
+                req.getFeeType(),
+                req.getFeeValue(),
+                req.getMinFee(),
+                req.getMaxFee()
+        )).collect(java.util.stream.Collectors.toList());
     }
 
     @PatchMapping("/{id}/toggle")
