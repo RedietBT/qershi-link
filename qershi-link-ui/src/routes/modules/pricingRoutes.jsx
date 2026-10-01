@@ -15,7 +15,7 @@ export const pricingRoutes = [
     element={
       <PermissionRoute
         roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'AUDITOR', 'TELLER']}
-        permissions={[PERMISSIONS.ACCOUNT_VIEW]}
+        permissions={[PERMISSIONS.TARIFF_VIEW, PERMISSIONS.ACCOUNT_VIEW]}
       >
         <Layout>
           <TariffManagementPage />
@@ -29,7 +29,7 @@ export const pricingRoutes = [
     element={
       <PermissionRoute
         roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'AUDITOR', 'TELLER']}
-        permissions={[PERMISSIONS.ACCOUNT_VIEW]}
+        permissions={[PERMISSIONS.TARIFF_VIEW, PERMISSIONS.ACCOUNT_VIEW]}
       >
         <Layout>
           <TariffManagementPage />
