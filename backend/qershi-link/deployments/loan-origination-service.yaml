@@ -48,6 +48,8 @@ spec:
               value: "true"
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms128m -Xmx256m -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseSerialGC"
+            - name: MANAGEMENT_HEALTH_REDIS_ENABLED
+              value: "false"
           resources:
             requests:
               memory: "192Mi"
@@ -59,18 +61,18 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8084
-            initialDelaySeconds: 60
+            initialDelaySeconds: 120
             periodSeconds: 10
-            timeoutSeconds: 10
-            failureThreshold: 6
+            timeoutSeconds: 15
+            failureThreshold: 15
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8084
-            initialDelaySeconds: 60
+            initialDelaySeconds: 180
             periodSeconds: 15
-            timeoutSeconds: 10
-            failureThreshold: 6
+            timeoutSeconds: 15
+            failureThreshold: 10
 ---
 apiVersion: v1
 kind: Service
