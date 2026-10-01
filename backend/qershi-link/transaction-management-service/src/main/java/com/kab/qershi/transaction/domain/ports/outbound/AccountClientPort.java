@@ -18,8 +18,6 @@ public interface AccountClientPort {
 
     boolean postTransaction(String accountNo, BigDecimal amount, String transactionType);
 
-    TariffResult calculateTariff(String transactionType, BigDecimal amount);
-
     record AccountInfo(
             String accountId,
             String accountNo,
@@ -40,14 +38,5 @@ public interface AccountClientPort {
             boolean isValid,
             String message,
             BigDecimal availableBalance
-    ) {}
-
-    record TariffResult(
-            boolean feeApplicable,
-            String tariffCode,
-            String tariffName,
-            BigDecimal feeAmount,
-            String feeGlCode,
-            BigDecimal totalDebitAmount
     ) {}
 }

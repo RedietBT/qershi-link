@@ -1,4 +1,4 @@
-package com.kab.qershi.account.infrastructure.persistence;
+package com.kab.qershi.pricing.infrastructure.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

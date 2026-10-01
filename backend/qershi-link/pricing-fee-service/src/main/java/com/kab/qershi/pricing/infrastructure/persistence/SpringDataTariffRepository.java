@@ -1,6 +1,8 @@
-package com.kab.qershi.account.infrastructure.persistence;
+package com.kab.qershi.pricing.infrastructure.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -18,7 +20,8 @@ public interface SpringDataTariffRepository extends JpaRepository<TariffEntity, 
 
     Optional<TariffEntity> findByTariffCode(String tariffCode);
 
-    List<TariffEntity> findByTransactionTypeAndActiveTrue(String transactionType);
+    @Query("SELECT t FROM TariffEntity t WHERE t.transactionType = :txnType AND t.active = true ORDER BY t.createdAt DESC")
+    List<TariffEntity> findByTransactionTypeAndActiveTrue(@Param("txnType") String txnType);
 
-    List<TariffEntity> findByActiveTrue();
+    List<TariffEntity> findByActive(boolean active);
 }

@@ -11,9 +11,6 @@ service AccountGrpcService {
   rpc ValidateAccountForDebit (DebitValidationProtoRequest) returns (ValidationProtoResponse);
   rpc ValidateAccountForCredit (CreditValidationProtoRequest) returns (ValidationProtoResponse);
   rpc PostTransaction (PostTransactionRequest) returns (PostTransactionResponse);
-  rpc PlaceLien (PlaceLienProtoRequest) returns (PlaceLienProtoResponse);
-  rpc ReleaseLien (ReleaseLienProtoRequest) returns (ReleaseLienProtoResponse);
-  rpc CalculateTariff (TariffCalculationProtoRequest) returns (TariffCalculationProtoResponse);
 }
 
 message AccountNoRequest {
@@ -52,32 +49,6 @@ message PostTransactionResponse {
   string new_balance = 3;
 }
 
-message PlaceLienProtoRequest {
-  string account_no = 1;
-  string amount = 2;
-  string reason = 3;
-  string reference_no = 4;
-  string officer_user_id = 5;
-  string tenant_schema = 6;
-}
-
-message PlaceLienProtoResponse {
-  bool is_success = 1;
-  string lien_id = 2;
-  string message = 3;
-}
-
-message ReleaseLienProtoRequest {
-  string lien_id = 1;
-  string officer_user_id = 2;
-  string tenant_schema = 3;
-}
-
-message ReleaseLienProtoResponse {
-  bool is_success = 1;
-  string message = 2;
-}
-
 message AccountProtoResponse {
   string account_id = 1;
   string account_no = 2;
@@ -92,19 +63,4 @@ message AccountProtoResponse {
   string freeze_status = 11;
   string phone_number = 12;
   string full_name = 13;
-}
-
-message TariffCalculationProtoRequest {
-  string transaction_type = 1;
-  string amount = 2;
-  string tenant_schema = 3;
-}
-
-message TariffCalculationProtoResponse {
-  bool fee_applicable = 1;
-  string tariff_code = 2;
-  string tariff_name = 3;
-  string fee_amount = 4;
-  string fee_gl_code = 5;
-  string total_debit_amount = 6;
 }

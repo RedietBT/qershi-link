@@ -1,4 +1,4 @@
-package com.kab.qershi.account.infrastructure.persistence;
+package com.kab.qershi.pricing.infrastructure.persistence;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -13,7 +13,10 @@ import java.util.UUID;
  * @version 1.0.0
  */
 @Entity
-@Table(name = "interest_tax_deduction_logs")
+@Table(name = "interest_tax_deduction_logs", indexes = {
+        @Index(name = "idx_itdl_account_no", columnList = "account_no"),
+        @Index(name = "idx_itdl_business_date", columnList = "business_date")
+})
 public class InterestTaxDeductionLogEntity {
 
     @Id
@@ -50,14 +53,7 @@ public class InterestTaxDeductionLogEntity {
     public InterestTaxDeductionLogEntity(String accountNo, LocalDate businessDate,
                                          BigDecimal grossInterest, BigDecimal taxRatePct,
                                          BigDecimal taxWithheld, BigDecimal netInterest, String whtGlCode) {
-        this.accountNo = accountNo;
-        this.businessDate = businessDate;
-        this.grossInterest = grossInterest;
-        this.taxRatePct = taxRatePct != null ? taxRatePct : new BigDecimal("5.00");
-        this.taxWithheld = taxWithheld;
-        this.netInterest = netInterest;
-        this.whtGlCode = whtGlCode != null ? whtGlCode : "2091";
-        this.createdAt = Instant.now();
+        this(null, accountNo, businessDate, grossInterest, taxRatePct, taxWithheld, netInterest, whtGlCode);
     }
 
     public InterestTaxDeductionLogEntity(UUID logId, String accountNo, LocalDate businessDate,

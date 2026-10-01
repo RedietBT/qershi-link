@@ -1,12 +1,13 @@
-package com.kab.qershi.account.infrastructure.rest;
+package com.kab.qershi.pricing.infrastructure.rest;
 
-import com.kab.qershi.account.application.usecase.TariffEngineService;
-import com.kab.qershi.account.application.usecase.TariffEngineService.FeeCalculation;
-import com.kab.qershi.account.infrastructure.persistence.InterestTaxDeductionLogEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataInterestTaxDeductionLogRepository;
-import com.kab.qershi.account.infrastructure.persistence.TariffEntity;
-import com.kab.qershi.account.infrastructure.rest.dto.TariffRequest;
 import com.kab.qershi.common.dto.ApiResponse;
+import com.kab.qershi.pricing.domain.model.FeeCalculationResult;
+import com.kab.qershi.pricing.domain.model.Tariff;
+import com.kab.qershi.pricing.domain.model.WithholdingTaxResult;
+import com.kab.qershi.pricing.domain.ports.inbound.TariffCalculationUseCase;
+import com.kab.qershi.pricing.domain.ports.inbound.TariffManagementUseCase;
+import com.kab.qershi.pricing.domain.ports.inbound.TaxAssessmentUseCase;
+import com.kab.qershi.pricing.infrastructure.rest.dto.TariffRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,39 +25,43 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * REST Controller for Managing Transaction Tariffs and Withholding Tax Logs.
+ * REST Controller for Managing Transaction Tariffs and Withholding Tax Logs in pricing-fee-service.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
 @RestController
 @RequestMapping("/api/v1/tariffs")
-@Tag(name = "Fee & Tariff Engine", description = "Endpoints for configuring transaction fees, live tariff simulation, and 5% WHT audit records.")
+@Tag(name = "Enterprise Pricing & Tariff Engine", description = "Endpoints for configuring transaction fees, live tariff simulation, and statutory 5% WHT audit records.")
 @SecurityRequirement(name = "bearerAuth")
-public class TariffController {
+public class PricingTariffController {
 
-    private final TariffEngineService tariffEngineService;
-    private final SpringDataInterestTaxDeductionLogRepository taxLogRepository;
+    private final TariffCalculationUseCase tariffCalculationUseCase;
+    private final TariffManagementUseCase tariffManagementUseCase;
+    private final TaxAssessmentUseCase taxAssessmentUseCase;
 
-    public TariffController(TariffEngineService tariffEngineService,
-                            SpringDataInterestTaxDeductionLogRepository taxLogRepository) {
-        this.tariffEngineService = tariffEngineService;
-        this.taxLogRepository = taxLogRepository;
+    public PricingTariffController(TariffCalculationUseCase tariffCalculationUseCase,
+                                   TariffManagementUseCase tariffManagementUseCase,
+                                   TaxAssessmentUseCase taxAssessmentUseCase) {
+        this.tariffCalculationUseCase = tariffCalculationUseCase;
+        this.tariffManagementUseCase = tariffManagementUseCase;
+        this.taxAssessmentUseCase = taxAssessmentUseCase;
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "List All Tariffs", description = "Retrieves all configured transaction tariff schedules.")
-    public ResponseEntity<ApiResponse<List<TariffEntity>>> listTariffs() {
-        List<TariffEntity> tariffs = tariffEngineService.listTariffs();
+    public ResponseEntity<ApiResponse<List<Tariff>>> listTariffs() {
+        List<Tariff> tariffs = tariffManagementUseCase.listAllTariffs();
         return ResponseEntity.ok(ApiResponse.success(tariffs, "Retrieved " + tariffs.size() + " tariff rules."));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('TARIFF_MANAGE')")
     @Operation(summary = "Create Tariff Rule", description = "Creates a new transaction tariff rule with flat or percentage fee logic.")
-    public ResponseEntity<ApiResponse<TariffEntity>> createTariff(@Valid @RequestBody TariffRequest request) {
-        TariffEntity entity = new TariffEntity(
+    public ResponseEntity<ApiResponse<Tariff>> createTariff(@Valid @RequestBody TariffRequest request) {
+        Tariff tariff = new Tariff(
+                null,
                 request.getTariffCode(),
                 request.getTariffName(),
                 request.getTransactionType(),
@@ -65,15 +70,11 @@ public class TariffController {
                 request.getMinFee(),
                 request.getMaxFee(),
                 request.getFeeGlCode() != null ? request.getFeeGlCode() : "4020",
+                request.getCurrency() != null ? request.getCurrency() : "ETB",
+                request.getIsActive() != null ? request.getIsActive() : true,
                 request.getDescription()
         );
-        if (request.getIsActive() != null) {
-            entity.setActive(request.getIsActive());
-        }
-        if (request.getCurrency() != null) {
-            entity.setCurrency(request.getCurrency());
-        }
-        TariffEntity saved = tariffEngineService.createTariff(entity);
+        Tariff saved = tariffManagementUseCase.createTariff(tariff);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(saved, "Tariff rule " + saved.getTariffCode() + " created successfully."));
     }
@@ -81,9 +82,10 @@ public class TariffController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('TARIFF_MANAGE')")
     @Operation(summary = "Update Tariff Rule", description = "Updates an existing tariff configuration.")
-    public ResponseEntity<ApiResponse<TariffEntity>> updateTariff(@PathVariable UUID id,
-                                                                 @Valid @RequestBody TariffRequest request) {
-        TariffEntity entity = new TariffEntity(
+    public ResponseEntity<ApiResponse<Tariff>> updateTariff(@PathVariable UUID id,
+                                                            @Valid @RequestBody TariffRequest request) {
+        Tariff tariff = new Tariff(
+                id,
                 request.getTariffCode(),
                 request.getTariffName(),
                 request.getTransactionType(),
@@ -92,45 +94,39 @@ public class TariffController {
                 request.getMinFee(),
                 request.getMaxFee(),
                 request.getFeeGlCode() != null ? request.getFeeGlCode() : "4020",
+                request.getCurrency() != null ? request.getCurrency() : "ETB",
+                request.getIsActive() != null ? request.getIsActive() : true,
                 request.getDescription()
         );
-        if (request.getIsActive() != null) {
-            entity.setActive(request.getIsActive());
-        }
-        TariffEntity updated = tariffEngineService.updateTariff(id, entity);
+        Tariff updated = tariffManagementUseCase.updateTariff(id, tariff);
         return ResponseEntity.ok(ApiResponse.success(updated, "Tariff rule updated successfully."));
     }
 
     @PatchMapping("/{id}/toggle")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('TARIFF_MANAGE')")
     @Operation(summary = "Toggle Tariff Active Status", description = "Enables or disables an existing tariff rule.")
-    public ResponseEntity<ApiResponse<TariffEntity>> toggleTariff(@PathVariable UUID id,
-                                                                 @RequestParam boolean active) {
-        TariffEntity updated = tariffEngineService.toggleStatus(id, active);
+    public ResponseEntity<ApiResponse<Tariff>> toggleTariff(@PathVariable UUID id,
+                                                            @RequestParam boolean active) {
+        Tariff updated = tariffManagementUseCase.toggleTariffStatus(id, active);
         return ResponseEntity.ok(ApiResponse.success(updated, "Tariff status updated to " + (active ? "ACTIVE" : "INACTIVE")));
     }
 
     @GetMapping("/calculate")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "Live Tariff Calculation Simulator", description = "Simulates fee deduction for a given transaction type and amount.")
-    public ResponseEntity<ApiResponse<FeeCalculation>> calculateFee(
+    public ResponseEntity<ApiResponse<FeeCalculationResult>> calculateFee(
             @RequestParam String transactionType,
             @RequestParam BigDecimal amount) {
-        FeeCalculation calc = tariffEngineService.calculateFee(transactionType, amount);
+        FeeCalculationResult calc = tariffCalculationUseCase.calculateFee(transactionType, amount);
         return ResponseEntity.ok(ApiResponse.success(calc, "Fee calculated successfully."));
     }
 
     @GetMapping("/tax-logs")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR', 'BRANCH_MANAGER') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "List Statutory WHT Tax Deduction Logs", description = "Retrieves audit records of 5% withholding tax withheld during monthly interest capitalizations.")
-    public ResponseEntity<ApiResponse<List<InterestTaxDeductionLogEntity>>> listTaxLogs(
+    public ResponseEntity<ApiResponse<List<WithholdingTaxResult>>> listTaxLogs(
             @RequestParam(required = false) String accountNo) {
-        List<InterestTaxDeductionLogEntity> logs;
-        if (accountNo != null && !accountNo.isBlank()) {
-            logs = taxLogRepository.findByAccountNo(accountNo.trim());
-        } else {
-            logs = taxLogRepository.findAll();
-        }
+        List<WithholdingTaxResult> logs = taxAssessmentUseCase.listTaxLogs(accountNo);
         return ResponseEntity.ok(ApiResponse.success(logs, "Retrieved " + logs.size() + " tax deduction records."));
     }
 
@@ -140,7 +136,7 @@ public class TariffController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getTaxSummary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        BigDecimal totalTax = taxLogRepository.sumTaxWithheldBetween(startDate, endDate);
+        BigDecimal totalTax = taxAssessmentUseCase.sumTaxWithheldBetween(startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of(
                         "startDate", startDate,

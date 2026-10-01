@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package com.kab.qershi.pricing.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.kab.qershi.pricing.infrastructure.grpc";
+
+// Centralized Enterprise Pricing, Tariff & Statutory Tax Service
+service PricingGrpcService {
+  rpc CalculateFee (FeeCalculationProtoRequest) returns (FeeCalculationProtoResponse);
+  rpc CalculateWithholdingTax (TaxCalculationProtoRequest) returns (TaxCalculationProtoResponse);
+  rpc GetActiveTariffs (TariffListProtoRequest) returns (TariffListProtoResponse);
+}
+
+message FeeCalculationProtoRequest {
+  string transaction_type = 1; // "WITHDRAWAL", "TRANSFER_INTERNAL", "TRANSFER_EXTERNAL", "STATEMENT_PRINT", "LOAN_PROCESSING", etc.
+  string amount = 2;
+  string customer_tier = 3;
+  string currency = 4;
+  string tenant_schema = 5;
+}
+
+message FeeCalculationProtoResponse {
+  bool fee_applicable = 1;
+  string tariff_code = 2;
+  string tariff_name = 3;
+  string fee_type = 4; // "FLAT" or "PERCENTAGE"
+  string fee_amount = 5;
+  string min_fee = 6;
+  string max_fee = 7;
+  string fee_gl_code = 8;
+  string total_debit_amount = 9;
+}
+
+message TaxCalculationProtoRequest {
+  string tax_type = 1; // "WHT_SAVINGS_INTEREST"
+  string gross_amount = 2;
+  string account_no = 3;
+  string business_date = 4;
+  string tenant_schema = 5;
+}
+
+message TaxCalculationProtoResponse {
+  string tax_rate_pct = 1; // "5.00"
+  string gross_amount = 2;
+  string tax_withheld = 3;
+  string net_credited = 4;
+  string tax_gl_code = 5; // "2091"
+}
+
+message TariffListProtoRequest {
+  string tenant_schema = 1;
+}
+
+message TariffProtoItem {
+  string tariff_code = 1;
+  string tariff_name = 2;
+  string transaction_type = 3;
+  string fee_type = 4;
+  string fee_value = 5;
+  string min_fee = 6;
+  string max_fee = 7;
+  string fee_gl_code = 8;
+  bool is_active = 9;
+}
+
+message TariffListProtoResponse {
+  repeated TariffProtoItem tariffs = 1;
+}

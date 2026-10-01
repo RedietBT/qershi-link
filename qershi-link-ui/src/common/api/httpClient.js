@@ -12,6 +12,7 @@ export const SERVICE_ENDPOINTS = {
   LOAN_ORIG: import.meta.env.VITE_LOAN_ORIG_URL || 'http://localhost:8084/api/v1',
   LOAN_MGMT: import.meta.env.VITE_LOAN_MGMT_URL || 'http://localhost:8085/api/v1',
   NOTIFICATION: import.meta.env.VITE_NOTIFICATION_URL || 'http://localhost:8086/api/v1',
+  PRICING: import.meta.env.VITE_PRICING_URL || 'http://localhost:8087/api/v1',
 };
 
 /**
@@ -66,5 +67,6 @@ export const transactionHttpClient = createServiceHttpClient(SERVICE_ENDPOINTS.T
 export const loanOrigHttpClient = createServiceHttpClient(SERVICE_ENDPOINTS.LOAN_ORIG);
 export const loanMgmtHttpClient = createServiceHttpClient(SERVICE_ENDPOINTS.LOAN_MGMT);
 export const notificationHttpClient = createServiceHttpClient(SERVICE_ENDPOINTS.NOTIFICATION);
+export const pricingHttpClient = createServiceHttpClient(SERVICE_ENDPOINTS.PRICING);
 
 export default authHttpClient;

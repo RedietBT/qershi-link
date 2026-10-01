@@ -1,5 +1,5 @@
 -- =========================================================================
--- V8: Core Banking Fee & Tariff Engine & Statutory Tax Records
+-- V1: Enterprise Pricing, Tariff Engine & Statutory Tax Records
 -- Configurable transaction tariffs (flat & percentage) and interest withholding tax tracking
 -- =========================================================================
 

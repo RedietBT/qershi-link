@@ -28,6 +28,7 @@
 		<module>notification-service</module>
 		<module>loan-origination-service</module>
 		<module>loan-management-service</module>
+		<module>pricing-fee-service</module>
 		<module>swagger-api-hub</module>
 	</modules>
 

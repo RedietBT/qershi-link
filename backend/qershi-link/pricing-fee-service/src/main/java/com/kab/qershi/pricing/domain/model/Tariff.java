@@ -1,75 +1,36 @@
-package com.kab.qershi.account.infrastructure.persistence;
+package com.kab.qershi.pricing.domain.model;
 
-import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
 /**
- * JPA entity mapping 'tariffs' table for configurable transaction fees.
+ * Domain entity representing a transaction tariff schedule.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
-@Entity
-@Table(name = "tariffs")
-public class TariffEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "tariff_id", nullable = false, updatable = false)
+public class Tariff {
     private UUID tariffId;
-
-    @Column(name = "tariff_code", nullable = false, unique = true, length = 50)
     private String tariffCode;
-
-    @Column(name = "tariff_name", nullable = false, length = 150)
     private String tariffName;
-
-    @Column(name = "transaction_type", nullable = false, length = 50)
     private String transactionType;
-
-    @Column(name = "fee_type", nullable = false, length = 20)
-    private String feeType = "FLAT"; // 'FLAT' or 'PERCENTAGE'
-
-    @Column(name = "fee_value", nullable = false, precision = 15, scale = 4)
-    private BigDecimal feeValue = BigDecimal.ZERO;
-
-    @Column(name = "min_fee", precision = 15, scale = 2)
+    private String feeType; // 'FLAT', 'PERCENTAGE'
+    private BigDecimal feeValue;
     private BigDecimal minFee;
-
-    @Column(name = "max_fee", precision = 15, scale = 2)
     private BigDecimal maxFee;
-
-    @Column(name = "fee_gl_code", nullable = false, length = 50)
-    private String feeGlCode = "4020";
-
-    @Column(name = "currency", nullable = false, length = 3)
-    private String currency = "ETB";
-
-    @Column(name = "is_active", nullable = false)
-    private boolean active = true;
-
-    @Column(name = "description", columnDefinition = "TEXT")
+    private String feeGlCode;
+    private String currency;
+    private boolean active;
     private String description;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
-
-    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public TariffEntity() {}
+    public Tariff() {}
 
-    public TariffEntity(String tariffCode, String tariffName, String transactionType,
-                        String feeType, BigDecimal feeValue, BigDecimal minFee, BigDecimal maxFee,
-                        String feeGlCode, String description) {
-        this(null, tariffCode, tariffName, transactionType, feeType, feeValue, minFee, maxFee, feeGlCode, "ETB", true, description);
-    }
-
-    public TariffEntity(UUID tariffId, String tariffCode, String tariffName, String transactionType,
-                        String feeType, BigDecimal feeValue, BigDecimal minFee, BigDecimal maxFee,
-                        String feeGlCode, String currency, boolean active, String description) {
+    public Tariff(UUID tariffId, String tariffCode, String tariffName, String transactionType,
+                  String feeType, BigDecimal feeValue, BigDecimal minFee, BigDecimal maxFee,
+                  String feeGlCode, String currency, boolean active, String description) {
         this.tariffId = tariffId;
         this.tariffCode = tariffCode;
         this.tariffName = tariffName;
@@ -86,41 +47,45 @@ public class TariffEntity {
         this.updatedAt = Instant.now();
     }
 
-    @PrePersist
-    protected void onCreate() {
-        if (createdAt == null) createdAt = Instant.now();
-        if (updatedAt == null) updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
-
     public UUID getTariffId() { return tariffId; }
     public void setTariffId(UUID tariffId) { this.tariffId = tariffId; }
+
     public String getTariffCode() { return tariffCode; }
     public void setTariffCode(String tariffCode) { this.tariffCode = tariffCode; }
+
     public String getTariffName() { return tariffName; }
     public void setTariffName(String tariffName) { this.tariffName = tariffName; }
+
     public String getTransactionType() { return transactionType; }
     public void setTransactionType(String transactionType) { this.transactionType = transactionType; }
+
     public String getFeeType() { return feeType; }
     public void setFeeType(String feeType) { this.feeType = feeType; }
+
     public BigDecimal getFeeValue() { return feeValue; }
     public void setFeeValue(BigDecimal feeValue) { this.feeValue = feeValue; }
+
     public BigDecimal getMinFee() { return minFee; }
     public void setMinFee(BigDecimal minFee) { this.minFee = minFee; }
+
     public BigDecimal getMaxFee() { return maxFee; }
     public void setMaxFee(BigDecimal maxFee) { this.maxFee = maxFee; }
+
     public String getFeeGlCode() { return feeGlCode; }
     public void setFeeGlCode(String feeGlCode) { this.feeGlCode = feeGlCode; }
+
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
+
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
     public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
     public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

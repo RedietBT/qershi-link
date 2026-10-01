@@ -37,22 +37,19 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
     private final ProfileValidationPort profileValidationPort;
     private final SpringDataProductMakerCheckerRuleRepository productRuleRepository;
     private final LienManagementUseCase lienManagementUseCase;
-    private final com.kab.qershi.account.application.usecase.TariffEngineService tariffEngineService;
 
     public AccountGrpcServiceImpl(AccountOpeningUseCase accountOpeningUseCase,
                                   ProductManagementUseCase productManagementUseCase,
                                   AccountRepositoryPort accountRepositoryPort,
                                   ProfileValidationPort profileValidationPort,
                                   SpringDataProductMakerCheckerRuleRepository productRuleRepository,
-                                  LienManagementUseCase lienManagementUseCase,
-                                  com.kab.qershi.account.application.usecase.TariffEngineService tariffEngineService) {
+                                  LienManagementUseCase lienManagementUseCase) {
         this.accountOpeningUseCase = accountOpeningUseCase;
         this.productManagementUseCase = productManagementUseCase;
         this.accountRepositoryPort = accountRepositoryPort;
         this.profileValidationPort = profileValidationPort;
         this.productRuleRepository = productRuleRepository;
         this.lienManagementUseCase = lienManagementUseCase;
-        this.tariffEngineService = tariffEngineService;
     }
 
     private Account resolveAccount(String identifier) {
@@ -394,43 +391,6 @@ public class AccountGrpcServiceImpl extends AccountGrpcServiceGrpc.AccountGrpcSe
             ReleaseLienProtoResponse response = ReleaseLienProtoResponse.newBuilder()
                     .setIsSuccess(false)
                     .setMessage("Failed releasing lien: " + ex.getMessage())
-                    .build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } finally {
-            com.kab.qershi.account.infrastructure.config.TenantContext.clear();
-        }
-    }
-
-    @Override
-    public void calculateTariff(TariffCalculationProtoRequest request, StreamObserver<TariffCalculationProtoResponse> responseObserver) {
-        log.debug("gRPC CalculateTariff request: type={}, amount={}", request.getTransactionType(), request.getAmount());
-        try {
-            if (request.getTenantSchema() != null && !request.getTenantSchema().isBlank()) {
-                com.kab.qershi.account.infrastructure.config.TenantContext.setTenantSchema(request.getTenantSchema().trim());
-            }
-            BigDecimal amount = new BigDecimal(request.getAmount());
-            com.kab.qershi.account.application.usecase.TariffEngineService.FeeCalculation feeCalc =
-                    tariffEngineService.calculateFee(request.getTransactionType(), amount);
-
-            TariffCalculationProtoResponse response = TariffCalculationProtoResponse.newBuilder()
-                    .setFeeApplicable(feeCalc.feeApplicable())
-                    .setTariffCode(feeCalc.tariffCode() != null ? feeCalc.tariffCode() : "")
-                    .setTariffName(feeCalc.tariffName() != null ? feeCalc.tariffName() : "")
-                    .setFeeAmount(feeCalc.calculatedFee().toPlainString())
-                    .setFeeGlCode(feeCalc.feeGlCode() != null ? feeCalc.feeGlCode() : "4020")
-                    .setTotalDebitAmount(feeCalc.totalDebitRequired().toPlainString())
-                    .build();
-
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (Exception ex) {
-            log.error("gRPC CalculateTariff failed: {}", ex.getMessage(), ex);
-            TariffCalculationProtoResponse response = TariffCalculationProtoResponse.newBuilder()
-                    .setFeeApplicable(false)
-                    .setFeeAmount("0.00")
-                    .setFeeGlCode("4020")
-                    .setTotalDebitAmount(request.getAmount())
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();

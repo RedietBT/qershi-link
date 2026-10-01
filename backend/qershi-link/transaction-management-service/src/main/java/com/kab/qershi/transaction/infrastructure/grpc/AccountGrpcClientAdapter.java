@@ -134,35 +134,6 @@ public class AccountGrpcClientAdapter implements AccountClientPort {
         }
     }
 
-    @Override
-    public TariffResult calculateTariff(String transactionType, BigDecimal amount) {
-        log.debug("Calling gRPC CalculateTariff for type: {}, amount: {}", transactionType, amount);
-        try {
-            String schema = TenantContext.getTenantSchema();
-            com.kab.qershi.account.infrastructure.grpc.TariffCalculationProtoRequest request =
-                    com.kab.qershi.account.infrastructure.grpc.TariffCalculationProtoRequest.newBuilder()
-                            .setTransactionType(transactionType)
-                            .setAmount(amount != null ? amount.toPlainString() : "0.00")
-                            .setTenantSchema(schema != null ? schema : "")
-                            .build();
-
-            com.kab.qershi.account.infrastructure.grpc.TariffCalculationProtoResponse res = accountGrpcStub.calculateTariff(request);
-
-            return new TariffResult(
-                    res.getFeeApplicable(),
-                    res.getTariffCode(),
-                    res.getTariffName(),
-                    parseDecimal(res.getFeeAmount()),
-                    res.getFeeGlCode(),
-                    parseDecimal(res.getTotalDebitAmount())
-            );
-        } catch (Exception ex) {
-            log.warn("gRPC call CalculateTariff failed for type {}, using zero fee: {}", transactionType, ex.getMessage());
-            BigDecimal amt = amount != null ? amount : BigDecimal.ZERO;
-            return new TariffResult(false, null, "Fallback", BigDecimal.ZERO, "4020", amt);
-        }
-    }
-
     private BigDecimal parseDecimal(String val) {
         if (val == null || val.isBlank()) return BigDecimal.ZERO;
         try {

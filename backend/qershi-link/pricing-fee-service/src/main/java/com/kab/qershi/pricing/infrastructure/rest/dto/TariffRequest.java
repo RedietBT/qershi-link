@@ -1,4 +1,4 @@
-package com.kab.qershi.account.infrastructure.rest.dto;
+package com.kab.qershi.pricing.infrastructure.rest.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,7 +20,7 @@ public class TariffRequest {
     private String tariffName;
 
     @NotBlank(message = "Transaction type is required")
-    private String transactionType; // 'WITHDRAWAL', 'TRANSFER_INTERNAL', 'TRANSFER_EXTERNAL', 'STATEMENT_PRINT', 'LOAN_PROCESSING'
+    private String transactionType;
 
     @NotBlank(message = "Fee type is required (FLAT or PERCENTAGE)")
     private String feeType;
