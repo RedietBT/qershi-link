@@ -104,16 +104,23 @@
   - [x] Verify guarantor has sufficient unencumbered savings balance via real-time gRPC check.
   - [x] On loan disbursement: Automatically invoke `account-service` (`PlaceLien`) to place monetary **Lien Hold** on guarantor accounts.
   - [x] On final loan repayment/settlement: Automatically release guarantor liens (`ReleaseLien`) upon loan account closure.
-- [x] **Fee & Tariff Engine**
-  - [x] Create `tariffs` table (`transaction_type`, `fee_type`: `FLAT`, `PERCENTAGE`, `value`, `min_fee`, `max_fee`, `fee_gl_code`).
-  - [x] Deduct configured fees automatically during cash withdrawal and internal transfers.
+- [x] **Dedicated Pricing & Fee Engine Microservice (`pricing-fee-service`: HTTP 8087, gRPC 9087)**
+  - [x] Decoupled into Hexagonal Architecture microservice with multi-tenancy & JWT security.
+  - [x] Create `tariffs` and `interest_tax_deduction_logs` tables and seed default cooperative fee policies.
+  - [x] High-performance gRPC interfaces for `CalculateFee`, `CalculateWithholdingTax`, and `GetActiveTariffs`.
+  - [x] Dynamic fee calculation for Cash Withdrawals, Member Transfers, and Loan Processing.
+  - [x] Loan Origination Fee Option A (Net Disbursement): Upfront fee deducted at source, credited to Fee Income GL (4021), with principal schedule intact.
 - [x] **Withholding Tax (WHT) on Savings Interest**
-  - [x] Calculate statutory 5% withholding tax during monthly interest capitalization.
+  - [x] Calculate statutory 5% withholding tax during monthly interest capitalization via `pricing-fee-service` gRPC.
   - [x] Post: `DEBIT Interest Payable (2051)` | `CREDIT Member Savings (95%)` | `CREDIT WHT Payable to Government (2091, 5%)`.
+- [x] **Platform Governance & Central Tooling Integration**
+  - [x] Seeded `TARIFF_VIEW` and `TARIFF_MANAGE` permissions in `identity-auth-service` RBAC (`V15__seed_pricing_and_tariff_permissions.sql`).
+  - [x] Added `09_pricing.sql` and updated `08_seed_data.sql` in `tenant-template/` for automated schema provisioning on new SACCO onboarding.
+  - [x] Registered in Central `swagger-api-hub` (port 8090) with backend proxy to `http://pricing-fee-service:8087/v3/api-docs`.
 - [x] **Frontend Deliverables**
   - [x] `MakerCheckerPolicyPage.jsx`: Dedicated SACCO Maker-Checker & Four-Eyes policy management screen.
   - [x] `GuarantorPledgingSection.jsx`: Integrated into loan application form with real-time balance check.
-  - [x] `TariffManagementPage.jsx`: Configure transaction fees, commissions, real-time fee simulator, and 5% WHT governance.
+  - [x] `src/features/pricing/`: Dedicated UI feature module with `pricingApi.js`, `pricingRoutes.jsx`, and all action buttons wrapped in `PermissionGuard`.
 
 ---
 
