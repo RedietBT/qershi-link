@@ -42,6 +42,7 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
     private final SpringDataLoanAuditLogRepository auditLogRepository;
     private final com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort;
     private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository;
+    private final com.kab.qershi.loan.management.domain.port.out.PricingClientPort pricingClientPort;
 
     public LoanDisbursementService(LoanAccountRepositoryPort accountRepository,
                                    RepaymentScheduleRepositoryPort scheduleRepository,
@@ -49,7 +50,8 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
                                    NotificationGrpcClientAdapter notificationAdapter,
                                    SpringDataLoanAuditLogRepository auditLogRepository,
                                    com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort,
-                                   com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository) {
+                                   com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository,
+                                   com.kab.qershi.loan.management.domain.port.out.PricingClientPort pricingClientPort) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.amortizationEngine = amortizationEngine;
@@ -57,6 +59,7 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
         this.auditLogRepository = auditLogRepository;
         this.accountClientPort = accountClientPort;
         this.guarantorRepository = guarantorRepository;
+        this.pricingClientPort = pricingClientPort;
     }
 
     @Override
@@ -100,6 +103,34 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
 
         LoanAccount savedAccount = accountRepository.save(account);
 
+        // 4. Calculate Loan Processing & Appraisal Fee via pricing-fee-service (Option A: Deduction at source)
+        BigDecimal grossAmount = command.amount();
+        BigDecimal processingFee = BigDecimal.ZERO;
+        String feeGlCode = "4021";
+        String tariffCode = "NONE";
+
+        if (pricingClientPort != null) {
+            try {
+                var feeResult = pricingClientPort.calculateFee("LOAN_PROCESSING", grossAmount, "STANDARD", "ETB");
+                if (feeResult.feeApplicable() && feeResult.feeAmount() != null && feeResult.feeAmount().compareTo(BigDecimal.ZERO) > 0) {
+                    processingFee = feeResult.feeAmount();
+                    feeGlCode = feeResult.feeGlCode() != null && !feeResult.feeGlCode().isBlank() ? feeResult.feeGlCode() : "4021";
+                    tariffCode = feeResult.tariffCode();
+                    log.info("Assessed loan processing fee: {} ETB (Tariff: {}, Fee Income GL: {}) for loan application {}",
+                            processingFee, tariffCode, feeGlCode, command.applicationId());
+                }
+            } catch (Exception ex) {
+                log.warn("Pricing fee assessment failed or unavailable, proceeding with zero processing fee: {}", ex.getMessage());
+            }
+        }
+
+        BigDecimal netDisbursedAmount = grossAmount.subtract(processingFee);
+        if (netDisbursedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("Net disbursement amount non-positive (Gross: {}, Fee: {}), defaulting to gross", grossAmount, processingFee);
+            netDisbursedAmount = grossAmount;
+            processingFee = BigDecimal.ZERO;
+        }
+
         try {
             auditLogRepository.save(new LoanAuditLogEntity(
                     null,
@@ -107,16 +138,16 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
                     savedAccount.getUserId(),
                     command.userId(),
                     "LOAN_DISBURSEMENT_INITIATED",
-                    "status",
+                    "disbursement_net_calculation",
                     null,
-                    savedAccount.getStatus().name(),
+                    "Gross: " + grossAmount + " ETB | Processing Fee Deducted: " + processingFee + " ETB (GL " + feeGlCode + ") | Net Disbursed: " + netDisbursedAmount + " ETB",
                     OffsetDateTime.now()
             ));
         } catch (Exception ex) {
             log.warn("Failed writing loan disbursement audit log: {}", ex.getMessage());
         }
 
-        // 4. Generate & persist Amortization Repayment Schedule
+        // 4.1. Generate & persist Amortization Repayment Schedule (based on full principal gross amount)
         List<RepaymentSchedule> schedules = amortizationEngine.generateSchedule(
                 savedAccount.getAccountId(),
                 savedAccount.getPrincipalAmount(),
@@ -131,11 +162,12 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
 
         log.info("Disbursed Loan Account {} with {} repayment installments", savedAccount.getAccountNo(), schedules.size());
 
-        // 4.5. Credit the disbursed funds to the borrower's savings account in account-management-service
+        // 4.5. Credit the NET disbursed funds to the borrower's savings account in account-management-service
         if (command.targetSavingsAccountId() != null) {
             String targetAccount = command.targetSavingsAccountId().toString();
-            log.info("Crediting loan disbursement amount {} to savings account {} via gRPC", command.amount(), targetAccount);
-            boolean creditOk = accountClientPort.postTransaction(targetAccount, command.amount(), "CREDIT");
+            log.info("Crediting net loan disbursement amount {} (Gross: {}, Fee: {}) to savings account {} via gRPC",
+                    netDisbursedAmount, grossAmount, processingFee, targetAccount);
+            boolean creditOk = accountClientPort.postTransaction(targetAccount, netDisbursedAmount, "CREDIT");
             if (!creditOk) {
                 log.error("Failed to credit savings account {} for disbursed loan {}", targetAccount, savedAccount.getAccountNo());
                 throw new RuntimeException("Failed to credit disbursed funds to borrower savings account: " + targetAccount);
@@ -195,7 +227,9 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
                     "LOAN_DISBURSED",
                     Map.of(
                             "accountNo", savedAccount.getAccountNo(),
-                            "amount", savedAccount.getPrincipalAmount().toPlainString()
+                            "amount", savedAccount.getPrincipalAmount().toPlainString(),
+                            "netDisbursed", netDisbursedAmount.toPlainString(),
+                            "processingFee", processingFee.toPlainString()
                     )
             );
         } else {
