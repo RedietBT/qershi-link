@@ -1,5 +1,6 @@
 package com.kab.qershi.notification.infrastructure.adapters;
 
+import com.kab.qershi.notification.domain.model.SmsGatewayConfig;
 import com.kab.qershi.notification.domain.ports.outbound.NotificationProviderPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,12 +18,12 @@ import java.util.Set;
 
 /**
  * Outbound SMS Messaging Adapter interfacing with AfroMessage HTTP Gateway.
- * Features test phone number safeguards to block live dispatches during integration trials.
+ * Supports both tenant-specific dynamic API keys/Sender IDs and environment fallbacks.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
-@Component
+@Component("afroMessageSmsAdapter")
 public class AfroMessageSmsAdapter implements NotificationProviderPort {
 
     private static final Logger log = LoggerFactory.getLogger(AfroMessageSmsAdapter.class);
@@ -36,38 +37,50 @@ public class AfroMessageSmsAdapter implements NotificationProviderPort {
             "900000000"
     );
 
-    @Value("${afromessage.api.key}")
-    private String apiKey;
+    @Value("${afromessage.api.key:mock-key}")
+    private String defaultApiKey;
 
-    @Value("${afromessage.api.url}")
-    private String apiUrl;
+    @Value("${afromessage.api.url:https://api.afromessage.com/api/send}")
+    private String defaultApiUrl;
 
     @Override
-    public String sendSms(String recipientPhone, String message) {
+    public String sendSms(String recipientPhone, String message, SmsGatewayConfig config) {
         log.info("Preparing to dispatch SMS notification via AfroMessage gateway");
 
         if (isDummyTestPhoneNumber(recipientPhone)) {
-            log.warn("Blocked live SMS dispatch for dummy/test phone number");
+            log.warn("Blocked live SMS dispatch for dummy/test phone number: {}", recipientPhone);
             return "{\"status\":\"SIMULATED_TEST_MODE\",\"detail\":\"Blocked dummy phone number\"}";
         }
 
+        String effectiveApiKey = (config != null && config.getApiKey() != null && !config.getApiKey().isBlank())
+                ? config.getApiKey()
+                : defaultApiKey;
+
+        String effectiveApiUrl = (config != null && config.getApiUrl() != null && !config.getApiUrl().isBlank())
+                ? config.getApiUrl()
+                : defaultApiUrl;
+
+        String effectiveSender = (config != null && config.getSenderId() != null)
+                ? config.getSenderId()
+                : "";
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        if (apiKey != null && !apiKey.isBlank()) {
-            headers.setBearerAuth(apiKey);
+        if (effectiveApiKey != null && !effectiveApiKey.isBlank() && !effectiveApiKey.equalsIgnoreCase("mock-key")) {
+            headers.setBearerAuth(effectiveApiKey);
         }
 
         Map<String, String> payload = new HashMap<>();
         payload.put("to", recipientPhone);
         payload.put("message", message);
-        payload.put("sender", "");
+        payload.put("sender", effectiveSender);
 
         HttpEntity<Map<String, String>> request = new HttpEntity<>(payload, headers);
 
         try {
-            if (apiUrl != null && !apiUrl.isBlank() && !apiUrl.contains("example.com")) {
-                ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, request, String.class);
-                log.info("SMS notification dispatched via AfroMessage gateway to {}. Response: {}", recipientPhone, response.getBody());
+            if (effectiveApiUrl != null && !effectiveApiUrl.isBlank() && !effectiveApiUrl.contains("example.com")) {
+                ResponseEntity<String> response = restTemplate.postForEntity(effectiveApiUrl, request, String.class);
+                log.info("SMS dispatched via AfroMessage gateway to {}. Response: {}", recipientPhone, response.getBody());
                 return response.getBody() != null ? response.getBody() : "{\"status\":\"SUCCESS\"}";
             } else {
                 log.warn("AfroMessage API URL unconfigured. SMS notification simulated.");

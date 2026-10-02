@@ -5,12 +5,13 @@ import com.kab.qershi.notification.domain.model.NotificationLog;
 import com.kab.qershi.notification.domain.model.NotificationRequest;
 import com.kab.qershi.notification.domain.model.NotificationStatus;
 import com.kab.qershi.notification.domain.model.NotificationTemplate;
+import com.kab.qershi.notification.domain.model.SmsGatewayConfig;
 import com.kab.qershi.notification.domain.ports.inbound.SendNotificationUseCase;
 import com.kab.qershi.notification.domain.ports.outbound.NotificationProviderPort;
 import com.kab.qershi.notification.domain.ports.outbound.NotificationRepositoryPort;
+import com.kab.qershi.notification.domain.ports.outbound.SmsGatewayConfigRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +20,7 @@ import java.util.Optional;
 
 /**
  * Service implementing SendNotificationUseCase for SMS messaging dispatches.
- * Handles template rendering, async provider execution, and audit logging.
+ * Handles template rendering, tenant-specific dynamic provider routing, and audit logging.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -30,11 +31,14 @@ public class SmsNotificationService implements SendNotificationUseCase {
     private static final Logger log = LoggerFactory.getLogger(SmsNotificationService.class);
 
     private final NotificationRepositoryPort repositoryPort;
+    private final SmsGatewayConfigRepositoryPort configRepositoryPort;
     private final NotificationProviderFactory providerFactory;
 
     public SmsNotificationService(NotificationRepositoryPort repositoryPort,
+                                  SmsGatewayConfigRepositoryPort configRepositoryPort,
                                   NotificationProviderFactory providerFactory) {
         this.repositoryPort = repositoryPort;
+        this.configRepositoryPort = configRepositoryPort;
         this.providerFactory = providerFactory;
     }
 
@@ -50,8 +54,12 @@ public class SmsNotificationService implements SendNotificationUseCase {
 
         log.info("Sending direct SMS to recipient phone: {}", maskPhone(recipientPhone));
 
-        NotificationProviderPort provider = providerFactory.getProvider(null);
-        String vendorResponse = provider.sendSms(recipientPhone, message);
+        SmsGatewayConfig activeConfig = configRepositoryPort.findActiveConfig().orElse(null);
+        NotificationProviderPort provider = (activeConfig != null)
+                ? providerFactory.getProvider(activeConfig.getProvider())
+                : providerFactory.getProvider((String) null);
+
+        String vendorResponse = provider.sendSms(recipientPhone, message, activeConfig);
 
         NotificationStatus status = (vendorResponse != null && vendorResponse.contains("ERROR"))
                 ? NotificationStatus.FAILED
@@ -111,8 +119,17 @@ public class SmsNotificationService implements SendNotificationUseCase {
 
         String renderedMessage = template.render(request.getParameters());
 
-        NotificationProviderPort provider = providerFactory.getProvider(request.getProviderBeanName());
-        String vendorResponse = provider.sendSms(request.getRecipientPhone(), renderedMessage);
+        SmsGatewayConfig activeConfig = configRepositoryPort.findActiveConfig().orElse(null);
+        NotificationProviderPort provider;
+        if (request.getProviderBeanName() != null && !request.getProviderBeanName().isBlank()) {
+            provider = providerFactory.getProvider(request.getProviderBeanName());
+        } else if (activeConfig != null) {
+            provider = providerFactory.getProvider(activeConfig.getProvider());
+        } else {
+            provider = providerFactory.getProvider((String) null);
+        }
+
+        String vendorResponse = provider.sendSms(request.getRecipientPhone(), renderedMessage, activeConfig);
 
         NotificationStatus status = (vendorResponse != null && vendorResponse.contains("ERROR"))
                 ? NotificationStatus.FAILED

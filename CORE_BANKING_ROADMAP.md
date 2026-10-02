@@ -188,19 +188,24 @@
 ---
 
 ### ⚡ Day 6: Kafka Event Bus & Dynamic UI SMS Gateway Provider
-- [ ] **Apache Kafka Event-Driven Architecture**
-  - [ ] Deploy Kafka broker configuration in docker-compose / Kubernetes.
-  - [ ] Publish domain events from:
+- [x] **Dynamic Multi-Tenant SMS Gateway Engine (Step 1 - Backend Completed)**
+  - [x] Create `sms_gateway_configs` table (`config_id`, `provider`: `AFROMESSAGE`, `ETHIO_TELECOM`, `INFOBIP`, `CUSTOM_WEBHOOK`, `SIMULATED`, `api_key`, `api_secret`, `sender_id`, `api_url`, `service_account_id`, `is_active`).
+  - [x] Outbound SMS provider adapters: `AfroMessageSmsAdapter`, `EthioTelecomSmsAdapter`, `InfobipSmsAdapter`, `CustomWebhookSmsAdapter`, and `SimulatedSmsAdapter`.
+  - [x] Dynamic tenant provider resolution via `NotificationProviderFactory` and `SmsGatewayConfigService` with fallback to master configuration.
+  - [x] REST endpoints: `GET /api/v1/notifications/config/sms-gateway`, `PUT /api/v1/notifications/config/sms-gateway`, `POST /test` with masked credentials.
+  - [x] Flyway migrations `V3__create_sms_gateway_configs.sql` in `notification-service`, `05_notification.sql` tenant provisioning script, and `V16__seed_notification_gateway_config_permissions.sql` in `identity-auth-service`.
+- [ ] **Apache Kafka Event-Driven Architecture (Step 2)**
+  - [ ] Deploy Kafka broker configuration in docker-compose.
+  - [ ] Add `spring-kafka` and JSON domain event publishers in:
     - [ ] `transaction-management-service`: `TransactionCompletedEvent`
     - [ ] `loan-management-service`: `LoanDisbursedEvent`, `RepaymentReceivedEvent`
     - [ ] `account-management-service`: `AccountOpenedEvent`, `InterestCapitalizedEvent`
   - [ ] `notification-service` consumes events asynchronously with retry backoff and Dead Letter Queue (DLQ).
-- [ ] **Dynamic Multi-Tenant SMS Gateway Engine**
-  - [ ] Create `sms_gateway_configs` table (`sacco_id`, `provider`: `AFROMESSAGE`, `ETHIO_TELECOM`, `INFOBIP`, `CUSTOM_WEBHOOK`, `api_key_encrypted`, `sender_id`, `is_active`).
-  - [ ] Customizable SMS Templates with dynamic tokens (`{{memberName}}`, `{{amount}}`, `{{accountNo}}`, `{{balance}}`).
-- [ ] **Frontend Deliverables**
-  - [ ] `SmsGatewayConfigPage.jsx`: Tenant configuration screen to select provider, enter live API credentials, and test connection.
-  - [ ] `SmsTemplateEditor.jsx`: Customize SMS notification text for deposits, withdrawals, and loans.
+- [ ] **Frontend Deliverables (Step 3 & 4)**
+  - [ ] `notificationApi.js`: Centralized notification client module.
+  - [ ] `SmsGatewayConfigPage.jsx`: Tenant configuration screen to select provider, enter live API credentials, and test live connection.
+  - [ ] `SmsTemplateEditorPage.jsx`: Customize SMS notification text for deposits, withdrawals, and loans with live placeholder preview.
+  - [ ] `NotificationLogsPage.jsx`: Searchable real-time delivery audit trail.
 
 ---
 
