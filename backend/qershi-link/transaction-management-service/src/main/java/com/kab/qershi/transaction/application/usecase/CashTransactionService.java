@@ -1,38 +1,22 @@
 package com.kab.qershi.transaction.application.usecase;
 
+import com.kab.qershi.common.event.TransactionCompletedEvent;
 import com.kab.qershi.transaction.domain.model.EntryType;
 import com.kab.qershi.transaction.domain.model.JournalEntry;
 import com.kab.qershi.transaction.domain.model.JournalLine;
 import com.kab.qershi.transaction.domain.model.Transaction;
+import com.kab.qershi.transaction.domain.model.TransactionAuditLog;
 import com.kab.qershi.transaction.domain.model.TransactionStatus;
 import com.kab.qershi.transaction.domain.model.TransactionType;
 import com.kab.qershi.transaction.domain.ports.inbound.CashTransactionUseCase;
+import com.kab.qershi.transaction.domain.ports.inbound.TellerTillUseCase;
 import com.kab.qershi.transaction.domain.ports.outbound.AccountClientPort;
 import com.kab.qershi.transaction.domain.ports.outbound.JournalRepositoryPort;
+import com.kab.qershi.transaction.domain.ports.outbound.NotificationClientPort;
+import com.kab.qershi.transaction.domain.ports.outbound.TenantContextPort;
+import com.kab.qershi.transaction.domain.ports.outbound.TransactionAuditLogRepositoryPort;
+import com.kab.qershi.transaction.domain.ports.outbound.TransactionEventPublisherPort;
 import com.kab.qershi.transaction.domain.ports.outbound.TransactionRepositoryPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-
-/**
- * Use case service implementing over-the-counter Cash Deposits and Cash Withdrawals.
- * Enforces idempotency, balance safeguards, and General Ledger double-entry postings.
- *
- * @author KAB Digital Solution PLC
- * @version 1.0.0
- */
-import com.kab.qershi.transaction.infrastructure.persistence.SpringDataTransactionAuditLogRepository;
-import com.kab.qershi.transaction.infrastructure.persistence.TransactionAuditLogEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -51,6 +35,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Use case service implementing over-the-counter Cash Deposits and Cash Withdrawals.
  * Enforces idempotency, balance safeguards, and General Ledger double-entry postings.
+ * Strictly decoupled from infrastructure layer via Hexagonal Architecture ports.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -64,25 +49,28 @@ public class CashTransactionService implements CashTransactionUseCase {
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final JournalRepositoryPort journalRepositoryPort;
     private final AccountClientPort accountClientPort;
-    private final com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
-    private final SpringDataTransactionAuditLogRepository auditLogRepository;
-    private final TellerTillService tellerTillService;
-    private final com.kab.qershi.transaction.domain.ports.outbound.TransactionEventPublisherPort eventPublisher;
+    private final NotificationClientPort notificationClientPort;
+    private final TransactionAuditLogRepositoryPort auditLogRepositoryPort;
+    private final TellerTillUseCase tellerTillUseCase;
+    private final TransactionEventPublisherPort eventPublisher;
+    private final TenantContextPort tenantContextPort;
 
     public CashTransactionService(TransactionRepositoryPort transactionRepositoryPort,
                                   JournalRepositoryPort journalRepositoryPort,
                                   AccountClientPort accountClientPort,
-                                  com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
-                                  SpringDataTransactionAuditLogRepository auditLogRepository,
-                                  TellerTillService tellerTillService,
-                                  com.kab.qershi.transaction.domain.ports.outbound.TransactionEventPublisherPort eventPublisher) {
+                                  NotificationClientPort notificationClientPort,
+                                  TransactionAuditLogRepositoryPort auditLogRepositoryPort,
+                                  TellerTillUseCase tellerTillUseCase,
+                                  TransactionEventPublisherPort eventPublisher,
+                                  TenantContextPort tenantContextPort) {
         this.transactionRepositoryPort = transactionRepositoryPort;
         this.journalRepositoryPort = journalRepositoryPort;
         this.accountClientPort = accountClientPort;
-        this.notificationAdapter = notificationAdapter;
-        this.auditLogRepository = auditLogRepository;
-        this.tellerTillService = tellerTillService;
+        this.notificationClientPort = notificationClientPort;
+        this.auditLogRepositoryPort = auditLogRepositoryPort;
+        this.tellerTillUseCase = tellerTillUseCase;
         this.eventPublisher = eventPublisher;
+        this.tenantContextPort = tenantContextPort;
     }
 
     @Override
@@ -94,46 +82,47 @@ public class CashTransactionService implements CashTransactionUseCase {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Deposit amount must be strictly greater than zero.");
         }
+        if (accountNo == null || accountNo.isBlank()) {
+            throw new IllegalArgumentException("Account number must not be blank.");
+        }
 
         // 1. Idempotency Check
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            Optional<Transaction> existing = transactionRepositoryPort.findByIdempotencyKey(idempotencyKey.trim());
+            Optional<Transaction> existing = transactionRepositoryPort.findByIdempotencyKey(idempotencyKey);
             if (existing.isPresent()) {
-                log.info("Idempotent request detected. Returning existing transaction {}", existing.get().getTransactionRef());
+                log.info("Idempotent deposit request detected: returning existing transaction {}", existing.get().getTransactionRef());
                 return existing.get();
             }
         }
 
-        // 2. Validate Credit capability via gRPC
-        AccountClientPort.ValidationResult validation = accountClientPort.validateCredit(accountNo, amount);
-        if (!validation.isValid()) {
-            throw new IllegalArgumentException("Deposit rejected for account " + accountNo + ": " + validation.message());
+        // 2. Account Invariant Validation via gRPC Port
+        AccountClientPort.AccountInfo accountInfo = accountClientPort.getAccountInfo(accountNo);
+        if (accountInfo == null) {
+            throw new IllegalArgumentException("Target savings account not found: " + accountNo);
+        }
+        if (!"ACTIVE".equalsIgnoreCase(accountInfo.status())) {
+            throw new IllegalStateException("Cannot deposit to account: current account status is " + accountInfo.status());
         }
 
-        // 3. Fetch Account Info for saccoCode and userId
-        AccountClientPort.AccountInfo accountInfo = accountClientPort.getAccountInfo(accountNo);
-
-        // 4. Build & Save Transaction Record
+        // 3. Generate Unique CBS Transaction Reference
         String txRef = generateTransactionRef("DEP");
+
+        // 4. Create and Persist Domain Transaction Entity
         Transaction tx = new Transaction(
                 UUID.randomUUID(),
                 txRef,
                 accountNo,
-                accountInfo.saccoCode(),
-                UUID.fromString(accountInfo.userId()),
                 processedByUserId,
                 TransactionType.CASH_DEPOSIT,
                 amount,
-                "ETB",
                 TransactionStatus.COMPLETED,
-                narration != null ? narration : "Teller Cash Deposit",
-                idempotencyKey,
-                Instant.now()
+                narration != null ? narration.trim() : "Over-the-counter cash deposit",
+                idempotencyKey
         );
         Transaction savedTx = transactionRepositoryPort.save(tx);
 
         try {
-            auditLogRepository.save(new TransactionAuditLogEntity(
+            auditLogRepositoryPort.save(new TransactionAuditLog(
                     null,
                     txRef,
                     accountNo,
@@ -154,7 +143,7 @@ public class CashTransactionService implements CashTransactionUseCase {
 
         // 4.6. Mutate physical cash drawer balance for operating teller
         if (processedByUserId != null) {
-            tellerTillService.recordCashMovement(processedByUserId, amount, true);
+            tellerTillUseCase.recordCashMovement(processedByUserId, amount, true);
         }
 
         // 5. Create & Post Balanced General Ledger Journal Entry
@@ -189,10 +178,10 @@ public class CashTransactionService implements CashTransactionUseCase {
 
         try {
             BigDecimal newBal = accountInfo.availableBalance() != null ? accountInfo.availableBalance().add(amount) : amount;
-            String tenantSchema = com.kab.qershi.transaction.infrastructure.config.TenantContext.getTenantSchema();
+            String tenantSchema = tenantContextPort != null ? tenantContextPort.getCurrentTenantSchema() : "default";
 
             // Publish async Kafka domain event (partitioned by saccoCode)
-            eventPublisher.publishTransactionCompleted(new com.kab.qershi.common.event.TransactionCompletedEvent(
+            eventPublisher.publishTransactionCompleted(new TransactionCompletedEvent(
                     tenantSchema,
                     txRef,
                     accountNo,
@@ -206,7 +195,7 @@ public class CashTransactionService implements CashTransactionUseCase {
                     Instant.now()
             ));
 
-            notificationAdapter.sendCashDepositNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
+            notificationClientPort.sendCashDepositNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
         } catch (Exception ex) {
             log.warn("Failed dispatching cash deposit notification: {}", ex.getMessage());
         }
@@ -224,46 +213,51 @@ public class CashTransactionService implements CashTransactionUseCase {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Withdrawal amount must be strictly greater than zero.");
         }
+        if (accountNo == null || accountNo.isBlank()) {
+            throw new IllegalArgumentException("Account number must not be blank.");
+        }
 
         // 1. Idempotency Check
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            Optional<Transaction> existing = transactionRepositoryPort.findByIdempotencyKey(idempotencyKey.trim());
+            Optional<Transaction> existing = transactionRepositoryPort.findByIdempotencyKey(idempotencyKey);
             if (existing.isPresent()) {
-                log.info("Idempotent request detected. Returning existing transaction {}", existing.get().getTransactionRef());
+                log.info("Idempotent withdrawal request detected: returning existing transaction {}", existing.get().getTransactionRef());
                 return existing.get();
             }
         }
 
-        // 2. Validate Debit capability via gRPC
-        AccountClientPort.ValidationResult validation = accountClientPort.validateDebit(accountNo, amount);
-        if (!validation.isValid()) {
-            throw new IllegalArgumentException("Withdrawal rejected for account " + accountNo + ": " + validation.message());
+        // 2. Account Balance Safeguard via gRPC Port
+        AccountClientPort.AccountInfo accountInfo = accountClientPort.getAccountInfo(accountNo);
+        if (accountInfo == null) {
+            throw new IllegalArgumentException("Target savings account not found: " + accountNo);
+        }
+        if (!"ACTIVE".equalsIgnoreCase(accountInfo.status())) {
+            throw new IllegalStateException("Cannot withdraw from account: current account status is " + accountInfo.status());
+        }
+        if (accountInfo.availableBalance().compareTo(amount) < 0) {
+            throw new IllegalStateException("Insufficient funds: Available balance ETB " +
+                    accountInfo.availableBalance() + ", withdrawal requested: ETB " + amount);
         }
 
-        // 3. Fetch Account Info for saccoCode and userId
-        AccountClientPort.AccountInfo accountInfo = accountClientPort.getAccountInfo(accountNo);
-
-        // 4. Build & Save Transaction Record
+        // 3. Generate Unique CBS Transaction Reference
         String txRef = generateTransactionRef("WTH");
+
+        // 4. Create and Persist Domain Transaction Entity
         Transaction tx = new Transaction(
                 UUID.randomUUID(),
                 txRef,
                 accountNo,
-                accountInfo.saccoCode(),
-                UUID.fromString(accountInfo.userId()),
                 processedByUserId,
                 TransactionType.CASH_WITHDRAWAL,
                 amount,
-                "ETB",
                 TransactionStatus.COMPLETED,
-                narration != null ? narration : "Teller Cash Withdrawal",
-                idempotencyKey,
-                Instant.now()
+                narration != null ? narration.trim() : "Over-the-counter cash withdrawal",
+                idempotencyKey
         );
         Transaction savedTx = transactionRepositoryPort.save(tx);
 
         try {
-            auditLogRepository.save(new TransactionAuditLogEntity(
+            auditLogRepositoryPort.save(new TransactionAuditLog(
                     null,
                     txRef,
                     accountNo,
@@ -278,7 +272,7 @@ public class CashTransactionService implements CashTransactionUseCase {
 
         // 4.4. Mutate physical cash drawer balance for operating teller (safeguards drawer balance)
         if (processedByUserId != null) {
-            tellerTillService.recordCashMovement(processedByUserId, amount, false);
+            tellerTillUseCase.recordCashMovement(processedByUserId, amount, false);
         }
 
         // 4.5. Update the actual account book balance via gRPC
@@ -319,10 +313,10 @@ public class CashTransactionService implements CashTransactionUseCase {
 
         try {
             BigDecimal newBal = accountInfo.availableBalance() != null ? accountInfo.availableBalance().subtract(amount) : BigDecimal.ZERO;
-            String tenantSchema = com.kab.qershi.transaction.infrastructure.config.TenantContext.getTenantSchema();
+            String tenantSchema = tenantContextPort != null ? tenantContextPort.getCurrentTenantSchema() : "default";
 
             // Publish async Kafka domain event (partitioned by saccoCode)
-            eventPublisher.publishTransactionCompleted(new com.kab.qershi.common.event.TransactionCompletedEvent(
+            eventPublisher.publishTransactionCompleted(new TransactionCompletedEvent(
                     tenantSchema,
                     txRef,
                     accountNo,
@@ -336,7 +330,7 @@ public class CashTransactionService implements CashTransactionUseCase {
                     Instant.now()
             ));
 
-            notificationAdapter.sendCashWithdrawalNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
+            notificationClientPort.sendCashWithdrawalNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
         } catch (Exception ex) {
             log.warn("Failed dispatching cash withdrawal notification: {}", ex.getMessage());
         }

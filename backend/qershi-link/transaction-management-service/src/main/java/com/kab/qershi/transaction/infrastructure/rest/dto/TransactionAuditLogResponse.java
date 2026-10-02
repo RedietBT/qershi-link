@@ -20,6 +20,21 @@ public record TransactionAuditLogResponse(
         String details,
         OffsetDateTime createdAt
 ) {
+    public static TransactionAuditLogResponse fromDomain(com.kab.qershi.transaction.domain.model.TransactionAuditLog domain) {
+        if (domain == null) {
+            return null;
+        }
+        return new TransactionAuditLogResponse(
+                domain.getLogId(),
+                domain.getTransactionRef(),
+                domain.getAccountNo(),
+                domain.getPerformedByUserId(),
+                domain.getAction(),
+                domain.getDetails(),
+                domain.getCreatedAt()
+        );
+    }
+
     public static TransactionAuditLogResponse fromEntity(TransactionAuditLogEntity entity) {
         if (entity == null) {
             return null;

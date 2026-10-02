@@ -47,6 +47,14 @@ public class Transaction {
         this.createdAt = createdAt != null ? createdAt : Instant.now();
     }
 
+    public Transaction(UUID transactionId, String transactionRef, String accountNo,
+                       UUID processedByUserId, TransactionType transactionType,
+                       BigDecimal amount, TransactionStatus status,
+                       String narration, String idempotencyKey) {
+        this(transactionId, transactionRef, accountNo, null, null, processedByUserId,
+             transactionType, amount, "ETB", status, narration, idempotencyKey, Instant.now());
+    }
+
     public UUID getTransactionId() { return transactionId; }
     public void setTransactionId(UUID transactionId) { this.transactionId = transactionId; }
 

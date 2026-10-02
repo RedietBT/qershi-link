@@ -47,4 +47,17 @@ public record CloseTillRequest(
     public CloseTillRequest {
         if (coinsAmount == null) coinsAmount = BigDecimal.ZERO;
     }
+
+    public com.kab.qershi.transaction.domain.ports.inbound.TellerTillUseCase.CloseTillCommand toCommand() {
+        return new com.kab.qershi.transaction.domain.ports.inbound.TellerTillUseCase.CloseTillCommand(
+                physicalCashCounted,
+                notes200Count,
+                notes100Count,
+                notes50Count,
+                notes10Count,
+                notes5Count,
+                coinsAmount,
+                reconciliationNotes
+        );
+    }
 }

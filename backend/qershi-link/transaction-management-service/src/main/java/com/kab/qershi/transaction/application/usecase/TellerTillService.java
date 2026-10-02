@@ -1,13 +1,9 @@
 package com.kab.qershi.transaction.application.usecase;
 
-import com.kab.qershi.transaction.domain.model.EntryType;
-import com.kab.qershi.transaction.domain.model.JournalEntry;
-import com.kab.qershi.transaction.domain.model.JournalLine;
-import com.kab.qershi.transaction.domain.model.TillStatus;
+import com.kab.qershi.transaction.domain.model.*;
+import com.kab.qershi.transaction.domain.ports.inbound.TellerTillUseCase;
 import com.kab.qershi.transaction.domain.ports.outbound.JournalRepositoryPort;
-import com.kab.qershi.transaction.infrastructure.persistence.*;
-import com.kab.qershi.transaction.infrastructure.rest.dto.AssignTillRequest;
-import com.kab.qershi.transaction.infrastructure.rest.dto.CloseTillRequest;
+import com.kab.qershi.transaction.domain.ports.outbound.TellerTillRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,49 +20,44 @@ import java.util.UUID;
  * Service managing teller cash drawers (tills), daily opening routines,
  * Temenos/Finacle-standard Blind Till Balancing, banknote denominations breakdown,
  * and automated GL double-entry adjustments for cash shortages and overages.
+ * Pure Hexagonal Application Use Case implementation.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
 @Service
 @Transactional
-public class TellerTillService {
+public class TellerTillService implements TellerTillUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(TellerTillService.class);
     private static final UUID DEFAULT_HEAD_OFFICE_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final BigDecimal SUPERVISOR_VARIANCE_THRESHOLD = new BigDecimal("100.00");
 
-    private final SpringDataTellerTillRepository tillRepository;
-    private final SpringDataTillCashReconciliationRepository reconciliationRepository;
-    private final SpringDataTillDenominationRepository denominationRepository;
-    private final SpringDataTillClosingLogRepository closingLogRepository;
+    private final TellerTillRepositoryPort tillRepositoryPort;
     private final JournalRepositoryPort journalRepositoryPort;
 
-    public TellerTillService(SpringDataTellerTillRepository tillRepository,
-                             SpringDataTillCashReconciliationRepository reconciliationRepository,
-                             SpringDataTillDenominationRepository denominationRepository,
-                             SpringDataTillClosingLogRepository closingLogRepository,
+    public TellerTillService(TellerTillRepositoryPort tillRepositoryPort,
                              JournalRepositoryPort journalRepositoryPort) {
-        this.tillRepository = tillRepository;
-        this.reconciliationRepository = reconciliationRepository;
-        this.denominationRepository = denominationRepository;
-        this.closingLogRepository = closingLogRepository;
+        this.tillRepositoryPort = tillRepositoryPort;
         this.journalRepositoryPort = journalRepositoryPort;
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public TellerTillEntity getTillByTellerUserId(UUID tellerUserId) {
-        return tillRepository.findByTellerUserId(tellerUserId)
+    public TellerTill getTillByTellerUserId(UUID tellerUserId) {
+        return tillRepositoryPort.findTillByTellerUserId(tellerUserId)
                 .orElseGet(() -> createDefaultTillForTeller(tellerUserId, DEFAULT_HEAD_OFFICE_ID, "001"));
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public Optional<TellerTillEntity> findOpenTillByTellerUserId(UUID tellerUserId) {
-        return tillRepository.findByTellerUserIdAndStatus(tellerUserId, TillStatus.OPEN);
+    public Optional<TellerTill> findOpenTillByTellerUserId(UUID tellerUserId) {
+        return tillRepositoryPort.findTillByTellerUserIdAndStatus(tellerUserId, TillStatus.OPEN);
     }
 
-    public TellerTillEntity openTill(UUID tellerUserId, BigDecimal openingCash, UUID branchId, String branchCode) {
-        TellerTillEntity till = tillRepository.findByTellerUserId(tellerUserId)
+    @Override
+    public TellerTill openTill(UUID tellerUserId, BigDecimal openingCash, UUID branchId, String branchCode) {
+        TellerTill till = tillRepositoryPort.findTillByTellerUserId(tellerUserId)
                 .orElseGet(() -> createDefaultTillForTeller(tellerUserId, branchId != null ? branchId : DEFAULT_HEAD_OFFICE_ID,
                         branchCode != null ? branchCode : "001"));
 
@@ -82,7 +73,7 @@ public class TellerTillService {
         till.setClosedAt(null);
 
         log.info("Opened teller till {} for user {} with opening cash ETB {}", till.getTillId(), tellerUserId, cash);
-        return tillRepository.save(till);
+        return tillRepositoryPort.saveTill(till);
     }
 
     /**
@@ -90,8 +81,9 @@ public class TellerTillService {
      * Tellers submit physical banknote counts without seeing expected balance.
      * Discrepancies generate balanced GL entries (5090 Shortage or 4090 Overage) and flag supervisor sign-off if needed.
      */
-    public TillCashReconciliationEntity closeAndReconcileTill(UUID tellerUserId, CloseTillRequest request) {
-        TellerTillEntity till = tillRepository.findByTellerUserId(tellerUserId)
+    @Override
+    public TillCashReconciliation closeAndReconcileTill(UUID tellerUserId, CloseTillCommand command) {
+        TellerTill till = tillRepositoryPort.findTillByTellerUserId(tellerUserId)
                 .orElseThrow(() -> new IllegalArgumentException("No till found for teller user: " + tellerUserId));
 
         if (till.getStatus() != TillStatus.OPEN) {
@@ -99,17 +91,17 @@ public class TellerTillService {
         }
 
         // 1. Calculate physical total strictly from counted denominations & coins
-        BigDecimal notes200Val = new BigDecimal(request.notes200Count()).multiply(new BigDecimal("200.00"));
-        BigDecimal notes100Val = new BigDecimal(request.notes100Count()).multiply(new BigDecimal("100.00"));
-        BigDecimal notes50Val  = new BigDecimal(request.notes50Count()).multiply(new BigDecimal("50.00"));
-        BigDecimal notes10Val  = new BigDecimal(request.notes10Count()).multiply(new BigDecimal("10.00"));
-        BigDecimal notes5Val   = new BigDecimal(request.notes5Count()).multiply(new BigDecimal("5.00"));
-        BigDecimal coinsVal    = request.coinsAmount() != null ? request.coinsAmount() : BigDecimal.ZERO;
+        BigDecimal notes200Val = new BigDecimal(command.notes200Count()).multiply(new BigDecimal("200.00"));
+        BigDecimal notes100Val = new BigDecimal(command.notes100Count()).multiply(new BigDecimal("100.00"));
+        BigDecimal notes50Val  = new BigDecimal(command.notes50Count()).multiply(new BigDecimal("50.00"));
+        BigDecimal notes10Val  = new BigDecimal(command.notes10Count()).multiply(new BigDecimal("10.00"));
+        BigDecimal notes5Val   = new BigDecimal(command.notes5Count()).multiply(new BigDecimal("5.00"));
+        BigDecimal coinsVal    = command.coinsAmount() != null ? command.coinsAmount() : BigDecimal.ZERO;
 
         BigDecimal calculatedFromNotes = notes200Val.add(notes100Val).add(notes50Val).add(notes10Val).add(notes5Val).add(coinsVal);
 
-        BigDecimal physicalCash = (request.physicalCashCounted() != null && request.physicalCashCounted().compareTo(BigDecimal.ZERO) > 0)
-                ? request.physicalCashCounted()
+        BigDecimal physicalCash = (command.physicalCashCounted() != null && command.physicalCashCounted().compareTo(BigDecimal.ZERO) > 0)
+                ? command.physicalCashCounted()
                 : calculatedFromNotes;
 
         BigDecimal electronicBalance = till.getCurrentCash() != null ? till.getCurrentCash() : BigDecimal.ZERO;
@@ -193,39 +185,45 @@ public class TellerTillService {
         }
 
         // 3. Persist Master Till Cash Reconciliation Record
-        TillCashReconciliationEntity reconciliation = new TillCashReconciliationEntity(
+        TillCashReconciliation reconciliation = new TillCashReconciliation(
+                null,
                 till.getTillId(),
                 tellerUserId,
                 electronicBalance,
                 physicalCash,
                 variance,
-                request.notes200Count(),
-                request.notes100Count(),
-                request.notes50Count(),
-                request.notes10Count(),
-                request.notes5Count(),
+                command.notes200Count(),
+                command.notes100Count(),
+                command.notes50Count(),
+                command.notes10Count(),
+                command.notes5Count(),
                 coinsVal,
                 varianceType,
                 varianceAmount,
                 varianceGlCode,
                 journalEntryId,
                 status,
-                request.reconciliationNotes()
+                null,
+                null,
+                null,
+                command.reconciliationNotes(),
+                Instant.now()
         );
-        TillCashReconciliationEntity savedRec = reconciliationRepository.save(reconciliation);
+        TillCashReconciliation savedRec = tillRepositoryPort.saveReconciliation(reconciliation);
 
         // 4. Persist Itemized Banknote Denominations Breakdown
-        List<TillDenominationEntity> denoms = new ArrayList<>();
-        if (request.notes200Count() > 0) denoms.add(new TillDenominationEntity(savedRec.getReconciliationId(), new BigDecimal("200.00"), request.notes200Count(), notes200Val));
-        if (request.notes100Count() > 0) denoms.add(new TillDenominationEntity(savedRec.getReconciliationId(), new BigDecimal("100.00"), request.notes100Count(), notes100Val));
-        if (request.notes50Count() > 0)  denoms.add(new TillDenominationEntity(savedRec.getReconciliationId(), new BigDecimal("50.00"),  request.notes50Count(),  notes50Val));
-        if (request.notes10Count() > 0)  denoms.add(new TillDenominationEntity(savedRec.getReconciliationId(), new BigDecimal("10.00"),  request.notes10Count(),  notes10Val));
-        if (request.notes5Count() > 0)   denoms.add(new TillDenominationEntity(savedRec.getReconciliationId(), new BigDecimal("5.00"),   request.notes5Count(),   notes5Val));
-        if (coinsVal.compareTo(BigDecimal.ZERO) > 0) denoms.add(new TillDenominationEntity(savedRec.getReconciliationId(), new BigDecimal("1.00"), coinsVal.intValue(), coinsVal));
-        denominationRepository.saveAll(denoms);
+        List<TillDenomination> denoms = new ArrayList<>();
+        if (command.notes200Count() > 0) denoms.add(new TillDenomination(null, savedRec.getReconciliationId(), new BigDecimal("200.00"), command.notes200Count(), notes200Val, Instant.now()));
+        if (command.notes100Count() > 0) denoms.add(new TillDenomination(null, savedRec.getReconciliationId(), new BigDecimal("100.00"), command.notes100Count(), notes100Val, Instant.now()));
+        if (command.notes50Count() > 0)  denoms.add(new TillDenomination(null, savedRec.getReconciliationId(), new BigDecimal("50.00"),  command.notes50Count(),  notes50Val,  Instant.now()));
+        if (command.notes10Count() > 0)  denoms.add(new TillDenomination(null, savedRec.getReconciliationId(), new BigDecimal("10.00"),  command.notes10Count(),  notes10Val,  Instant.now()));
+        if (command.notes5Count() > 0)   denoms.add(new TillDenomination(null, savedRec.getReconciliationId(), new BigDecimal("5.00"),   command.notes5Count(),   notes5Val,   Instant.now()));
+        if (coinsVal.compareTo(BigDecimal.ZERO) > 0) denoms.add(new TillDenomination(null, savedRec.getReconciliationId(), new BigDecimal("1.00"), coinsVal.intValue(), coinsVal, Instant.now()));
+        tillRepositoryPort.saveDenominations(denoms);
 
         // 5. Persist Historical Till Closing Audit Log
-        TillClosingLogEntity closingLog = new TillClosingLogEntity(
+        TillClosingLog closingLog = new TillClosingLog(
+                null,
                 savedRec.getReconciliationId(),
                 till.getTillId(),
                 tellerUserId,
@@ -234,15 +232,16 @@ public class TellerTillService {
                 physicalCash,
                 variance,
                 status,
-                journalEntryId
+                journalEntryId,
+                Instant.now()
         );
-        closingLogRepository.save(closingLog);
+        tillRepositoryPort.saveClosingLog(closingLog);
 
         // 6. Lock and Close Teller Drawer
         till.setStatus(TillStatus.CLOSED);
         till.setClosedAt(Instant.now());
         till.setCurrentCash(BigDecimal.ZERO);
-        tillRepository.save(till);
+        tillRepositoryPort.saveTill(till);
 
         log.info("Closed till {} for teller {}. Electronic: ETB {}, Physical: ETB {}, Variance: ETB {} ({}), Status: {}",
                 till.getTillId(), tellerUserId, electronicBalance, physicalCash, variance, varianceType, status);
@@ -253,8 +252,9 @@ public class TellerTillService {
     /**
      * Supervisor sign-off / approval for drawer cash variances exceeding regulatory tolerance.
      */
-    public TillCashReconciliationEntity supervisorApproveReconciliation(UUID reconciliationId, UUID supervisorUserId, String notes) {
-        TillCashReconciliationEntity rec = reconciliationRepository.findById(reconciliationId)
+    @Override
+    public TillCashReconciliation supervisorApproveReconciliation(UUID reconciliationId, UUID supervisorUserId, String notes) {
+        TillCashReconciliation rec = tillRepositoryPort.findReconciliationById(reconciliationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reconciliation record not found: " + reconciliationId));
 
         if (!"PENDING_SUPERVISOR_APPROVAL".equalsIgnoreCase(rec.getStatus())) {
@@ -267,58 +267,64 @@ public class TellerTillService {
         rec.setSupervisorNotes(notes != null ? notes.trim() : "Approved by branch supervisor");
 
         log.info("Supervisor {} approved cash variance on reconciliation {}", supervisorUserId, reconciliationId);
-        return reconciliationRepository.save(rec);
+        return tillRepositoryPort.saveReconciliation(rec);
     }
 
-    public TellerTillEntity assignTill(AssignTillRequest request) {
-        TellerTillEntity till = tillRepository.findByTellerUserId(request.tellerUserId())
-                .orElseGet(TellerTillEntity::new);
+    @Override
+    public TellerTill assignTill(AssignTillCommand command) {
+        TellerTill till = tillRepositoryPort.findTillByTellerUserId(command.tellerUserId())
+                .orElseGet(TellerTill::new);
 
-        till.setBranchId(request.branchId());
-        till.setBranchCode(request.branchCode().trim());
-        till.setTellerUserId(request.tellerUserId());
-        till.setTillName(request.tillName().trim());
-        till.setTillGlCode(request.tillGlCode() != null && !request.tillGlCode().isBlank() ?
-                request.tillGlCode().trim() : "1020-" + request.branchCode().trim());
-        if (request.maxCashLimit() != null) {
-            till.setMaxCashLimit(request.maxCashLimit());
+        till.setBranchId(command.branchId());
+        till.setBranchCode(command.branchCode().trim());
+        till.setTellerUserId(command.tellerUserId());
+        till.setTillName(command.tillName().trim());
+        till.setTillGlCode(command.tillGlCode() != null && !command.tillGlCode().isBlank() ?
+                command.tillGlCode().trim() : "1020-" + command.branchCode().trim());
+        if (command.maxCashLimit() != null) {
+            till.setMaxCashLimit(command.maxCashLimit());
         }
 
-        return tillRepository.save(till);
+        return tillRepositoryPort.saveTill(till);
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public List<TellerTillEntity> getTillsByBranch(UUID branchId) {
-        return tillRepository.findByBranchId(branchId);
+    public List<TellerTill> getTillsByBranch(UUID branchId) {
+        return tillRepositoryPort.findTillsByBranchId(branchId);
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public List<TillCashReconciliationEntity> getReconciliationsByTillId(UUID tillId) {
-        return reconciliationRepository.findByTillIdOrderByCreatedAtDesc(tillId);
+    public List<TillCashReconciliation> getReconciliationsByTillId(UUID tillId) {
+        return tillRepositoryPort.findReconciliationsByTillId(tillId);
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public List<TillCashReconciliationEntity> getReconciliationsByTeller(UUID tellerUserId) {
-        return reconciliationRepository.findByTellerUserIdOrderByCreatedAtDesc(tellerUserId);
+    public List<TillCashReconciliation> getReconciliationsByTeller(UUID tellerUserId) {
+        return tillRepositoryPort.findReconciliationsByTellerUserId(tellerUserId);
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public List<TillDenominationEntity> getDenominationsByReconciliation(UUID reconciliationId) {
-        return denominationRepository.findByReconciliationIdOrderByDenominationValueDesc(reconciliationId);
+    public List<TillDenomination> getDenominationsByReconciliation(UUID reconciliationId) {
+        return tillRepositoryPort.findDenominationsByReconciliationId(reconciliationId);
     }
 
     /**
      * Atomically mutates physical cash inside an open teller drawer upon cash transactions.
      */
+    @Override
     public void recordCashMovement(UUID tellerUserId, BigDecimal amount, boolean isDeposit) {
-        Optional<TellerTillEntity> openTillOpt = tillRepository.findByTellerUserIdAndStatus(tellerUserId, TillStatus.OPEN);
+        Optional<TellerTill> openTillOpt = tillRepositoryPort.findTillByTellerUserIdAndStatus(tellerUserId, TillStatus.OPEN);
         if (openTillOpt.isEmpty()) {
             log.warn("No active OPEN till for teller {}. Cash movement ETB {} was recorded without till balance deduction.",
                     tellerUserId, amount);
             return;
         }
 
-        TellerTillEntity till = openTillOpt.get();
+        TellerTill till = openTillOpt.get();
         BigDecimal current = till.getCurrentCash() != null ? till.getCurrentCash() : BigDecimal.ZERO;
 
         if (isDeposit) {
@@ -333,12 +339,12 @@ public class TellerTillService {
             log.info("Till {} debited with ETB {}. New drawer balance: ETB {}", till.getTillId(), amount, till.getCurrentCash());
         }
 
-        tillRepository.save(till);
+        tillRepositoryPort.saveTill(till);
     }
 
-    private TellerTillEntity createDefaultTillForTeller(UUID tellerUserId, UUID branchId, String branchCode) {
+    private TellerTill createDefaultTillForTeller(UUID tellerUserId, UUID branchId, String branchCode) {
         String shortId = tellerUserId.toString().substring(0, 8);
-        TellerTillEntity entity = new TellerTillEntity(
+        TellerTill domain = new TellerTill(
                 null,
                 branchId,
                 branchCode,
@@ -348,8 +354,11 @@ public class TellerTillService {
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 new BigDecimal("200000.00"),
-                TillStatus.CLOSED
+                TillStatus.CLOSED,
+                null,
+                null,
+                Instant.now()
         );
-        return tillRepository.save(entity);
+        return tillRepositoryPort.saveTill(domain);
     }
 }

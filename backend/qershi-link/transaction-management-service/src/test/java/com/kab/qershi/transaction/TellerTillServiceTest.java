@@ -2,10 +2,13 @@ package com.kab.qershi.transaction;
 
 import com.kab.qershi.transaction.application.usecase.TellerTillService;
 import com.kab.qershi.transaction.domain.model.JournalEntry;
+import com.kab.qershi.transaction.domain.model.TellerTill;
+import com.kab.qershi.transaction.domain.model.TillCashReconciliation;
+import com.kab.qershi.transaction.domain.model.TillClosingLog;
 import com.kab.qershi.transaction.domain.model.TillStatus;
+import com.kab.qershi.transaction.domain.ports.inbound.TellerTillUseCase.CloseTillCommand;
 import com.kab.qershi.transaction.domain.ports.outbound.JournalRepositoryPort;
-import com.kab.qershi.transaction.infrastructure.persistence.*;
-import com.kab.qershi.transaction.infrastructure.rest.dto.CloseTillRequest;
+import com.kab.qershi.transaction.domain.ports.outbound.TellerTillRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,26 +26,17 @@ import static org.mockito.Mockito.*;
 @DisplayName("TellerTillService Blind Balancing Tests")
 class TellerTillServiceTest {
 
-    private SpringDataTellerTillRepository tillRepository;
-    private SpringDataTillCashReconciliationRepository reconciliationRepository;
-    private SpringDataTillDenominationRepository denominationRepository;
-    private SpringDataTillClosingLogRepository closingLogRepository;
+    private TellerTillRepositoryPort tillRepositoryPort;
     private JournalRepositoryPort journalRepositoryPort;
     private TellerTillService tellerTillService;
 
     @BeforeEach
     void setUp() {
-        tillRepository = mock(SpringDataTellerTillRepository.class);
-        reconciliationRepository = mock(SpringDataTillCashReconciliationRepository.class);
-        denominationRepository = mock(SpringDataTillDenominationRepository.class);
-        closingLogRepository = mock(SpringDataTillClosingLogRepository.class);
+        tillRepositoryPort = mock(TellerTillRepositoryPort.class);
         journalRepositoryPort = mock(JournalRepositoryPort.class);
 
         tellerTillService = new TellerTillService(
-                tillRepository,
-                reconciliationRepository,
-                denominationRepository,
-                closingLogRepository,
+                tillRepositoryPort,
                 journalRepositoryPort
         );
     }
@@ -53,7 +47,7 @@ class TellerTillServiceTest {
         UUID tillId = UUID.randomUUID();
         UUID tellerId = UUID.randomUUID();
 
-        TellerTillEntity till = new TellerTillEntity();
+        TellerTill till = new TellerTill();
         till.setTillId(tillId);
         till.setBranchId(UUID.randomUUID());
         till.setBranchCode("B001");
@@ -64,10 +58,10 @@ class TellerTillServiceTest {
         // Electronic ledger has 32,500 ETB
         till.setCurrentCash(new BigDecimal("32500.00"));
 
-        when(tillRepository.findByTellerUserId(tellerId)).thenReturn(Optional.of(till));
-        when(tillRepository.save(any(TellerTillEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(reconciliationRepository.save(any(TillCashReconciliationEntity.class))).thenAnswer(invocation -> {
-            TillCashReconciliationEntity e = invocation.getArgument(0);
+        when(tillRepositoryPort.findTillByTellerUserId(tellerId)).thenReturn(Optional.of(till));
+        when(tillRepositoryPort.saveTill(any(TellerTill.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tillRepositoryPort.saveReconciliation(any(TillCashReconciliation.class))).thenAnswer(invocation -> {
+            TillCashReconciliation e = invocation.getArgument(0);
             e.setReconciliationId(UUID.randomUUID());
             return e;
         });
@@ -77,14 +71,14 @@ class TellerTillServiceTest {
         // 100 * 20  = 2,000
         // 50 * 10   = 500
         // Total = 32,500
-        CloseTillRequest request = new CloseTillRequest(
+        CloseTillCommand command = new CloseTillCommand(
                 null,
                 150, 20, 10, 0, 0,
                 BigDecimal.ZERO,
                 "End of morning shift"
         );
 
-        TillCashReconciliationEntity result = tellerTillService.closeAndReconcileTill(tellerId, request);
+        TillCashReconciliation result = tellerTillService.closeAndReconcileTill(tellerId, command);
 
         assertNotNull(result);
         assertEquals(new BigDecimal("32500.00"), result.getPhysicalCashCounted());
@@ -96,8 +90,8 @@ class TellerTillServiceTest {
 
         // Zero variance should not post shortage/overage GL entry
         verify(journalRepositoryPort, never()).save(any(JournalEntry.class));
-        verify(denominationRepository, atLeastOnce()).saveAll(anyList());
-        verify(closingLogRepository, times(1)).save(any(TillClosingLogEntity.class));
+        verify(tillRepositoryPort, atLeastOnce()).saveDenominations(anyList());
+        verify(tillRepositoryPort, times(1)).saveClosingLog(any(TillClosingLog.class));
     }
 
     @Test
@@ -106,7 +100,7 @@ class TellerTillServiceTest {
         UUID tillId = UUID.randomUUID();
         UUID tellerId = UUID.randomUUID();
 
-        TellerTillEntity till = new TellerTillEntity();
+        TellerTill till = new TellerTill();
         till.setTillId(tillId);
         till.setBranchId(UUID.randomUUID());
         till.setBranchCode("B001");
@@ -117,10 +111,10 @@ class TellerTillServiceTest {
         // Electronic ledger: 10,000 ETB
         till.setCurrentCash(new BigDecimal("10000.00"));
 
-        when(tillRepository.findByTellerUserId(tellerId)).thenReturn(Optional.of(till));
-        when(tillRepository.save(any(TellerTillEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(reconciliationRepository.save(any(TillCashReconciliationEntity.class))).thenAnswer(invocation -> {
-            TillCashReconciliationEntity e = invocation.getArgument(0);
+        when(tillRepositoryPort.findTillByTellerUserId(tellerId)).thenReturn(Optional.of(till));
+        when(tillRepositoryPort.saveTill(any(TellerTill.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tillRepositoryPort.saveReconciliation(any(TillCashReconciliation.class))).thenAnswer(invocation -> {
+            TillCashReconciliation e = invocation.getArgument(0);
             if (e.getReconciliationId() == null) e.setReconciliationId(UUID.randomUUID());
             return e;
         });
@@ -129,14 +123,14 @@ class TellerTillServiceTest {
         // 200 * 45 = 9,000
         // 100 * 5  = 500
         // Total = 9,500 ETB (Shortage of 500 ETB)
-        CloseTillRequest request = new CloseTillRequest(
+        CloseTillCommand command = new CloseTillCommand(
                 null,
                 45, 5, 0, 0, 0,
                 BigDecimal.ZERO,
                 "Physical count shortage detected"
         );
 
-        TillCashReconciliationEntity result = tellerTillService.closeAndReconcileTill(tellerId, request);
+        TillCashReconciliation result = tellerTillService.closeAndReconcileTill(tellerId, command);
 
         assertNotNull(result);
         assertEquals(new BigDecimal("9500.00"), result.getPhysicalCashCounted());
@@ -160,7 +154,7 @@ class TellerTillServiceTest {
         UUID tillId = UUID.randomUUID();
         UUID tellerId = UUID.randomUUID();
 
-        TellerTillEntity till = new TellerTillEntity();
+        TellerTill till = new TellerTill();
         till.setTillId(tillId);
         till.setBranchId(UUID.randomUUID());
         till.setBranchCode("B001");
@@ -171,10 +165,10 @@ class TellerTillServiceTest {
         // Electronic ledger: 5,000 ETB
         till.setCurrentCash(new BigDecimal("5000.00"));
 
-        when(tillRepository.findByTellerUserId(tellerId)).thenReturn(Optional.of(till));
-        when(tillRepository.save(any(TellerTillEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(reconciliationRepository.save(any(TillCashReconciliationEntity.class))).thenAnswer(invocation -> {
-            TillCashReconciliationEntity e = invocation.getArgument(0);
+        when(tillRepositoryPort.findTillByTellerUserId(tellerId)).thenReturn(Optional.of(till));
+        when(tillRepositoryPort.saveTill(any(TellerTill.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tillRepositoryPort.saveReconciliation(any(TillCashReconciliation.class))).thenAnswer(invocation -> {
+            TillCashReconciliation e = invocation.getArgument(0);
             if (e.getReconciliationId() == null) e.setReconciliationId(UUID.randomUUID());
             return e;
         });
@@ -183,14 +177,14 @@ class TellerTillServiceTest {
         // 200 * 25 = 5,000
         // Coins = 50.00
         // Total = 5,050 ETB (Overage of 50 ETB <= 100 ETB threshold)
-        CloseTillRequest request = new CloseTillRequest(
+        CloseTillCommand command = new CloseTillCommand(
                 null,
                 25, 0, 0, 0, 0,
                 new BigDecimal("50.00"),
                 "Minor coin overage"
         );
 
-        TillCashReconciliationEntity result = tellerTillService.closeAndReconcileTill(tellerId, request);
+        TillCashReconciliation result = tellerTillService.closeAndReconcileTill(tellerId, command);
 
         assertNotNull(result);
         assertEquals(new BigDecimal("5050.00"), result.getPhysicalCashCounted());
@@ -214,16 +208,16 @@ class TellerTillServiceTest {
         UUID recId = UUID.randomUUID();
         UUID supervisorId = UUID.randomUUID();
 
-        TillCashReconciliationEntity entity = new TillCashReconciliationEntity();
-        entity.setReconciliationId(recId);
-        entity.setStatus("PENDING_SUPERVISOR_APPROVAL");
-        entity.setVarianceType("SHORTAGE");
-        entity.setVarianceAmount(new BigDecimal("350.00"));
+        TillCashReconciliation domain = new TillCashReconciliation();
+        domain.setReconciliationId(recId);
+        domain.setStatus("PENDING_SUPERVISOR_APPROVAL");
+        domain.setVarianceType("SHORTAGE");
+        domain.setVarianceAmount(new BigDecimal("350.00"));
 
-        when(reconciliationRepository.findById(recId)).thenReturn(Optional.of(entity));
-        when(reconciliationRepository.save(any(TillCashReconciliationEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tillRepositoryPort.findReconciliationById(recId)).thenReturn(Optional.of(domain));
+        when(tillRepositoryPort.saveReconciliation(any(TillCashReconciliation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        TillCashReconciliationEntity updated = tellerTillService.supervisorApproveReconciliation(
+        TillCashReconciliation updated = tellerTillService.supervisorApproveReconciliation(
                 recId, supervisorId, "Verified count with teller, approved write-off"
         );
 

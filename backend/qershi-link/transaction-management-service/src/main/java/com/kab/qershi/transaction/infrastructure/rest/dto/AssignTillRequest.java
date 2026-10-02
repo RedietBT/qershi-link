@@ -35,4 +35,10 @@ public record AssignTillRequest(
 
         @Schema(description = "Maximum cash ceiling before mandatory vault transfer", example = "250000.00")
         BigDecimal maxCashLimit
-) {}
+) {
+    public com.kab.qershi.transaction.domain.ports.inbound.TellerTillUseCase.AssignTillCommand toCommand() {
+        return new com.kab.qershi.transaction.domain.ports.inbound.TellerTillUseCase.AssignTillCommand(
+                branchId, branchCode, tellerUserId, tillName, tillGlCode, maxCashLimit
+        );
+    }
+}

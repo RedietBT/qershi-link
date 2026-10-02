@@ -13,6 +13,8 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.kab.qershi.transaction.domain.ports.outbound.NotificationClientPort;
+
 /**
  * Outbound gRPC client adapter for dispatching transaction SMS notifications via notification-service.
  *
@@ -20,7 +22,7 @@ import java.util.Map;
  * @version 1.0.0
  */
 @Component
-public class NotificationGrpcClientAdapter {
+public class NotificationGrpcClientAdapter implements NotificationClientPort {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationGrpcClientAdapter.class);
 
