@@ -1,60 +1,67 @@
 package com.kab.qershi.account.application.usecase;
 
-import com.kab.qershi.account.infrastructure.persistence.BranchEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataBranchRepository;
+import com.kab.qershi.account.domain.model.Branch;
+import com.kab.qershi.account.domain.ports.inbound.BranchUseCase;
+import com.kab.qershi.account.domain.ports.outbound.BranchRepositoryPort;
 import com.kab.qershi.account.infrastructure.rest.dto.CreateBranchRequest;
 import com.kab.qershi.account.infrastructure.rest.dto.UpdateBranchRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Service managing SACCO branch lifecycle, metadata, discretionary limits, and vault GL assignments.
+ * Service implementing BranchUseCase.
+ * Manages SACCO branch lifecycle, metadata, discretionary limits, and vault GL assignments.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @Service
 @Transactional
-public class BranchService {
+public class BranchService implements BranchUseCase {
 
-    private final SpringDataBranchRepository branchRepository;
+    private final BranchRepositoryPort branchRepository;
 
-    public BranchService(SpringDataBranchRepository branchRepository) {
+    public BranchService(BranchRepositoryPort branchRepository) {
         this.branchRepository = branchRepository;
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public List<BranchEntity> getAllBranches(String status) {
+    public List<Branch> getAllBranches(String status) {
         if (status != null && !status.isBlank()) {
             return branchRepository.findByStatus(status.toUpperCase().trim());
         }
         return branchRepository.findAll();
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public BranchEntity getBranchById(UUID branchId) {
+    public Branch getBranchById(UUID branchId) {
         return branchRepository.findById(branchId)
                 .orElseThrow(() -> new IllegalArgumentException("Branch not found for ID: " + branchId));
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public BranchEntity getBranchByCode(String branchCode) {
+    public Branch getBranchByCode(String branchCode) {
         return branchRepository.findByBranchCode(branchCode.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Branch not found for code: " + branchCode));
     }
 
-    public BranchEntity createBranch(CreateBranchRequest request) {
+    @Override
+    public Branch createBranch(CreateBranchRequest request) {
         String cleanCode = request.branchCode().trim();
         if (branchRepository.existsByBranchCode(cleanCode)) {
             throw new IllegalArgumentException("Branch with code '" + cleanCode + "' already exists.");
         }
 
-        BranchEntity entity = new BranchEntity(
-                null,
+        Branch branch = new Branch(
+                UUID.randomUUID(),
                 cleanCode,
                 request.branchName().trim(),
                 request.region() != null ? request.region().trim() : null,
@@ -63,36 +70,36 @@ public class BranchService {
                 request.managerUserId(),
                 request.vaultGlCode() != null && !request.vaultGlCode().isBlank() ? request.vaultGlCode().trim() : "1010-" + cleanCode,
                 request.discretionaryLendingLimit() != null ? request.discretionaryLendingLimit() : new BigDecimal("100000.00"),
-                "ACTIVE"
+                "ACTIVE",
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
         );
 
-        return branchRepository.save(entity);
+        return branchRepository.save(branch);
     }
 
-    public BranchEntity updateBranch(UUID branchId, UpdateBranchRequest request) {
-        BranchEntity entity = getBranchById(branchId);
+    @Override
+    public Branch updateBranch(UUID branchId, UpdateBranchRequest request) {
+        Branch branch = getBranchById(branchId);
 
-        entity.setBranchName(request.branchName().trim());
-        if (request.region() != null) entity.setRegion(request.region().trim());
-        if (request.address() != null) entity.setAddress(request.address().trim());
-        if (request.contactPhone() != null) entity.setContactPhone(request.contactPhone().trim());
-        if (request.managerUserId() != null) entity.setManagerUserId(request.managerUserId());
-        if (request.vaultGlCode() != null && !request.vaultGlCode().isBlank()) entity.setVaultGlCode(request.vaultGlCode().trim());
-        if (request.discretionaryLendingLimit() != null) entity.setDiscretionaryLendingLimit(request.discretionaryLendingLimit());
-        if (request.status() != null && !request.status().isBlank()) {
-            entity.setStatus(request.status().toUpperCase().trim());
-        }
+        branch.updateDetails(
+                request.branchName(),
+                request.region(),
+                request.address(),
+                request.contactPhone(),
+                request.managerUserId(),
+                request.vaultGlCode(),
+                request.discretionaryLendingLimit(),
+                request.status()
+        );
 
-        return branchRepository.save(entity);
+        return branchRepository.save(branch);
     }
 
-    public BranchEntity updateBranchStatus(UUID branchId, String status) {
-        BranchEntity entity = getBranchById(branchId);
-        String cleanStatus = status.toUpperCase().trim();
-        if (!"ACTIVE".equals(cleanStatus) && !"INACTIVE".equals(cleanStatus)) {
-            throw new IllegalArgumentException("Status must be either ACTIVE or INACTIVE");
-        }
-        entity.setStatus(cleanStatus);
-        return branchRepository.save(entity);
+    @Override
+    public Branch updateBranchStatus(UUID branchId, String status) {
+        Branch branch = getBranchById(branchId);
+        branch.updateStatus(status);
+        return branchRepository.save(branch);
     }
 }

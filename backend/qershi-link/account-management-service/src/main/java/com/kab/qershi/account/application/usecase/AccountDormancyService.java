@@ -1,10 +1,11 @@
 package com.kab.qershi.account.application.usecase;
 
+import com.kab.qershi.account.domain.model.Account;
+import com.kab.qershi.account.domain.model.AccountAuditLog;
 import com.kab.qershi.account.domain.model.AccountStatus;
-import com.kab.qershi.account.infrastructure.persistence.AccountAuditLogEntity;
-import com.kab.qershi.account.infrastructure.persistence.AccountEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataAccountAuditLogRepository;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataAccountRepository;
+import com.kab.qershi.account.domain.ports.inbound.AccountDormancyUseCase;
+import com.kab.qershi.account.domain.ports.outbound.AccountAuditLogRepositoryPort;
+import com.kab.qershi.account.domain.ports.outbound.AccountRepositoryPort;
 import com.kab.qershi.account.infrastructure.rest.dto.KycApprovalRequest;
 import com.kab.qershi.account.infrastructure.rest.dto.KycReactivationRequest;
 import org.slf4j.Logger;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,21 +27,21 @@ import java.util.UUID;
  * - Enforces Dual-Control Maker-Checker workflow with Anti-Self-Approval for in-person KYC reactivation.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Service
 @Transactional
-public class AccountDormancyService {
+public class AccountDormancyService implements AccountDormancyUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(AccountDormancyService.class);
     public static final int DORMANCY_THRESHOLD_DAYS = 180;
     private static final UUID SYSTEM_BATCH_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
-    private final SpringDataAccountRepository accountRepository;
-    private final SpringDataAccountAuditLogRepository auditLogRepository;
+    private final AccountRepositoryPort accountRepository;
+    private final AccountAuditLogRepositoryPort auditLogRepository;
 
-    public AccountDormancyService(SpringDataAccountRepository accountRepository,
-                                  SpringDataAccountAuditLogRepository auditLogRepository) {
+    public AccountDormancyService(AccountRepositoryPort accountRepository,
+                                  AccountAuditLogRepositoryPort auditLogRepository) {
         this.accountRepository = accountRepository;
         this.auditLogRepository = auditLogRepository;
     }
@@ -50,11 +50,12 @@ public class AccountDormancyService {
      * Executes the Automated Daily EOD Dormancy Sweep.
      * Evaluates accounts where lastActivityDate exceeds the 180-day threshold.
      */
+    @Override
     public int sweepDormantAccounts(LocalDate businessDate) {
         LocalDate cutoffDate = businessDate.minusDays(DORMANCY_THRESHOLD_DAYS);
         log.info("Running Account Dormancy Sweep for business date: {}, cutoffDate: {}", businessDate, cutoffDate);
 
-        List<AccountEntity> dormantCandidates = accountRepository.findDormantCandidates(
+        List<Account> dormantCandidates = accountRepository.findDormantCandidates(
                 AccountStatus.ACTIVE, cutoffDate, cutoffDate.atStartOfDay()
         );
 
@@ -63,11 +64,8 @@ public class AccountDormancyService {
             return 0;
         }
 
-        for (AccountEntity account : dormantCandidates) {
-            account.setStatus(AccountStatus.DORMANT);
-            account.setDormancyDate(businessDate);
-            account.setReactivationStatus("NONE");
-            account.setUpdatedAt(LocalDateTime.now());
+        for (Account account : dormantCandidates) {
+            account.markDormant(businessDate);
 
             // Automated Central Bank / WOCCU mandated SMS warning notification
             log.warn("AUTOMATED SMS WARNING: Inactivity alert dispatched to member {} for account {}. " +
@@ -75,8 +73,8 @@ public class AccountDormancyService {
                     account.getUserId(), account.getAccountNo(), DORMANCY_THRESHOLD_DAYS);
 
             try {
-                auditLogRepository.save(new AccountAuditLogEntity(
-                        null,
+                auditLogRepository.save(new AccountAuditLog(
+                        UUID.randomUUID(),
                         account.getAccountNo(),
                         account.getUserId(),
                         SYSTEM_BATCH_USER_ID,
@@ -84,7 +82,7 @@ public class AccountDormancyService {
                         "status",
                         "ACTIVE",
                         "DORMANT (Dormancy Date: " + businessDate + ")",
-                        OffsetDateTime.now()
+                        LocalDateTime.now()
                 ));
             } catch (Exception ex) {
                 log.warn("Failed recording dormancy audit log for account {}: {}", account.getAccountNo(), ex.getMessage());
@@ -99,34 +97,19 @@ public class AccountDormancyService {
     /**
      * Maker Step: Customer Service Officer or Teller submits in-person KYC re-verification for a dormant account.
      */
-    public AccountEntity initiateKycReactivation(String accountNo, UUID makerUserId, KycReactivationRequest request) {
-        AccountEntity account = accountRepository.findByAccountNo(accountNo)
+    @Override
+    public Account initiateKycReactivation(String accountNo, UUID makerUserId, KycReactivationRequest request) {
+        Account account = accountRepository.findByAccountNo(accountNo)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found: " + accountNo));
 
-        if (account.getStatus() != AccountStatus.DORMANT) {
-            throw new IllegalStateException("Only DORMANT accounts can be submitted for reactivation. Current status: " + account.getStatus());
-        }
-
-        if ("PENDING_CHECKER_APPROVAL".equalsIgnoreCase(account.getReactivationStatus())) {
-            throw new IllegalStateException("Account already has a pending reactivation authorization under review.");
-        }
-
-        if (makerUserId == null) {
-            throw new IllegalArgumentException("Maker operator user ID is required to initiate KYC reactivation.");
-        }
-
         String combinedNotes = "Reason: " + request.reason() + " | Verification: " + request.kycVerificationNotes();
+        account.initiateReactivation(makerUserId, combinedNotes);
 
-        account.setReactivationStatus("PENDING_CHECKER_APPROVAL");
-        account.setReactivationMakerUserId(makerUserId);
-        account.setReactivationMakerNotes(combinedNotes);
-        account.setUpdatedAt(LocalDateTime.now());
-
-        AccountEntity saved = accountRepository.save(account);
+        Account saved = accountRepository.save(account);
 
         try {
-            auditLogRepository.save(new AccountAuditLogEntity(
-                    null,
+            auditLogRepository.save(new AccountAuditLog(
+                    UUID.randomUUID(),
                     saved.getAccountNo(),
                     saved.getUserId(),
                     makerUserId,
@@ -134,7 +117,7 @@ public class AccountDormancyService {
                     "reactivation_status",
                     "NONE",
                     "PENDING_CHECKER_APPROVAL (" + combinedNotes + ")",
-                    OffsetDateTime.now()
+                    LocalDateTime.now()
             ));
         } catch (Exception ex) {
             log.warn("Failed writing reactivation request audit log: {}", ex.getMessage());
@@ -148,41 +131,17 @@ public class AccountDormancyService {
      * Checker Step: Branch Manager or Supervisor signs off and activates the account following Four-Eye review.
      * Enforces Anti-Self-Approval rule (Maker != Checker).
      */
-    public AccountEntity approveKycReactivation(String accountNo, UUID checkerUserId, KycApprovalRequest request) {
-        AccountEntity account = accountRepository.findByAccountNo(accountNo)
+    @Override
+    public Account approveKycReactivation(String accountNo, UUID checkerUserId, KycApprovalRequest request) {
+        Account account = accountRepository.findByAccountNo(accountNo)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found: " + accountNo));
 
-        if (account.getStatus() != AccountStatus.DORMANT) {
-            throw new IllegalStateException("Account is not DORMANT. Current status: " + account.getStatus());
-        }
-
-        if (!"PENDING_CHECKER_APPROVAL".equalsIgnoreCase(account.getReactivationStatus())) {
-            throw new IllegalStateException("Account does not have a pending reactivation authorization. Current: " + account.getReactivationStatus());
-        }
-
-        if (checkerUserId == null) {
-            throw new IllegalArgumentException("Checker supervisor user ID is required for Four-Eye reactivation approval.");
-        }
-
-        if (checkerUserId.equals(account.getReactivationMakerUserId())) {
-            throw new IllegalStateException("Four-Eye Anti-Self-Approval Violation: The maker user (" +
-                    account.getReactivationMakerUserId() + ") cannot approve their own reactivation request.");
-        }
-
-        account.setStatus(AccountStatus.ACTIVE);
-        account.setDormancyDate(null);
-        account.setLastActivityDate(LocalDate.now());
-        account.setReactivationStatus("APPROVED");
-        account.setReactivationCheckerUserId(checkerUserId);
-        account.setReactivationCheckerNotes(request.notes());
-        account.setReactivatedAt(LocalDateTime.now());
-        account.setUpdatedAt(LocalDateTime.now());
-
-        AccountEntity saved = accountRepository.save(account);
+        account.approveReactivation(checkerUserId, request.notes());
+        Account saved = accountRepository.save(account);
 
         try {
-            auditLogRepository.save(new AccountAuditLogEntity(
-                    null,
+            auditLogRepository.save(new AccountAuditLog(
+                    UUID.randomUUID(),
                     saved.getAccountNo(),
                     saved.getUserId(),
                     checkerUserId,
@@ -190,7 +149,7 @@ public class AccountDormancyService {
                     "status",
                     "DORMANT",
                     "ACTIVE (Approved by supervisor: " + checkerUserId + ")",
-                    OffsetDateTime.now()
+                    LocalDateTime.now()
             ));
         } catch (Exception ex) {
             log.warn("Failed writing reactivation approval audit log: {}", ex.getMessage());
@@ -208,28 +167,17 @@ public class AccountDormancyService {
     /**
      * Checker Step: Branch Manager or Supervisor rejects the reactivation request.
      */
-    public AccountEntity rejectKycReactivation(String accountNo, UUID checkerUserId, KycApprovalRequest request) {
-        AccountEntity account = accountRepository.findByAccountNo(accountNo)
+    @Override
+    public Account rejectKycReactivation(String accountNo, UUID checkerUserId, KycApprovalRequest request) {
+        Account account = accountRepository.findByAccountNo(accountNo)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found: " + accountNo));
 
-        if (!"PENDING_CHECKER_APPROVAL".equalsIgnoreCase(account.getReactivationStatus())) {
-            throw new IllegalStateException("Account does not have a pending reactivation request under review.");
-        }
-
-        if (checkerUserId != null && checkerUserId.equals(account.getReactivationMakerUserId())) {
-            throw new IllegalStateException("Four-Eye Anti-Self-Approval Violation: The maker user cannot reject their own request.");
-        }
-
-        account.setReactivationStatus("REJECTED");
-        account.setReactivationCheckerUserId(checkerUserId);
-        account.setReactivationCheckerNotes(request.notes());
-        account.setUpdatedAt(LocalDateTime.now());
-
-        AccountEntity saved = accountRepository.save(account);
+        account.rejectReactivation(checkerUserId, request.notes());
+        Account saved = accountRepository.save(account);
 
         try {
-            auditLogRepository.save(new AccountAuditLogEntity(
-                    null,
+            auditLogRepository.save(new AccountAuditLog(
+                    UUID.randomUUID(),
                     saved.getAccountNo(),
                     saved.getUserId(),
                     checkerUserId,
@@ -237,7 +185,7 @@ public class AccountDormancyService {
                     "reactivation_status",
                     "PENDING_CHECKER_APPROVAL",
                     "REJECTED: " + request.notes(),
-                    OffsetDateTime.now()
+                    LocalDateTime.now()
             ));
         } catch (Exception ex) {
             log.warn("Failed writing reactivation reject audit log: {}", ex.getMessage());
@@ -250,16 +198,18 @@ public class AccountDormancyService {
     /**
      * Retrieves all accounts currently flagged as DORMANT.
      */
+    @Override
     @Transactional(readOnly = true)
-    public List<AccountEntity> getDormantAccounts() {
+    public List<Account> getDormantAccounts() {
         return accountRepository.findByStatus(AccountStatus.DORMANT);
     }
 
     /**
      * Retrieves all accounts with pending KYC reactivation authorizations.
      */
+    @Override
     @Transactional(readOnly = true)
-    public List<AccountEntity> getPendingReactivations() {
+    public List<Account> getPendingReactivations() {
         return accountRepository.findByStatusAndReactivationStatus(AccountStatus.DORMANT, "PENDING_CHECKER_APPROVAL");
     }
 }

@@ -1,11 +1,10 @@
 package com.kab.qershi.account.application.usecase;
 
-import com.kab.qershi.account.infrastructure.persistence.EodBatchExecutionEntity;
-import com.kab.qershi.account.infrastructure.persistence.EodBatchStepLogEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataEodBatchExecutionRepository;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataEodBatchStepLogRepository;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataSystemBusinessDateRepository;
-import com.kab.qershi.account.infrastructure.persistence.SystemBusinessDateEntity;
+import com.kab.qershi.account.domain.model.EodBatchExecution;
+import com.kab.qershi.account.domain.model.EodBatchStepLog;
+import com.kab.qershi.account.domain.model.SystemBusinessDate;
+import com.kab.qershi.account.domain.ports.outbound.EodBatchRepositoryPort;
+import com.kab.qershi.account.domain.ports.outbound.SystemBusinessDateRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,16 +26,15 @@ import java.util.UUID;
  * loan portfolio-at-risk (PAR) aging, and business date rollover.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Service
 public class EodBatchOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(EodBatchOrchestrator.class);
 
-    private final SpringDataSystemBusinessDateRepository businessDateRepository;
-    private final SpringDataEodBatchExecutionRepository batchExecutionRepository;
-    private final SpringDataEodBatchStepLogRepository stepLogRepository;
+    private final SystemBusinessDateRepositoryPort businessDateRepository;
+    private final EodBatchRepositoryPort batchRepository;
     private final InterestAccrualService interestAccrualService;
     private final AccountDormancyService accountDormancyService;
     private final TermDepositService termDepositService;
@@ -45,16 +43,14 @@ public class EodBatchOrchestrator {
     @Value("${services.loan-management.url:http://loan-management-service:8085}")
     private String loanServiceUrl;
 
-    public EodBatchOrchestrator(SpringDataSystemBusinessDateRepository businessDateRepository,
-                                SpringDataEodBatchExecutionRepository batchExecutionRepository,
-                                SpringDataEodBatchStepLogRepository stepLogRepository,
+    public EodBatchOrchestrator(SystemBusinessDateRepositoryPort businessDateRepository,
+                                EodBatchRepositoryPort batchRepository,
                                 InterestAccrualService interestAccrualService,
                                 AccountDormancyService accountDormancyService,
                                 TermDepositService termDepositService,
                                 RestTemplateBuilder restTemplateBuilder) {
         this.businessDateRepository = businessDateRepository;
-        this.batchExecutionRepository = batchExecutionRepository;
-        this.stepLogRepository = stepLogRepository;
+        this.batchRepository = batchRepository;
         this.interestAccrualService = interestAccrualService;
         this.accountDormancyService = accountDormancyService;
         this.termDepositService = termDepositService;
@@ -64,11 +60,11 @@ public class EodBatchOrchestrator {
                 .build();
     }
 
-    public SystemBusinessDateEntity getOrCreateCurrentBusinessDate() {
+    public SystemBusinessDate getOrCreateCurrentBusinessDate() {
         return businessDateRepository.findCurrentBusinessDate().orElseGet(() -> {
             LocalDate today = LocalDate.now();
             boolean isMonthEnd = today.plusDays(1).getMonth() != today.getMonth();
-            SystemBusinessDateEntity initialDate = new SystemBusinessDateEntity(
+            SystemBusinessDate initialDate = new SystemBusinessDate(
                     UUID.randomUUID(),
                     today,
                     "OPEN",
@@ -82,8 +78,8 @@ public class EodBatchOrchestrator {
     }
 
     @Transactional
-    public EodBatchExecutionEntity runEodBatch(String triggeredBy, UUID triggeredByUserId) {
-        SystemBusinessDateEntity businessDateEntity = getOrCreateCurrentBusinessDate();
+    public EodBatchExecution runEodBatch(String triggeredBy, UUID triggeredByUserId) {
+        SystemBusinessDate businessDateEntity = getOrCreateCurrentBusinessDate();
         LocalDate businessDate = businessDateEntity.getCurrentBusinessDate();
         boolean isMonthEnd = Boolean.TRUE.equals(businessDateEntity.getIsMonthEnd());
 
@@ -95,17 +91,16 @@ public class EodBatchOrchestrator {
             throw new IllegalStateException("An EOD batch run is already currently in progress.");
         }
 
-        businessDateEntity.setStatus("PROCESSING_EOD");
-        businessDateEntity.setUpdatedAt(LocalDateTime.now());
+        businessDateEntity.markProcessingEod();
         businessDateRepository.save(businessDateEntity);
 
-        EodBatchExecutionEntity execution = new EodBatchExecutionEntity();
+        EodBatchExecution execution = new EodBatchExecution();
         execution.setBusinessDate(businessDate);
         execution.setStartedAt(LocalDateTime.now());
         execution.setStatus("IN_PROGRESS");
         execution.setTriggeredBy(triggeredBy != null ? triggeredBy : "MANUAL_OVERRIDE");
         execution.setTriggeredByUserId(triggeredByUserId);
-        execution = batchExecutionRepository.save(execution);
+        execution = batchRepository.saveExecution(execution);
 
         UUID batchId = execution.getBatchId();
 
@@ -117,7 +112,7 @@ public class EodBatchOrchestrator {
             });
 
             // STEP 2: SAVINGS DAILY INTEREST ACCRUAL & MONTH-END CAPITALIZATION
-            final EodBatchExecutionEntity currentExec = execution;
+            final EodBatchExecution currentExec = execution;
             executeStep(batchId, "SAVINGS_INTEREST_ACCRUAL", () -> {
                 InterestAccrualService.AccrualResult accrualResult =
                         interestAccrualService.runDailyAccrual(businessDate, isMonthEnd);
@@ -167,37 +162,28 @@ public class EodBatchOrchestrator {
             boolean nextMonthEnd = nextBusinessDate.plusDays(1).getMonth() != nextBusinessDate.getMonth();
 
             executeStep(batchId, "DATE_ROLLOVER", () -> {
-                businessDateEntity.setCurrentBusinessDate(nextBusinessDate);
-                businessDateEntity.setIsMonthEnd(nextMonthEnd);
-                businessDateEntity.setStatus("OPEN");
-                businessDateEntity.setLastEodCompletedAt(LocalDateTime.now());
-                businessDateEntity.setUpdatedAt(LocalDateTime.now());
+                businessDateEntity.rolloverDate(nextBusinessDate, nextMonthEnd);
                 businessDateRepository.save(businessDateEntity);
                 log.info("Rolled business date from {} to {}. Transaction posting unlocked.", businessDate, nextBusinessDate);
                 return 1;
             });
 
-            execution.setStatus("COMPLETED");
-            execution.setCompletedAt(LocalDateTime.now());
-            execution.setSummaryNotes(String.format(
+            execution.markCompleted(String.format(
                     "Batch completed successfully. Processed %d interest accruals, %d dormant accounts, " +
                     "%d loans PAR-aged, %d loans IFRS9-provisioned (month-end=%b). Rolled date to %s.",
                     execution.getTotalAccountsAccrued(), execution.getTotalAccountsDormant(),
                     execution.getTotalLoansEvaluated(),
                     execution.getTotalLoansProvisioned() != null ? execution.getTotalLoansProvisioned() : 0,
                     isMonthEnd, nextBusinessDate));
-            return batchExecutionRepository.save(execution);
+            return batchRepository.saveExecution(execution);
 
         } catch (Exception ex) {
             log.error("Fatal error during EOD batch execution: {}", ex.getMessage(), ex);
-            businessDateEntity.setStatus("OPEN");
-            businessDateEntity.setUpdatedAt(LocalDateTime.now());
+            businessDateEntity.unlock();
             businessDateRepository.save(businessDateEntity);
 
-            execution.setStatus("FAILED");
-            execution.setCompletedAt(LocalDateTime.now());
-            execution.setSummaryNotes("Batch failed: " + ex.getMessage());
-            batchExecutionRepository.save(execution);
+            execution.markFailed(ex.getMessage());
+            batchRepository.saveExecution(execution);
 
             throw new RuntimeException("EOD Batch Execution Failed: " + ex.getMessage(), ex);
         }
@@ -259,12 +245,12 @@ public class EodBatchOrchestrator {
         try {
             int recordsAffected = action.execute();
             long duration = System.currentTimeMillis() - startTime;
-            stepLogRepository.save(new EodBatchStepLogEntity(
+            batchRepository.saveStepLog(new EodBatchStepLog(
                     batchId, stepName, "SUCCESS", duration, recordsAffected, null
             ));
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            stepLogRepository.save(new EodBatchStepLogEntity(
+            batchRepository.saveStepLog(new EodBatchStepLog(
                     batchId, stepName, "FAILED", duration, 0, e.getMessage()
             ));
             throw new RuntimeException("Step " + stepName + " failed: " + e.getMessage(), e);

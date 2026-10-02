@@ -38,66 +38,63 @@ import java.util.UUID;
 public class AccountController {
 
     private final AccountOpeningUseCase accountOpeningUseCase;
-    private final com.kab.qershi.account.application.usecase.AccountDormancyService accountDormancyService;
+    private final com.kab.qershi.account.domain.ports.inbound.AccountDormancyUseCase accountDormancyUseCase;
 
     public AccountController(AccountOpeningUseCase accountOpeningUseCase,
-                             com.kab.qershi.account.application.usecase.AccountDormancyService accountDormancyService) {
+                             com.kab.qershi.account.domain.ports.inbound.AccountDormancyUseCase accountDormancyUseCase) {
         this.accountOpeningUseCase = accountOpeningUseCase;
-        this.accountDormancyService = accountDormancyService;
+        this.accountDormancyUseCase = accountDormancyUseCase;
     }
 
     @PostMapping("/{accountNo}/reactivation/request")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER', 'CUSTOMER_SERVICE') or hasAuthority('ACCOUNT_OPEN')")
     @Operation(summary = "Initiate KYC Reactivation (Maker)", description = "Maker submits in-person KYC re-verification documents to reactivate a DORMANT account.")
-    public ResponseEntity<ApiResponse<com.kab.qershi.account.infrastructure.persistence.AccountEntity>> initiateReactivation(
+    public ResponseEntity<ApiResponse<Account>> initiateReactivation(
             @PathVariable String accountNo,
             @Valid @RequestBody com.kab.qershi.account.infrastructure.rest.dto.KycReactivationRequest request,
             Authentication authentication) {
         UUID makerUserId = parseUserId(authentication);
-        com.kab.qershi.account.infrastructure.persistence.AccountEntity entity =
-                accountDormancyService.initiateKycReactivation(accountNo, makerUserId, request);
-        return ResponseEntity.ok(ApiResponse.success(entity, "KYC reactivation request submitted. Pending supervisor Four-Eye authorization."));
+        Account account = accountDormancyUseCase.initiateKycReactivation(accountNo, makerUserId, request);
+        return ResponseEntity.ok(ApiResponse.success(account, "KYC reactivation request submitted. Pending supervisor Four-Eye authorization."));
     }
 
     @PutMapping("/{accountNo}/reactivation/approve")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER') or hasAuthority('ACCOUNT_APPROVE')")
     @Operation(summary = "Approve KYC Reactivation (Checker)", description = "Checker supervisor validates in-person verification and restores account to ACTIVE.")
-    public ResponseEntity<ApiResponse<com.kab.qershi.account.infrastructure.persistence.AccountEntity>> approveReactivation(
+    public ResponseEntity<ApiResponse<Account>> approveReactivation(
             @PathVariable String accountNo,
             @Valid @RequestBody com.kab.qershi.account.infrastructure.rest.dto.KycApprovalRequest request,
             Authentication authentication) {
         UUID checkerUserId = parseUserId(authentication);
-        com.kab.qershi.account.infrastructure.persistence.AccountEntity entity =
-                accountDormancyService.approveKycReactivation(accountNo, checkerUserId, request);
-        return ResponseEntity.ok(ApiResponse.success(entity, "Account " + accountNo + " successfully reactivated to ACTIVE status."));
+        Account account = accountDormancyUseCase.approveKycReactivation(accountNo, checkerUserId, request);
+        return ResponseEntity.ok(ApiResponse.success(account, "Account " + accountNo + " successfully reactivated to ACTIVE status."));
     }
 
     @PutMapping("/{accountNo}/reactivation/reject")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER') or hasAuthority('ACCOUNT_APPROVE')")
     @Operation(summary = "Reject KYC Reactivation (Checker)", description = "Checker supervisor rejects in-person KYC reactivation.")
-    public ResponseEntity<ApiResponse<com.kab.qershi.account.infrastructure.persistence.AccountEntity>> rejectReactivation(
+    public ResponseEntity<ApiResponse<Account>> rejectReactivation(
             @PathVariable String accountNo,
             @Valid @RequestBody com.kab.qershi.account.infrastructure.rest.dto.KycApprovalRequest request,
             Authentication authentication) {
         UUID checkerUserId = parseUserId(authentication);
-        com.kab.qershi.account.infrastructure.persistence.AccountEntity entity =
-                accountDormancyService.rejectKycReactivation(accountNo, checkerUserId, request);
-        return ResponseEntity.ok(ApiResponse.success(entity, "Account " + accountNo + " reactivation request rejected. Account remains DORMANT."));
+        Account account = accountDormancyUseCase.rejectKycReactivation(accountNo, checkerUserId, request);
+        return ResponseEntity.ok(ApiResponse.success(account, "Account " + accountNo + " reactivation request rejected. Account remains DORMANT."));
     }
 
     @GetMapping("/dormant")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'TELLER', 'AUDITOR') or hasAuthority('ACCOUNT_VIEW')")
     @Operation(summary = "List Dormant Accounts", description = "Retrieves all accounts currently marked as DORMANT (>180 days inactivity).")
-    public ResponseEntity<ApiResponse<List<com.kab.qershi.account.infrastructure.persistence.AccountEntity>>> getDormantAccounts() {
-        List<com.kab.qershi.account.infrastructure.persistence.AccountEntity> dormant = accountDormancyService.getDormantAccounts();
+    public ResponseEntity<ApiResponse<List<Account>>> getDormantAccounts() {
+        List<Account> dormant = accountDormancyUseCase.getDormantAccounts();
         return ResponseEntity.ok(ApiResponse.success(dormant, "Retrieved " + dormant.size() + " dormant accounts."));
     }
 
     @GetMapping("/reactivations/pending")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'BRANCH_MANAGER', 'AUDITOR') or hasAuthority('ACCOUNT_APPROVE')")
     @Operation(summary = "List Pending Reactivations", description = "Retrieves dormant accounts currently awaiting supervisor Four-Eye authorization.")
-    public ResponseEntity<ApiResponse<List<com.kab.qershi.account.infrastructure.persistence.AccountEntity>>> getPendingReactivations() {
-        List<com.kab.qershi.account.infrastructure.persistence.AccountEntity> pending = accountDormancyService.getPendingReactivations();
+    public ResponseEntity<ApiResponse<List<Account>>> getPendingReactivations() {
+        List<Account> pending = accountDormancyUseCase.getPendingReactivations();
         return ResponseEntity.ok(ApiResponse.success(pending, "Retrieved " + pending.size() + " pending reactivation requests."));
     }
 

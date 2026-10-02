@@ -1,9 +1,10 @@
 package com.kab.qershi.account.application.usecase;
 
+import com.kab.qershi.account.domain.model.ChartOfAccount;
 import com.kab.qershi.account.domain.model.GlAccountType;
-import com.kab.qershi.account.infrastructure.persistence.ChartOfAccountEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataChartOfAccountRepository;
-import com.kab.qershi.account.infrastructure.persistence.SystemBusinessDateEntity;
+import com.kab.qershi.account.domain.model.SystemBusinessDate;
+import com.kab.qershi.account.domain.ports.outbound.ChartOfAccountRepositoryPort;
+import com.kab.qershi.account.domain.ports.outbound.SystemBusinessDateRepositoryPort;
 import com.kab.qershi.account.infrastructure.rest.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,7 @@ import java.util.List;
  * Enforces strict temporal date bounds and input validation guards.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 @Service
 public class FinancialReportService {
@@ -34,13 +35,13 @@ public class FinancialReportService {
     private static final int MIN_YEAR = 2000;
     private static final int MAX_YEAR = 2100;
 
-    private final SpringDataChartOfAccountRepository coaRepository;
-    private final EodBatchOrchestrator orchestrator;
+    private final ChartOfAccountRepositoryPort coaRepository;
+    private final SystemBusinessDateRepositoryPort businessDateRepository;
 
-    public FinancialReportService(SpringDataChartOfAccountRepository coaRepository,
-                                  EodBatchOrchestrator orchestrator) {
+    public FinancialReportService(ChartOfAccountRepositoryPort coaRepository,
+                                  SystemBusinessDateRepositoryPort businessDateRepository) {
         this.coaRepository = coaRepository;
-        this.orchestrator = orchestrator;
+        this.businessDateRepository = businessDateRepository;
     }
 
     /**
@@ -49,8 +50,9 @@ public class FinancialReportService {
     private LocalDate resolveAndValidateDate(LocalDate requestedDate) {
         LocalDate date = requestedDate;
         if (date == null) {
-            SystemBusinessDateEntity dateEntity = orchestrator.getOrCreateCurrentBusinessDate();
-            date = dateEntity.getCurrentBusinessDate();
+            date = businessDateRepository.findCurrentBusinessDate()
+                    .map(SystemBusinessDate::getCurrentBusinessDate)
+                    .orElseGet(LocalDate::now);
         }
 
         if (date.getYear() < MIN_YEAR || date.getYear() > MAX_YEAR) {
@@ -70,13 +72,13 @@ public class FinancialReportService {
     @Transactional(readOnly = true)
     public TrialBalanceReportDto generateTrialBalance(LocalDate asOfDate) {
         LocalDate effectiveDate = resolveAndValidateDate(asOfDate);
-        List<ChartOfAccountEntity> accounts = coaRepository.findAllByOrderByGlCodeAsc();
+        List<ChartOfAccount> accounts = coaRepository.findAllOrderByGlCodeAsc();
 
         List<TrialBalanceLineDto> lines = new ArrayList<>();
         BigDecimal totalDebits = BigDecimal.ZERO;
         BigDecimal totalCredits = BigDecimal.ZERO;
 
-        for (ChartOfAccountEntity account : accounts) {
+        for (ChartOfAccount account : accounts) {
             BigDecimal bal = account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO;
             BigDecimal debitAmount = BigDecimal.ZERO;
             BigDecimal creditAmount = BigDecimal.ZERO;
@@ -128,7 +130,7 @@ public class FinancialReportService {
     @Transactional(readOnly = true)
     public BalanceSheetReportDto generateBalanceSheet(LocalDate asOfDate) {
         LocalDate effectiveDate = resolveAndValidateDate(asOfDate);
-        List<ChartOfAccountEntity> accounts = coaRepository.findAllByOrderByGlCodeAsc();
+        List<ChartOfAccount> accounts = coaRepository.findAllOrderByGlCodeAsc();
 
         List<ReportSectionLineDto> assetLines = new ArrayList<>();
         BigDecimal totalAssets = BigDecimal.ZERO;
@@ -142,7 +144,7 @@ public class FinancialReportService {
         BigDecimal totalRevenue = BigDecimal.ZERO;
         BigDecimal totalExpenses = BigDecimal.ZERO;
 
-        for (ChartOfAccountEntity account : accounts) {
+        for (ChartOfAccount account : accounts) {
             BigDecimal bal = account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO;
 
             switch (account.getAccountType()) {
@@ -202,7 +204,7 @@ public class FinancialReportService {
             );
         }
 
-        List<ChartOfAccountEntity> accounts = coaRepository.findAllByOrderByGlCodeAsc();
+        List<ChartOfAccount> accounts = coaRepository.findAllOrderByGlCodeAsc();
 
         List<ReportSectionLineDto> incomeLines = new ArrayList<>();
         BigDecimal totalIncome = BigDecimal.ZERO;
@@ -210,7 +212,7 @@ public class FinancialReportService {
         List<ReportSectionLineDto> expenseLines = new ArrayList<>();
         BigDecimal totalExpenses = BigDecimal.ZERO;
 
-        for (ChartOfAccountEntity account : accounts) {
+        for (ChartOfAccount account : accounts) {
             BigDecimal bal = account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO;
 
             if (account.getAccountType() == GlAccountType.REVENUE) {

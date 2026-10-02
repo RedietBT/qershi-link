@@ -75,6 +75,35 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
         return accountRepository.existsByAccountNo(accountNo);
     }
 
+    @Override
+    public List<Account> saveAll(List<Account> accounts) {
+        if (accounts == null || accounts.isEmpty()) return List.of();
+        List<AccountEntity> entities = accounts.stream().map(this::toEntity).collect(Collectors.toList());
+        return accountRepository.saveAll(entities).stream().map(this::toDomain).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Account> findByStatus(com.kab.qershi.account.domain.model.AccountStatus status) {
+        return accountRepository.findByStatus(status).stream().map(this::toDomain).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Account> findDormantCandidates(com.kab.qershi.account.domain.model.AccountStatus status,
+                                              java.time.LocalDate cutoffDate,
+                                              java.time.LocalDateTime cutoffDateTime) {
+        return accountRepository.findDormantCandidates(status, cutoffDate, cutoffDateTime).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Account> findByStatusAndReactivationStatus(com.kab.qershi.account.domain.model.AccountStatus status,
+                                                          String reactivationStatus) {
+        return accountRepository.findByStatusAndReactivationStatus(status, reactivationStatus).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
     private AccountEntity toEntity(Account domain) {
         if (domain == null) return null;
         AccountEntity entity = new AccountEntity(
@@ -105,6 +134,9 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
         entity.setReactivationCheckerUserId(domain.getReactivationCheckerUserId());
         entity.setReactivationCheckerNotes(domain.getReactivationCheckerNotes());
         entity.setReactivatedAt(domain.getReactivatedAt());
+        entity.setAccruedInterestPayable(domain.getAccruedInterestPayable() != null ? domain.getAccruedInterestPayable() : java.math.BigDecimal.ZERO);
+        entity.setLastInterestAccrualDate(domain.getLastInterestAccrualDate());
+        entity.setLastCapitalizationDate(domain.getLastCapitalizationDate());
         return entity;
     }
 
@@ -138,6 +170,9 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
         domain.setReactivationCheckerUserId(entity.getReactivationCheckerUserId());
         domain.setReactivationCheckerNotes(entity.getReactivationCheckerNotes());
         domain.setReactivatedAt(entity.getReactivatedAt());
+        domain.setAccruedInterestPayable(entity.getAccruedInterestPayable());
+        domain.setLastInterestAccrualDate(entity.getLastInterestAccrualDate());
+        domain.setLastCapitalizationDate(entity.getLastCapitalizationDate());
         return domain;
     }
 }

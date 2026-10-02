@@ -1,11 +1,10 @@
 package com.kab.qershi.account.infrastructure.rest;
 
 import com.kab.qershi.account.application.usecase.EodBatchOrchestrator;
-import com.kab.qershi.account.infrastructure.persistence.EodBatchExecutionEntity;
-import com.kab.qershi.account.infrastructure.persistence.EodBatchStepLogEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataEodBatchExecutionRepository;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataEodBatchStepLogRepository;
-import com.kab.qershi.account.infrastructure.persistence.SystemBusinessDateEntity;
+import com.kab.qershi.account.domain.model.EodBatchExecution;
+import com.kab.qershi.account.domain.model.EodBatchStepLog;
+import com.kab.qershi.account.domain.model.SystemBusinessDate;
+import com.kab.qershi.account.domain.ports.outbound.EodBatchRepositoryPort;
 import com.kab.qershi.account.infrastructure.rest.dto.EodBatchHistoryResponse;
 import com.kab.qershi.account.infrastructure.rest.dto.EodStatusResponse;
 import com.kab.qershi.account.infrastructure.rest.dto.EodStepLogResponse;
@@ -29,7 +28,7 @@ import java.util.UUID;
  * and inspecting historical pipeline execution logs.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.1.0
  */
 @RestController
 @RequestMapping("/api/v1/eod")
@@ -37,23 +36,20 @@ import java.util.UUID;
 public class EodController {
 
     private final EodBatchOrchestrator orchestrator;
-    private final SpringDataEodBatchExecutionRepository batchExecutionRepository;
-    private final SpringDataEodBatchStepLogRepository stepLogRepository;
+    private final EodBatchRepositoryPort batchRepository;
 
     public EodController(EodBatchOrchestrator orchestrator,
-                         SpringDataEodBatchExecutionRepository batchExecutionRepository,
-                         SpringDataEodBatchStepLogRepository stepLogRepository) {
+                         EodBatchRepositoryPort batchRepository) {
         this.orchestrator = orchestrator;
-        this.batchExecutionRepository = batchExecutionRepository;
-        this.stepLogRepository = stepLogRepository;
+        this.batchRepository = batchRepository;
     }
 
     @GetMapping("/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('EOD_VIEW')")
     @Operation(summary = "Get Business Date & EOD Status", description = "Inspect the current core banking business date and daytime operational state.")
     public ResponseEntity<EodStatusResponse> getEodStatus() {
-        SystemBusinessDateEntity dateEntity = orchestrator.getOrCreateCurrentBusinessDate();
-        EodBatchExecutionEntity lastBatch = batchExecutionRepository.findTopByOrderByStartedAtDesc().orElse(null);
+        SystemBusinessDate dateEntity = orchestrator.getOrCreateCurrentBusinessDate();
+        EodBatchExecution lastBatch = batchRepository.findLatestExecution().orElse(null);
 
         EodStatusResponse response = new EodStatusResponse(
                 dateEntity.getCurrentBusinessDate(),
@@ -71,7 +67,7 @@ public class EodController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('EOD_EXECUTE')")
     @Operation(summary = "Trigger Manual EOD Batch", description = "Executes the full End-of-Day batch pipeline: savings interest accrual, dormancy sweep, loan PAR aging, and business date rollover.")
     public ResponseEntity<EodBatchHistoryResponse> runEodBatch() {
-        EodBatchExecutionEntity batch = orchestrator.runEodBatch("MANUAL_OVERRIDE", null);
+        EodBatchExecution batch = orchestrator.runEodBatch("MANUAL_OVERRIDE", null);
         List<EodStepLogResponse> steps = getStepsForBatch(batch.getBatchId());
 
         return ResponseEntity.ok(mapToResponse(batch, steps));
@@ -81,7 +77,7 @@ public class EodController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('EOD_VIEW')")
     @Operation(summary = "List EOD Batch History", description = "Retrieves all past End-of-Day batch execution logs ordered chronologically descending.")
     public ResponseEntity<List<EodBatchHistoryResponse>> getBatchHistory() {
-        List<EodBatchExecutionEntity> history = batchExecutionRepository.findAllByOrderByStartedAtDesc();
+        List<EodBatchExecution> history = batchRepository.findAllExecutionsOrderByStartedAtDesc();
         List<EodBatchHistoryResponse> response = history.stream()
                 .map(b -> mapToResponse(b, Collections.emptyList()))
                 .toList();
@@ -93,7 +89,7 @@ public class EodController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('EOD_VIEW')")
     @Operation(summary = "Get Batch Execution Details", description = "Fetches the full details and step-by-step pipeline execution logs for a specific batch run.")
     public ResponseEntity<EodBatchHistoryResponse> getBatchDetails(@PathVariable UUID batchId) {
-        return batchExecutionRepository.findById(batchId)
+        return batchRepository.findExecutionById(batchId)
                 .map(batch -> {
                     List<EodStepLogResponse> steps = getStepsForBatch(batch.getBatchId());
                     return ResponseEntity.ok(mapToResponse(batch, steps));
@@ -102,7 +98,7 @@ public class EodController {
     }
 
     private List<EodStepLogResponse> getStepsForBatch(UUID batchId) {
-        List<EodBatchStepLogEntity> stepLogs = stepLogRepository.findByBatchIdOrderByCreatedAtAsc(batchId);
+        List<EodBatchStepLog> stepLogs = batchRepository.findStepLogsByBatchId(batchId);
         return stepLogs.stream()
                 .map(s -> new EodStepLogResponse(
                         s.getStepId(),
@@ -116,7 +112,7 @@ public class EodController {
                 .toList();
     }
 
-    private EodBatchHistoryResponse mapToResponse(EodBatchExecutionEntity b, List<EodStepLogResponse> steps) {
+    private EodBatchHistoryResponse mapToResponse(EodBatchExecution b, List<EodStepLogResponse> steps) {
         return new EodBatchHistoryResponse(
                 b.getBatchId(),
                 b.getBusinessDate(),

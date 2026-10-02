@@ -1,11 +1,11 @@
 package com.kab.qershi.account.application.usecase;
 
+import com.kab.qershi.account.domain.model.Account;
+import com.kab.qershi.account.domain.model.AccountProduct;
 import com.kab.qershi.account.domain.model.AccountStatus;
+import com.kab.qershi.account.domain.ports.outbound.AccountRepositoryPort;
+import com.kab.qershi.account.domain.ports.outbound.ProductRepositoryPort;
 import com.kab.qershi.account.infrastructure.config.TenantContext;
-import com.kab.qershi.account.infrastructure.persistence.AccountEntity;
-import com.kab.qershi.account.infrastructure.persistence.AccountProductEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataAccountRepository;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataProductRepository;
 import com.kab.qershi.pricing.infrastructure.grpc.PricingGrpcServiceGrpc;
 import com.kab.qershi.pricing.infrastructure.grpc.TaxCalculationProtoRequest;
 import com.kab.qershi.pricing.infrastructure.grpc.TaxCalculationProtoResponse;
@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,7 +28,7 @@ import java.util.stream.Collectors;
  * Delegates 5% Withholding Tax (WHT) statutory deduction to pricing-fee-service.
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 @Service
 public class InterestAccrualService {
@@ -38,14 +37,14 @@ public class InterestAccrualService {
     private static final BigDecimal DAYS_IN_YEAR = new BigDecimal("365");
     private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
 
-    private final SpringDataAccountRepository accountRepository;
-    private final SpringDataProductRepository productRepository;
+    private final AccountRepositoryPort accountRepository;
+    private final ProductRepositoryPort productRepository;
 
     @GrpcClient("pricing-service")
     private PricingGrpcServiceGrpc.PricingGrpcServiceBlockingStub pricingStub;
 
-    public InterestAccrualService(SpringDataAccountRepository accountRepository,
-                                  SpringDataProductRepository productRepository) {
+    public InterestAccrualService(AccountRepositoryPort accountRepository,
+                                  ProductRepositoryPort productRepository) {
         this.accountRepository = accountRepository;
         this.productRepository = productRepository;
     }
@@ -56,19 +55,19 @@ public class InterestAccrualService {
     public AccrualResult runDailyAccrual(LocalDate businessDate, boolean isMonthEnd) {
         log.info("Starting Daily Interest Accrual for business date: {}, isMonthEnd: {}", businessDate, isMonthEnd);
 
-        List<AccountProductEntity> products = productRepository.findAll();
-        Map<String, AccountProductEntity> productMap = products.stream()
-                .collect(Collectors.toMap(AccountProductEntity::getProductCode, p -> p, (p1, p2) -> p1));
+        List<AccountProduct> products = productRepository.findAllProducts();
+        Map<String, AccountProduct> productMap = products.stream()
+                .collect(Collectors.toMap(AccountProduct::getProductCode, p -> p, (p1, p2) -> p1));
 
-        List<AccountEntity> activeAccounts = accountRepository.findByStatus(AccountStatus.ACTIVE);
+        List<Account> activeAccounts = accountRepository.findByStatus(AccountStatus.ACTIVE);
 
         int accruedCount = 0;
         BigDecimal totalAccrued = BigDecimal.ZERO;
         int capitalizedCount = 0;
         BigDecimal totalCapitalized = BigDecimal.ZERO;
 
-        for (AccountEntity account : activeAccounts) {
-            AccountProductEntity product = productMap.get(account.getProductCode());
+        for (Account account : activeAccounts) {
+            AccountProduct product = productMap.get(account.getProductCode());
             if (product == null || product.getInterestRatePa() == null || product.getInterestRatePa().compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
@@ -83,11 +82,7 @@ public class InterestAccrualService {
                 BigDecimal dailyAccrual = annualInterest.divide(DAYS_IN_YEAR, 4, RoundingMode.HALF_UP);
 
                 if (dailyAccrual.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal currentAccrued = account.getAccruedInterestPayable() != null ? account.getAccruedInterestPayable() : BigDecimal.ZERO;
-                    account.setAccruedInterestPayable(currentAccrued.add(dailyAccrual));
-                    account.setLastInterestAccrualDate(businessDate);
-                    account.setUpdatedAt(LocalDateTime.now());
-
+                    account.accrueDailyInterest(dailyAccrual, businessDate);
                     totalAccrued = totalAccrued.add(dailyAccrual);
                     accruedCount++;
                 }
@@ -120,11 +115,7 @@ public class InterestAccrualService {
                     }
                 }
 
-                account.setBookBalance(account.getBookBalance().add(netPayout));
-                account.setAccruedInterestPayable(BigDecimal.ZERO);
-                account.setLastCapitalizationDate(businessDate);
-                account.setUpdatedAt(LocalDateTime.now());
-
+                account.capitalizeAccruedInterest(netPayout, businessDate);
                 totalCapitalized = totalCapitalized.add(netPayout);
                 capitalizedCount++;
             }

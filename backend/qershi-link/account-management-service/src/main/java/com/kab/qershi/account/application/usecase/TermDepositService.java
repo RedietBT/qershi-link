@@ -1,8 +1,9 @@
 package com.kab.qershi.account.application.usecase;
 
-import com.kab.qershi.account.infrastructure.persistence.TermDepositContractEntity;
-import com.kab.qershi.account.infrastructure.persistence.TermDepositContractEntity.TermDepositStatus;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataTermDepositRepository;
+import com.kab.qershi.account.domain.model.TermDepositContract;
+import com.kab.qershi.account.domain.model.TermDepositStatus;
+import com.kab.qershi.account.domain.ports.inbound.TermDepositUseCase;
+import com.kab.qershi.account.domain.ports.outbound.TermDepositRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,88 +19,41 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Fixed Term Deposit (FD) Engine — Temenos Transact / Finacle Standard.
- *
- * <p>Implements the full FD contract lifecycle:</p>
- * <ol>
- *   <li><b>Open</b>: Locks principal from savings, posts GL entry (DEBIT Savings / CREDIT FD Liability).</li>
- *   <li><b>Daily EOD Accrual</b>: Computes daily interest = principal × rate / 365.</li>
- *   <li><b>Maturity</b>: Credits principal + interest to savings account. Optionally auto-rolls over.</li>
- *   <li><b>Early Break</b>: Applies penalty formula — either forfeits accrued interest or charges 2% of principal.</li>
- * </ol>
- *
- * <p><b>GL Accounts used:</b></p>
- * <ul>
- *   <li>GL 2060 — Term Deposit Liability (CREDIT on open, DEBIT on close)</li>
- *   <li>GL 1010 — Member Savings / Cash Account (DEBIT on open, CREDIT on close)</li>
- *   <li>GL 2051 — Interest Payable Accrued (CREDIT daily accrual)</li>
- *   <li>GL 2055 — Interest Expense — FD (DEBIT daily accrual)</li>
- * </ul>
+ * Pure Hexagonal Application Service for Fixed Term Deposit (FD) contracts.
+ * Operates purely on Domain Models and Ports (zero direct persistence coupling).
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 2.0.0
  */
 @Service
-public class TermDepositService {
+public class TermDepositService implements TermDepositUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(TermDepositService.class);
 
-    private static final BigDecimal DAYS_IN_YEAR = new BigDecimal("365");
+    private final TermDepositRepositoryPort termDepositRepository;
 
-    private final SpringDataTermDepositRepository termDepositRepository;
-
-    public TermDepositService(SpringDataTermDepositRepository termDepositRepository) {
+    public TermDepositService(TermDepositRepositoryPort termDepositRepository) {
         this.termDepositRepository = termDepositRepository;
     }
 
-    // ── Result Records ────────────────────────────────────────────────────────
-
-    public record OpenFdResult(
-            UUID contractId,
-            String contractNo,
-            LocalDate maturityDate,
-            BigDecimal principal,
-            BigDecimal ratePercent,
-            String openingGlRef,
-            String status
-    ) {}
-
-    public record MaturityProcessResult(
-            int contractsProcessed,
-            int autoRolledOver,
-            int closedNormal,
-            BigDecimal totalInterestPaid
-    ) {}
-
-    public record EarlyBreakResult(
-            UUID contractId,
-            String contractNo,
-            BigDecimal principal,
-            BigDecimal accruedInterest,
-            BigDecimal penaltyAmount,
-            BigDecimal netPayoutAmount,
-            String closingGlRef
-    ) {}
-
     // ── 1. OPEN Term Deposit Contract ─────────────────────────────────────────
 
-    /**
-     * Opens a new Fixed Term Deposit contract.
-     * Posts: DEBIT GL 1010 (Savings) / CREDIT GL 2060 (FD Liability)
-     *
-     * @param accountNo           source savings account
-     * @param userId              member UUID
-     * @param saccoCode           tenant identifier
-     * @param branchCode          branch code
-     * @param principalAmount     funds to lock
-     * @param tenorMonths         FD tenor (6, 12, 24, or 36 months)
-     * @param agreedRatePa        agreed annual interest rate %
-     * @param earlyBreakPenaltyPct penalty % for early termination (default 2%)
-     * @param autoRollover        auto re-invest at maturity
-     * @param rolloverTenorMonths rollover tenor (null = use same tenor)
-     * @param makerUserId         operator opening the contract
-     * @param makerNotes          maker notes
-     */
+    @Override
+    @Transactional
+    public OpenFdResult openTermDeposit(
+            String accountNo, UUID userId, String saccoCode, String branchCode,
+            BigDecimal principalAmount, int tenorMonths, BigDecimal agreedRatePa,
+            boolean autoRollover, Integer rolloverTenorMonths,
+            UUID makerUserId, String makerNotes, boolean autoApprove) {
+
+        return openTermDeposit(
+                accountNo, userId, saccoCode, branchCode,
+                principalAmount, tenorMonths, agreedRatePa,
+                new BigDecimal("2.00"), autoRollover, rolloverTenorMonths,
+                makerUserId, makerNotes
+        );
+    }
+
     @Transactional
     public OpenFdResult openTermDeposit(
             String accountNo, UUID userId, String saccoCode, String branchCode,
@@ -117,39 +71,49 @@ public class TermDepositService {
             throw new IllegalArgumentException("Interest rate must be positive.");
         }
 
-        LocalDate startDate    = LocalDate.now();
+        LocalDate startDate = LocalDate.now();
         LocalDate maturityDate = startDate.plusMonths(tenorMonths);
 
-        // Generate unique contract number: FD-YYYYMMDD-{last8 of UUID}
         String contractNo = "FD-" + startDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
                 + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-        // GL posting reference
         String glRef = "JE-FD-OPEN-" + contractNo;
 
-        TermDepositContractEntity contract = new TermDepositContractEntity();
-        contract.setContractNo(contractNo);
-        contract.setAccountNo(accountNo);
-        contract.setUserId(userId);
-        contract.setSaccoCode(saccoCode);
-        contract.setBranchCode(branchCode);
-        contract.setPrincipalAmount(principalAmount);
-        contract.setTenorMonths(tenorMonths);
-        contract.setAgreedInterestRatePa(agreedRatePa);
-        contract.setEarlyBreakPenaltyPct(
-                earlyBreakPenaltyPct != null ? earlyBreakPenaltyPct : new BigDecimal("2.00"));
-        contract.setStartDate(startDate);
-        contract.setMaturityDate(maturityDate);
-        contract.setAutoRollover(autoRollover);
-        contract.setRolloverTenorMonths(rolloverTenorMonths);
-        contract.setMakerUserId(makerUserId);
-        contract.setMakerNotes(makerNotes);
-        contract.setStatus(TermDepositStatus.ACTIVE);  // simplified — skip Maker-Checker for now
-        contract.setOpeningGlRef(glRef);
-        contract.setGlDebitAccount("1010");
-        contract.setGlCreditAccount("2060");
+        TermDepositContract contract = new TermDepositContract(
+                UUID.randomUUID(),
+                contractNo,
+                accountNo,
+                userId,
+                saccoCode,
+                branchCode,
+                principalAmount,
+                tenorMonths,
+                agreedRatePa,
+                earlyBreakPenaltyPct != null ? earlyBreakPenaltyPct : new BigDecimal("2.00"),
+                startDate,
+                maturityDate,
+                null,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                TermDepositStatus.ACTIVE,
+                autoRollover,
+                rolloverTenorMonths,
+                null,
+                null,
+                "2060",
+                "1010",
+                glRef,
+                null,
+                makerUserId,
+                makerNotes,
+                null,
+                null,
+                null,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
 
-        termDepositRepository.save(contract);
+        TermDepositContract saved = termDepositRepository.save(contract);
 
         log.info("[FD] Opened contract {} for account {} | Principal: {} ETB | Tenor: {}M | Rate: {}% p.a. | Maturity: {} | GL Ref: {}",
                 contractNo, accountNo, principalAmount, tenorMonths, agreedRatePa, maturityDate, glRef);
@@ -157,86 +121,72 @@ public class TermDepositService {
                 principalAmount, principalAmount);
 
         return new OpenFdResult(
-                contract.getContractId(), contractNo, maturityDate,
+                saved.getContractId(), contractNo, maturityDate,
                 principalAmount, agreedRatePa, glRef, "ACTIVE");
     }
 
     // ── 2. DAILY EOD INTEREST ACCRUAL ─────────────────────────────────────────
 
-    /**
-     * Runs daily FD interest accrual for all ACTIVE contracts that haven't yet matured.
-     * Posts: DEBIT GL 2055 (Interest Expense FD) / CREDIT GL 2051 (Interest Payable Accrued)
-     * Called from EodBatchOrchestrator during SAVINGS_INTEREST_ACCRUAL step.
-     *
-     * @param businessDate the EOD business date
-     * @return number of FD contracts accrued
-     */
+    @Override
+    @Transactional
+    public DailyAccrualResult runDailyInterestAccrual(LocalDate businessDate) {
+        int count = runDailyFdAccrual(businessDate);
+        return new DailyAccrualResult(count, BigDecimal.ZERO, businessDate);
+    }
+
     @Transactional
     public int runDailyFdAccrual(LocalDate businessDate) {
-        List<TermDepositContractEntity> activeContracts =
-                termDepositRepository.findByStatusAndMaturityDateAfter(TermDepositStatus.ACTIVE, businessDate);
+        List<TermDepositContract> activeContracts =
+                termDepositRepository.findActiveContractsForAccrual(businessDate);
 
         int count = 0;
         BigDecimal totalAccrued = BigDecimal.ZERO;
 
-        for (TermDepositContractEntity contract : activeContracts) {
-            // Daily interest = principal × annualRate / 365
-            BigDecimal dailyInterest = contract.getPrincipalAmount()
-                    .multiply(contract.getAgreedInterestRatePa())
-                    .divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP)
-                    .divide(DAYS_IN_YEAR, 4, RoundingMode.HALF_UP);
-
-            contract.setAccruedInterest(contract.getAccruedInterest().add(dailyInterest));
+        for (TermDepositContract contract : activeContracts) {
+            BigDecimal dailyInterest = contract.computeDailyInterest();
+            contract.accrueDailyInterest(dailyInterest);
             termDepositRepository.save(contract);
             totalAccrued = totalAccrued.add(dailyInterest);
             count++;
         }
 
         if (count > 0) {
-            log.info("[FD-ACCRUAL] {} FD contracts accrued on {}. Total daily interest: {} ETB | " +
-                    "GL: DEBIT 2055 / CREDIT 2051", count, businessDate, totalAccrued);
+            log.info("[FD-ACCRUAL] {} FD contracts accrued on {}. Total daily interest: {} ETB | GL: DEBIT 2055 / CREDIT 2051",
+                    count, businessDate, totalAccrued);
         }
         return count;
     }
 
     // ── 3. MATURITY PROCESSING ────────────────────────────────────────────────
 
-    /**
-     * EOD sweep: finds all ACTIVE contracts that have matured and either closes or rolls them over.
-     * On normal close: DEBIT GL 2060 (FD Liability) + DEBIT GL 2055 (Interest) /
-     *                  CREDIT GL 1010 (Savings) for full payout (principal + interest).
-     *
-     * @param businessDate the EOD business date
-     */
+    @Override
+    @Transactional
+    public MaturityProcessResult processMaturitySweep(LocalDate businessDate) {
+        return processMaturedContracts(businessDate);
+    }
+
     @Transactional
     public MaturityProcessResult processMaturedContracts(LocalDate businessDate) {
-        List<TermDepositContractEntity> matured = termDepositRepository.findMaturedContracts(businessDate);
+        List<TermDepositContract> matured = termDepositRepository.findMaturedContracts(businessDate);
 
-        int rolledOver     = 0;
-        int closedNormal   = 0;
+        int rolledOver = 0;
+        int closedNormal = 0;
         BigDecimal totalInterestPaid = BigDecimal.ZERO;
 
-        for (TermDepositContractEntity contract : matured) {
-            BigDecimal principal   = contract.getPrincipalAmount();
-            BigDecimal interest    = contract.getAccruedInterest();
+        for (TermDepositContract contract : matured) {
+            BigDecimal principal = contract.getPrincipalAmount();
+            BigDecimal interest = contract.getAccruedInterest();
             BigDecimal totalPayout = principal.add(interest);
-            String closingGlRef    = "JE-FD-MAT-" + contract.getContractNo();
+            String closingGlRef = "JE-FD-MAT-" + contract.getContractNo();
 
             if (Boolean.TRUE.equals(contract.getAutoRollover())) {
-                // Auto-rollover — re-invest principal into a new term
                 int newTenor = contract.getRolloverTenorMonths() != null
                         ? contract.getRolloverTenorMonths()
                         : contract.getTenorMonths();
 
-                // Credit accrued interest to savings, re-lock principal
-                contract.setStatus(TermDepositStatus.ROLLED_OVER);
-                contract.setClosedDate(businessDate);
-                contract.setCapitalizedInterest(interest);
-                contract.setNetPayoutAmount(totalPayout);
-                contract.setClosingGlRef(closingGlRef);
+                contract.markRolledOver(closingGlRef, businessDate);
                 termDepositRepository.save(contract);
 
-                // Open new contract for rollover (simple re-lock at same rate)
                 openTermDeposit(
                         contract.getAccountNo(), contract.getUserId(),
                         contract.getSaccoCode(), contract.getBranchCode(),
@@ -248,12 +198,7 @@ public class TermDepositService {
                 rolledOver++;
                 log.info("[FD-MATURITY] Contract {} auto-rolled over. Interest credited: {} ETB", contract.getContractNo(), interest);
             } else {
-                // Normal close — pay out principal + interest to savings
-                contract.setStatus(TermDepositStatus.CLOSED_NORMAL);
-                contract.setClosedDate(businessDate);
-                contract.setCapitalizedInterest(interest);
-                contract.setNetPayoutAmount(totalPayout);
-                contract.setClosingGlRef(closingGlRef);
+                contract.closeNormal(closingGlRef, businessDate);
                 termDepositRepository.save(contract);
                 closedNormal++;
                 totalInterestPaid = totalInterestPaid.add(interest);
@@ -268,31 +213,32 @@ public class TermDepositService {
         log.info("[FD-MATURITY] EOD maturity sweep complete. Closed: {}, Rolled: {}, Total Interest Paid: {} ETB",
                 closedNormal, rolledOver, totalInterestPaid);
 
-        return new MaturityProcessResult(matured.size(), rolledOver, closedNormal, totalInterestPaid);
+        return new MaturityProcessResult(matured.size(), rolledOver, closedNormal, BigDecimal.ZERO, totalInterestPaid);
     }
 
     // ── 4. EARLY BREAK / PREMATURE TERMINATION ────────────────────────────────
 
-    /**
-     * Processes early termination (premature break) of an ACTIVE FD contract.
-     *
-     * <p>Penalty formula (Finacle / Temenos standard):</p>
-     * <pre>
-     *   If accrued interest >= penalty: net = principal + (accrued - penalty)
-     *   If accrued interest < penalty:  net = principal - (penalty - accrued)  [debit member savings]
-     *   Penalty = principal × earlyBreakPenaltyPct / 100
-     * </pre>
-     *
-     * GL: DEBIT GL 2060 (FD Liability) / CREDIT GL 1010 (Savings) for netPayout
-     *     DEBIT GL 1010 (Savings penalty reclaim) / CREDIT GL 4090 (Penalty Income)
-     *
-     * @param contractId   the FD contract to break
-     * @param checkerUserId the supervisor approving the break
-     * @param checkerNotes  audit note from supervisor
-     */
+    @Override
+    @Transactional
+    public EarlyBreakResult breakTermDepositEarly(String contractNo, String reason, UUID authorizedByUserId) {
+        TermDepositContract contract = termDepositRepository.findByContractNo(contractNo)
+                .orElseThrow(() -> new IllegalArgumentException("Term deposit contract not found: " + contractNo));
+
+        EarlyBreakResult result = breakTermDepositEarly(contract.getContractId(), authorizedByUserId, reason);
+        return new EarlyBreakResult(
+                result.contractNo(),
+                result.principal(),
+                result.penaltyCharged(),
+                result.netPayout(),
+                contract.getAccountNo(),
+                result.glRef(),
+                "CLOSED_EARLY"
+        );
+    }
+
     @Transactional
     public EarlyBreakResult breakTermDepositEarly(UUID contractId, UUID checkerUserId, String checkerNotes) {
-        TermDepositContractEntity contract = termDepositRepository.findById(contractId)
+        TermDepositContract contract = termDepositRepository.findById(contractId)
                 .orElseThrow(() -> new IllegalArgumentException("Term deposit contract not found: " + contractId));
 
         if (contract.getStatus() != TermDepositStatus.ACTIVE) {
@@ -300,69 +246,88 @@ public class TermDepositService {
                     " is not ACTIVE — current status: " + contract.getStatus());
         }
 
-        // Anti-self-approval guard
         if (checkerUserId != null && checkerUserId.equals(contract.getMakerUserId())) {
             throw new SecurityException("Four-Eye violation: checker and maker cannot be the same user.");
         }
 
-        BigDecimal principal   = contract.getPrincipalAmount();
-        BigDecimal accrued     = contract.getAccruedInterest();
+        BigDecimal principal = contract.getPrincipalAmount();
+        BigDecimal accrued = contract.getAccruedInterest();
         BigDecimal penaltyRate = contract.getEarlyBreakPenaltyPct();
 
-        // Penalty = principal × rate / 100
         BigDecimal penalty = principal.multiply(penaltyRate)
                 .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
 
-        // Net payout: principal + accrued interest, then deduct penalty
         BigDecimal netPayout = principal.add(accrued).subtract(penalty);
         if (netPayout.compareTo(BigDecimal.ZERO) < 0) {
-            // Cannot take more than principal from member
             netPayout = principal;
-            penalty   = accrued; // forfeit all interest instead
+            penalty = accrued;
         }
 
         String closingGlRef = "JE-FD-EARLY-" + contract.getContractNo();
-
-        contract.setStatus(TermDepositStatus.CLOSED_EARLY);
-        contract.setClosedDate(LocalDate.now());
-        contract.setCapitalizedInterest(accrued);
-        contract.setPenaltyAmount(penalty);
-        contract.setNetPayoutAmount(netPayout);
-        contract.setClosingGlRef(closingGlRef);
-        contract.setCheckerUserId(checkerUserId);
-        contract.setCheckerNotes(checkerNotes);
-        contract.setApprovedAt(OffsetDateTime.now());
+        contract.closeEarly(penalty, netPayout, closingGlRef, LocalDate.now());
         termDepositRepository.save(contract);
 
         log.info("[FD-BREAK] Contract {} broken early. Principal: {} | Accrued: {} | Penalty ({}%): {} | Net Payout: {} ETB | GL Ref: {}",
                 contract.getContractNo(), principal, accrued, penaltyRate, penalty, netPayout, closingGlRef);
-        log.info("[FD-BREAK] GL Entry — DEBIT GL 2060 (FD Liability): {} | CREDIT GL 1010 (Savings): {} | Penalty → GL 4090",
-                netPayout, netPayout);
 
         return new EarlyBreakResult(
-                contractId, contract.getContractNo(),
-                principal, accrued, penalty, netPayout, closingGlRef);
+                contract.getContractNo(),
+                principal,
+                penalty,
+                netPayout,
+                contract.getAccountNo(),
+                closingGlRef,
+                "CLOSED_EARLY"
+        );
     }
 
     // ── 5. QUERY METHODS ─────────────────────────────────────────────────────
 
-    public Optional<TermDepositContractEntity> getContractById(UUID contractId) {
-        return termDepositRepository.findById(contractId);
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<TermDepositContract> getContract(String contractNo) {
+        return termDepositRepository.findByContractNo(contractNo);
     }
 
-    public List<TermDepositContractEntity> getContractsByAccount(String accountNo) {
+    @Override
+    @Transactional(readOnly = true)
+    public List<TermDepositContract> getContractsByAccount(String accountNo) {
         return termDepositRepository.findByAccountNo(accountNo);
     }
 
-    public List<TermDepositContractEntity> getContractsByUser(UUID userId) {
+    @Override
+    @Transactional(readOnly = true)
+    public List<TermDepositContract> getContractsByUser(UUID userId) {
         return termDepositRepository.findByUserId(userId);
     }
 
-    public List<TermDepositContractEntity> getPendingApprovalContracts() {
-        return termDepositRepository.findByStatusOrderByCreatedAtAsc(TermDepositStatus.PENDING_APPROVAL);
+    @Override
+    @Transactional(readOnly = true)
+    public List<TermDepositContract> getPendingApprovals() {
+        return termDepositRepository.findPendingApprovals();
     }
 
-    public List<TermDepositContractEntity> getAllActiveContracts() {
+    @Override
+    @Transactional
+    public void approveContract(String contractNo, UUID checkerUserId, String checkerNotes) {
+        TermDepositContract contract = termDepositRepository.findByContractNo(contractNo)
+                .orElseThrow(() -> new IllegalArgumentException("Contract not found: " + contractNo));
+        contract.approve(checkerUserId, checkerNotes, "JE-FD-OPEN-" + contractNo);
+        termDepositRepository.save(contract);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<TermDepositContract> getContractById(UUID contractId) {
+        return termDepositRepository.findById(contractId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TermDepositContract> getPendingApprovalContracts() {
+        return termDepositRepository.findPendingApprovals();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TermDepositContract> getAllActiveContracts() {
         return termDepositRepository.findByStatus(TermDepositStatus.ACTIVE);
     }
 }

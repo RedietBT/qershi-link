@@ -1,8 +1,9 @@
 package com.kab.qershi.account.infrastructure.rest;
 
 import com.kab.qershi.account.application.usecase.TermDepositService;
-import com.kab.qershi.account.infrastructure.persistence.TermDepositContractEntity;
-import com.kab.qershi.account.infrastructure.persistence.TermDepositContractEntity.TermDepositStatus;
+import com.kab.qershi.account.domain.model.TermDepositContract;
+import com.kab.qershi.account.domain.model.TermDepositStatus;
+import com.kab.qershi.account.domain.ports.inbound.TermDepositUseCase;
 import com.kab.qershi.account.infrastructure.rest.dto.OpenTermDepositRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -117,18 +118,18 @@ public class TermDepositController {
             Authentication authentication) {
 
         UUID checkerUserId = resolveUserId(authentication);
-        TermDepositService.EarlyBreakResult result =
+        TermDepositUseCase.EarlyBreakResult result =
                 termDepositService.breakTermDepositEarly(contractId, checkerUserId, checkerNotes);
 
         return ResponseEntity.ok(Map.of(
-                "contractId",       result.contractId(),
+                "contractId",       contractId,
                 "contractNo",       result.contractNo(),
                 "principal",        result.principal(),
-                "accruedInterest",  result.accruedInterest(),
-                "penaltyAmount",    result.penaltyAmount(),
-                "netPayoutAmount",  result.netPayoutAmount(),
-                "closingGlRef",     result.closingGlRef(),
-                "status",           "CLOSED_EARLY"
+                "penaltyAmount",    result.penaltyCharged(),
+                "netPayoutAmount",  result.netPayout(),
+                "destinationAccountNo", result.destinationAccountNo() != null ? result.destinationAccountNo() : "",
+                "closingGlRef",     result.glRef() != null ? result.glRef() : "",
+                "status",           result.status()
         ));
     }
 
@@ -159,7 +160,7 @@ public class TermDepositController {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private Map<String, Object> toMap(TermDepositContractEntity c) {
+    private Map<String, Object> toMap(TermDepositContract c) {
         return Map.ofEntries(
                 Map.entry("contractId",            c.getContractId()),
                 Map.entry("contractNo",            c.getContractNo()),

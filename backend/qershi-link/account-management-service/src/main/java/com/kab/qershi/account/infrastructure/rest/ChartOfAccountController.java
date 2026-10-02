@@ -1,7 +1,7 @@
 package com.kab.qershi.account.infrastructure.rest;
 
 import com.kab.qershi.account.application.usecase.ChartOfAccountService;
-import com.kab.qershi.account.infrastructure.persistence.ChartOfAccountEntity;
+import com.kab.qershi.account.domain.model.ChartOfAccount;
 import com.kab.qershi.account.infrastructure.rest.dto.ChartOfAccountNodeDto;
 import com.kab.qershi.account.infrastructure.rest.dto.CreateChartOfAccountRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,16 +42,16 @@ public class ChartOfAccountController {
     @GetMapping("/flat")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('COA_VIEW')")
     @Operation(summary = "Get Flat Chart of Accounts List", description = "Returns all General Ledger accounts in flat order, useful for dropdown selectors.")
-    public ResponseEntity<List<ChartOfAccountEntity>> getAllFlat() {
-        List<ChartOfAccountEntity> list = coaService.getAllFlat();
+    public ResponseEntity<List<ChartOfAccount>> getAllFlat() {
+        List<ChartOfAccount> list = coaService.getAllFlat();
         return ResponseEntity.ok(list);
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN') or hasAuthority('COA_MANAGE')")
     @Operation(summary = "Create General Ledger Account", description = "Creates a new custom GL account under an existing parent category or node.")
-    public ResponseEntity<ChartOfAccountEntity> createAccount(@Valid @RequestBody CreateChartOfAccountRequest request) {
-        ChartOfAccountEntity created = coaService.createAccount(request);
+    public ResponseEntity<ChartOfAccount> createAccount(@Valid @RequestBody CreateChartOfAccountRequest request) {
+        ChartOfAccount created = coaService.createAccount(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }

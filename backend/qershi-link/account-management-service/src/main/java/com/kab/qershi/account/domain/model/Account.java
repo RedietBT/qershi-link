@@ -39,6 +39,9 @@ public class Account {
     private UUID reactivationCheckerUserId;
     private String reactivationCheckerNotes;
     private LocalDateTime reactivatedAt;
+    private BigDecimal accruedInterestPayable = BigDecimal.ZERO;
+    private java.time.LocalDate lastInterestAccrualDate;
+    private java.time.LocalDate lastCapitalizationDate;
 
     public Account() {
         this.bookBalance = BigDecimal.ZERO;
@@ -266,6 +269,40 @@ public class Account {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /**
+     * Flags account as DORMANT following central bank dormancy threshold elapsed.
+     */
+    public void markDormant(java.time.LocalDate businessDate) {
+        this.status = AccountStatus.DORMANT;
+        this.dormancyDate = businessDate;
+        this.reactivationStatus = "NONE";
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Accrues daily interest calculation into cumulative accrued payable.
+     */
+    public void accrueDailyInterest(BigDecimal dailyAccrual, java.time.LocalDate businessDate) {
+        if (dailyAccrual != null && dailyAccrual.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal current = this.accruedInterestPayable != null ? this.accruedInterestPayable : BigDecimal.ZERO;
+            this.accruedInterestPayable = current.add(dailyAccrual);
+            this.lastInterestAccrualDate = businessDate;
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    /**
+     * Capitalizes accumulated interest payable into principal ledger book balance.
+     */
+    public void capitalizeAccruedInterest(BigDecimal netPayout, java.time.LocalDate businessDate) {
+        if (netPayout != null && netPayout.compareTo(BigDecimal.ZERO) > 0) {
+            this.bookBalance = this.bookBalance.add(netPayout);
+        }
+        this.accruedInterestPayable = BigDecimal.ZERO;
+        this.lastCapitalizationDate = businessDate;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // Getters and Setters
     public UUID getAccountId() { return accountId; }
     public void setAccountId(UUID accountId) { this.accountId = accountId; }
@@ -344,4 +381,13 @@ public class Account {
 
     public LocalDateTime getReactivatedAt() { return reactivatedAt; }
     public void setReactivatedAt(LocalDateTime reactivatedAt) { this.reactivatedAt = reactivatedAt; }
+
+    public BigDecimal getAccruedInterestPayable() { return accruedInterestPayable; }
+    public void setAccruedInterestPayable(BigDecimal accruedInterestPayable) { this.accruedInterestPayable = accruedInterestPayable; }
+
+    public java.time.LocalDate getLastInterestAccrualDate() { return lastInterestAccrualDate; }
+    public void setLastInterestAccrualDate(java.time.LocalDate lastInterestAccrualDate) { this.lastInterestAccrualDate = lastInterestAccrualDate; }
+
+    public java.time.LocalDate getLastCapitalizationDate() { return lastCapitalizationDate; }
+    public void setLastCapitalizationDate(java.time.LocalDate lastCapitalizationDate) { this.lastCapitalizationDate = lastCapitalizationDate; }
 }

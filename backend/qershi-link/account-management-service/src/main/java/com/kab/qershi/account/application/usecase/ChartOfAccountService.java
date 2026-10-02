@@ -1,7 +1,7 @@
 package com.kab.qershi.account.application.usecase;
 
-import com.kab.qershi.account.infrastructure.persistence.ChartOfAccountEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataChartOfAccountRepository;
+import com.kab.qershi.account.domain.model.ChartOfAccount;
+import com.kab.qershi.account.domain.ports.outbound.ChartOfAccountRepositoryPort;
 import com.kab.qershi.account.infrastructure.rest.dto.ChartOfAccountNodeDto;
 import com.kab.qershi.account.infrastructure.rest.dto.CreateChartOfAccountRequest;
 import org.slf4j.Logger;
@@ -18,7 +18,7 @@ import java.util.*;
  * Implements strict cyclic graph protection and depth limits to prevent Denial of Service (DoS).
  *
  * @author KAB Digital Solution PLC
- * @version 1.1.0
+ * @version 1.2.0
  */
 @Service
 public class ChartOfAccountService {
@@ -26,9 +26,9 @@ public class ChartOfAccountService {
     private static final Logger log = LoggerFactory.getLogger(ChartOfAccountService.class);
     private static final int MAX_HIERARCHY_DEPTH = 6;
 
-    private final SpringDataChartOfAccountRepository coaRepository;
+    private final ChartOfAccountRepositoryPort coaRepository;
 
-    public ChartOfAccountService(SpringDataChartOfAccountRepository coaRepository) {
+    public ChartOfAccountService(ChartOfAccountRepositoryPort coaRepository) {
         this.coaRepository = coaRepository;
     }
 
@@ -39,27 +39,27 @@ public class ChartOfAccountService {
      */
     @Transactional(readOnly = true)
     public List<ChartOfAccountNodeDto> getCoaTree() {
-        List<ChartOfAccountEntity> allAccounts = coaRepository.findAllByOrderByGlCodeAsc();
+        List<ChartOfAccount> allAccounts = coaRepository.findAllOrderByGlCodeAsc();
         if (allAccounts.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // 1. Map entities to DTO nodes
+        // 1. Map domain models to DTO nodes
         Map<String, ChartOfAccountNodeDto> nodeMap = new LinkedHashMap<>();
-        for (ChartOfAccountEntity entity : allAccounts) {
+        for (ChartOfAccount account : allAccounts) {
             ChartOfAccountNodeDto node = new ChartOfAccountNodeDto(
-                    entity.getAccountId(),
-                    entity.getGlCode(),
-                    entity.getAccountName(),
-                    entity.getAccountType(),
-                    entity.getParentGlCode(),
-                    entity.getBalance(),
-                    entity.getStatus(),
-                    entity.getIsReconciled(),
-                    entity.getAllowManualJournal(),
-                    entity.getDescription()
+                    account.getAccountId(),
+                    account.getGlCode(),
+                    account.getAccountName(),
+                    account.getAccountType(),
+                    account.getParentGlCode(),
+                    account.getBalance(),
+                    account.getStatus(),
+                    account.getIsReconciled(),
+                    account.getAllowManualJournal(),
+                    account.getDescription()
             );
-            nodeMap.put(entity.getGlCode(), node);
+            nodeMap.put(account.getGlCode(), node);
         }
 
         // 2. Build parent-child relationships
@@ -105,8 +105,8 @@ public class ChartOfAccountService {
      * Retrieves all General Ledger accounts in flat order.
      */
     @Transactional(readOnly = true)
-    public List<ChartOfAccountEntity> getAllFlat() {
-        return coaRepository.findAllByOrderByGlCodeAsc();
+    public List<ChartOfAccount> getAllFlat() {
+        return coaRepository.findAllOrderByGlCodeAsc();
     }
 
     /**
@@ -120,7 +120,7 @@ public class ChartOfAccountService {
      * - Zero balance initialization (tamper protection)
      */
     @Transactional
-    public ChartOfAccountEntity createAccount(CreateChartOfAccountRequest req) {
+    public ChartOfAccount createAccount(CreateChartOfAccountRequest req) {
         String cleanGlCode = req.getGlCode().trim();
         if (coaRepository.existsByGlCode(cleanGlCode)) {
             throw new IllegalArgumentException("GL Code '" + cleanGlCode + "' already exists in Chart of Accounts.");
@@ -135,7 +135,7 @@ public class ChartOfAccountService {
                 throw new IllegalArgumentException("Security/Integrity Error: An account cannot be its own parent.");
             }
 
-            ChartOfAccountEntity parent = coaRepository.findByGlCode(parentGl)
+            ChartOfAccount parent = coaRepository.findByGlCode(parentGl)
                     .orElseThrow(() -> new IllegalArgumentException("Parent GL Code '" + parentGl + "' not found."));
 
             // Enforce structural accounting integrity: Child must match parent category type
@@ -163,27 +163,28 @@ public class ChartOfAccountService {
                 }
                 ancestors.add(ancestorGl);
 
-                Optional<ChartOfAccountEntity> ancestorEntity = coaRepository.findByGlCode(ancestorGl);
-                ancestorGl = ancestorEntity.map(ChartOfAccountEntity::getParentGlCode).orElse(null);
+                Optional<ChartOfAccount> ancestorEntity = coaRepository.findByGlCode(ancestorGl);
+                ancestorGl = ancestorEntity.map(ChartOfAccount::getParentGlCode).orElse(null);
             }
         }
 
-        ChartOfAccountEntity entity = new ChartOfAccountEntity(
+        ChartOfAccount account = new ChartOfAccount(
+                UUID.randomUUID(),
                 cleanGlCode,
                 req.getAccountName().trim(),
                 req.getAccountType(),
                 parentGl,
-                req.getDescription() != null ? req.getDescription().trim() : null
+                "ETB",
+                BigDecimal.ZERO,
+                Boolean.TRUE,
+                req.getAllowManualJournal() != null ? req.getAllowManualJournal() : Boolean.TRUE,
+                "ACTIVE",
+                req.getDescription() != null ? req.getDescription().trim() : null,
+                java.time.Instant.now(),
+                java.time.Instant.now()
         );
 
-        if (req.getAllowManualJournal() != null) {
-            entity.setAllowManualJournal(req.getAllowManualJournal());
-        }
-
-        // Security Guard: New GL accounts must ALWAYS start with zero balance
-        entity.setBalance(BigDecimal.ZERO);
-
-        ChartOfAccountEntity saved = coaRepository.save(entity);
+        ChartOfAccount saved = coaRepository.save(account);
         log.info("Successfully registered new GL account '{}' ({}) under parent '{}'",
                 saved.getGlCode(), saved.getAccountName(), parentGl);
 

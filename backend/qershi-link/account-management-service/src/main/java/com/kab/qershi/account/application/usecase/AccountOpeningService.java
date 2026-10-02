@@ -1,22 +1,25 @@
 package com.kab.qershi.account.application.usecase;
 
 import com.kab.qershi.account.domain.model.Account;
+import com.kab.qershi.account.domain.model.AccountAuditLog;
 import com.kab.qershi.account.domain.model.AccountProduct;
 import com.kab.qershi.account.domain.model.AccountStatus;
 import com.kab.qershi.account.domain.model.FreezeStatus;
+import com.kab.qershi.account.domain.model.SaccoConfig;
 import com.kab.qershi.account.domain.ports.inbound.AccountOpeningUseCase;
+import com.kab.qershi.account.domain.ports.outbound.AccountAuditLogRepositoryPort;
 import com.kab.qershi.account.domain.ports.outbound.AccountRepositoryPort;
 import com.kab.qershi.account.domain.ports.outbound.ProductRepositoryPort;
 import com.kab.qershi.account.domain.ports.outbound.ProfileValidationPort;
+import com.kab.qershi.account.domain.ports.outbound.SaccoConfigRepositoryPort;
 import com.kab.qershi.account.domain.service.AccountNumberGenerator;
-import com.kab.qershi.account.infrastructure.persistence.AccountAuditLogEntity;
-import com.kab.qershi.account.infrastructure.persistence.SpringDataAccountAuditLogRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,45 +29,43 @@ import java.util.UUID;
  * and tenant-isolated phone number search.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 1.2.0
  */
 @Service
 @Transactional
 public class AccountOpeningService implements AccountOpeningUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountOpeningService.class);
 
     private final AccountRepositoryPort accountRepositoryPort;
     private final ProductRepositoryPort productRepositoryPort;
     private final ProfileValidationPort profileValidationPort;
     private final AccountNumberGenerator accountNumberGenerator;
     private final com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
-    private final SpringDataAccountAuditLogRepository auditLogRepository;
-    private final com.kab.qershi.account.infrastructure.persistence.SpringDataSaccoConfigRepository saccoConfigRepository;
-    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    private final AccountAuditLogRepositoryPort auditLogRepositoryPort;
+    private final SaccoConfigRepositoryPort saccoConfigRepositoryPort;
 
     public AccountOpeningService(AccountRepositoryPort accountRepositoryPort,
                                  ProductRepositoryPort productRepositoryPort,
                                  ProfileValidationPort profileValidationPort,
                                  AccountNumberGenerator accountNumberGenerator,
                                  com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
-                                 SpringDataAccountAuditLogRepository auditLogRepository,
-                                 com.kab.qershi.account.infrastructure.persistence.SpringDataSaccoConfigRepository saccoConfigRepository,
-                                 org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+                                 AccountAuditLogRepositoryPort auditLogRepositoryPort,
+                                 SaccoConfigRepositoryPort saccoConfigRepositoryPort) {
         this.accountRepositoryPort = accountRepositoryPort;
         this.productRepositoryPort = productRepositoryPort;
         this.profileValidationPort = profileValidationPort;
         this.accountNumberGenerator = accountNumberGenerator;
         this.notificationAdapter = notificationAdapter;
-        this.auditLogRepository = auditLogRepository;
-        this.saccoConfigRepository = saccoConfigRepository;
-        this.jdbcTemplate = jdbcTemplate;
+        this.auditLogRepositoryPort = auditLogRepositoryPort;
+        this.saccoConfigRepositoryPort = saccoConfigRepositoryPort;
     }
 
     @Override
     public Account openAccount(UUID userId, String branchCode, String productCode) {
         // 1. Resolve tenant SACCO Code & Branch Code configuration
-        com.kab.qershi.account.infrastructure.persistence.SaccoConfigEntity saccoConfig = saccoConfigRepository
-                .findFirstByOrderByCreatedAtAsc()
-                .orElseGet(() -> new com.kab.qershi.account.infrastructure.persistence.SaccoConfigEntity(null, "0001", "Default SACCO", "0001"));
+        SaccoConfig saccoConfig = saccoConfigRepositoryPort.findFirst()
+                .orElseGet(() -> new SaccoConfig(null, "0001", "Default SACCO", "0001", null, null));
 
         String saccoCode = saccoConfig.getSaccoCode();
         String finalBranchCode = (branchCode != null && !branchCode.isBlank()) ? branchCode.trim() : saccoConfig.getBranchCode();
@@ -115,8 +116,8 @@ public class AccountOpeningService implements AccountOpeningUseCase {
         Account saved = accountRepositoryPort.save(account);
 
         try {
-            auditLogRepository.save(new AccountAuditLogEntity(
-                    null,
+            auditLogRepositoryPort.save(new AccountAuditLog(
+                    UUID.randomUUID(),
                     saved.getAccountNo(),
                     saved.getUserId(),
                     userId,
@@ -124,10 +125,10 @@ public class AccountOpeningService implements AccountOpeningUseCase {
                     "status",
                     null,
                     "PENDING_APPROVAL",
-                    OffsetDateTime.now()
+                    LocalDateTime.now()
             ));
         } catch (Exception ex) {
-            org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Failed writing account open audit log: {}", ex.getMessage());
+            log.warn("Failed writing account open audit log: {}", ex.getMessage());
         }
 
         return saved;
@@ -140,8 +141,8 @@ public class AccountOpeningService implements AccountOpeningUseCase {
         Account approved = accountRepositoryPort.save(account);
 
         try {
-            auditLogRepository.save(new AccountAuditLogEntity(
-                    null,
+            auditLogRepositoryPort.save(new AccountAuditLog(
+                    UUID.randomUUID(),
                     approved.getAccountNo(),
                     approved.getUserId(),
                     checkerUserId,
@@ -149,57 +150,35 @@ public class AccountOpeningService implements AccountOpeningUseCase {
                     "status",
                     "PENDING_APPROVAL",
                     "ACTIVE",
-                    OffsetDateTime.now()
+                    LocalDateTime.now()
             ));
         } catch (Exception ex) {
-            org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Failed writing account approval audit log: {}", ex.getMessage());
+            log.warn("Failed writing account approval audit log: {}", ex.getMessage());
         }
 
         try {
             AccountProduct product = productRepositoryPort.findByProductCode(approved.getProductCode()).orElse(null);
             String prodName = product != null ? product.getProductName() : approved.getProductCode();
 
-            // Fetch member phone number (msisdn) from master_schema.users
-            String recipientPhone = null;
-            try {
-                recipientPhone = jdbcTemplate.queryForObject(
-                        "SELECT msisdn FROM master_schema.users WHERE user_id = ?",
-                        String.class,
-                        approved.getUserId()
-                );
-            } catch (Exception ex) {
-                org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Could not resolve msisdn for user {}: {}", approved.getUserId(), ex.getMessage());
-            }
+            // Fetch member phone number & full name via domain port
+            ProfileValidationPort.ProfileContact contact = profileValidationPort.getProfileContact(approved.getUserId());
+            String recipientPhone = (contact != null) ? contact.phoneNumber() : null;
+            String memberName = (contact != null && contact.fullName() != null && !contact.fullName().isBlank())
+                    ? contact.fullName().trim()
+                    : "Valued Member";
 
-            // Fetch member full name from member_profiles
-            String memberName = "Valued Member";
-            try {
-                String fullName = jdbcTemplate.queryForObject(
-                        "SELECT CONCAT(first_name, ' ', last_name) FROM member_profiles WHERE user_id = ?",
-                        String.class,
-                        approved.getUserId()
-                );
-                if (fullName != null && !fullName.isBlank()) {
-                    memberName = fullName.trim();
-                }
-            } catch (Exception ignored) {}
-
-            // Fetch SACCO Name from sacco_configs
-            String saccoName = "SACCO";
-            try {
-                com.kab.qershi.account.infrastructure.persistence.SaccoConfigEntity saccoConfig = saccoConfigRepository.findFirstByOrderByCreatedAtAsc().orElse(null);
-                if (saccoConfig != null && saccoConfig.getSaccoName() != null && !saccoConfig.getSaccoName().isBlank()) {
-                    saccoName = saccoConfig.getSaccoName().trim();
-                }
-            } catch (Exception ignored) {}
+            // Fetch SACCO Name from sacco config
+            String saccoName = saccoConfigRepositoryPort.findFirst()
+                    .map(SaccoConfig::getSaccoName)
+                    .orElse("SACCO");
 
             if (recipientPhone != null && !recipientPhone.isBlank()) {
                 notificationAdapter.sendAccountOpenedNotification(recipientPhone, memberName, approved.getAccountNo(), prodName, saccoName);
             } else {
-                org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Skipping account opening SMS dispatch for user {}: Recipient phone number not found.", approved.getUserId());
+                log.warn("Skipping account opening SMS dispatch for user {}: Recipient phone number not found.", approved.getUserId());
             }
         } catch (Exception ex) {
-            org.slf4j.LoggerFactory.getLogger(AccountOpeningService.class).warn("Failed dispatching account opened SMS: {}", ex.getMessage());
+            log.warn("Failed dispatching account opened SMS: {}", ex.getMessage());
         }
 
         return approved;

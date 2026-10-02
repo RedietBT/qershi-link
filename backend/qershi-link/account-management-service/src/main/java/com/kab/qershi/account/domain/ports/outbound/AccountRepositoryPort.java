@@ -29,4 +29,15 @@ public interface AccountRepositoryPort {
     long countAccountsBySaccoAndProduct(String saccoCode, String productCode);
 
     boolean existsByAccountNo(String accountNo);
+
+    List<Account> saveAll(List<Account> accounts);
+
+    List<Account> findByStatus(com.kab.qershi.account.domain.model.AccountStatus status);
+
+    List<Account> findDormantCandidates(com.kab.qershi.account.domain.model.AccountStatus status,
+                                        java.time.LocalDate cutoffDate,
+                                        java.time.LocalDateTime cutoffDateTime);
+
+    List<Account> findByStatusAndReactivationStatus(com.kab.qershi.account.domain.model.AccountStatus status,
+                                                    String reactivationStatus);
 }
