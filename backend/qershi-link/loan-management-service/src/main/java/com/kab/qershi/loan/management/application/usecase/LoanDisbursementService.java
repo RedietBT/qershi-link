@@ -42,6 +42,7 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
     private final AccountClientPort accountClientPort;
     private final LoanGuarantorRepositoryPort guarantorRepository;
     private final PricingClientPort pricingClientPort;
+    private final com.kab.qershi.loan.management.domain.port.out.LoanEventPublisherPort eventPublisher;
 
     public LoanDisbursementService(LoanAccountRepositoryPort accountRepository,
                                    RepaymentScheduleRepositoryPort scheduleRepository,
@@ -50,7 +51,8 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
                                    LoanAuditLogRepositoryPort auditLogRepository,
                                    AccountClientPort accountClientPort,
                                    LoanGuarantorRepositoryPort guarantorRepository,
-                                   PricingClientPort pricingClientPort) {
+                                   PricingClientPort pricingClientPort,
+                                   com.kab.qershi.loan.management.domain.port.out.LoanEventPublisherPort eventPublisher) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.amortizationEngine = amortizationEngine;
@@ -59,6 +61,7 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
         this.accountClientPort = accountClientPort;
         this.guarantorRepository = guarantorRepository;
         this.pricingClientPort = pricingClientPort;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -238,8 +241,23 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
             }
         }
 
-        // 5. Trigger SMS Notification via gRPC — send to the actual member's phone
+        // 5. Trigger Async Kafka Event & SMS Notification — send to the actual member's phone
         if (command.memberPhone() != null && !command.memberPhone().isBlank()) {
+            try {
+                String tenantSchema = com.kab.qershi.loan.management.infrastructure.config.TenantContext.getTenantSchema();
+                eventPublisher.publishLoanDisbursed(new com.kab.qershi.common.event.LoanDisbursedEvent(
+                        tenantSchema,
+                        savedAccount.getAccountNo(),
+                        savedAccount.getAccountNo(),
+                        command.memberPhone(),
+                        command.userId() != null ? command.userId().toString() : "Member",
+                        savedAccount.getPrincipalAmount(),
+                        java.time.Instant.now()
+                ));
+            } catch (Exception ex) {
+                log.warn("Failed dispatching Kafka LoanDisbursedEvent: {}", ex.getMessage());
+            }
+
             notificationClientPort.sendNotification(
                     command.memberPhone(),
                     "LOAN_DISBURSED",

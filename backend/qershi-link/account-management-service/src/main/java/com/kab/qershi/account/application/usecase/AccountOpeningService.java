@@ -44,6 +44,7 @@ public class AccountOpeningService implements AccountOpeningUseCase {
     private final com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
     private final AccountAuditLogRepositoryPort auditLogRepositoryPort;
     private final SaccoConfigRepositoryPort saccoConfigRepositoryPort;
+    private final com.kab.qershi.account.domain.ports.outbound.AccountEventPublisherPort eventPublisher;
 
     public AccountOpeningService(AccountRepositoryPort accountRepositoryPort,
                                  ProductRepositoryPort productRepositoryPort,
@@ -51,7 +52,8 @@ public class AccountOpeningService implements AccountOpeningUseCase {
                                  AccountNumberGenerator accountNumberGenerator,
                                  com.kab.qershi.account.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
                                  AccountAuditLogRepositoryPort auditLogRepositoryPort,
-                                 SaccoConfigRepositoryPort saccoConfigRepositoryPort) {
+                                 SaccoConfigRepositoryPort saccoConfigRepositoryPort,
+                                 com.kab.qershi.account.domain.ports.outbound.AccountEventPublisherPort eventPublisher) {
         this.accountRepositoryPort = accountRepositoryPort;
         this.productRepositoryPort = productRepositoryPort;
         this.profileValidationPort = profileValidationPort;
@@ -59,6 +61,7 @@ public class AccountOpeningService implements AccountOpeningUseCase {
         this.notificationAdapter = notificationAdapter;
         this.auditLogRepositoryPort = auditLogRepositoryPort;
         this.saccoConfigRepositoryPort = saccoConfigRepositoryPort;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -173,6 +176,21 @@ public class AccountOpeningService implements AccountOpeningUseCase {
                     .orElse("SACCO");
 
             if (recipientPhone != null && !recipientPhone.isBlank()) {
+                // Publish async Kafka domain event
+                try {
+                    String tenantSchema = com.kab.qershi.account.infrastructure.config.TenantContext.getTenantSchema();
+                    eventPublisher.publishAccountOpened(new com.kab.qershi.common.event.AccountOpenedEvent(
+                            tenantSchema != null ? tenantSchema : approved.getSaccoCode(),
+                            approved.getAccountNo(),
+                            recipientPhone,
+                            memberName,
+                            prodName,
+                            java.time.Instant.now()
+                    ));
+                } catch (Exception ex) {
+                    log.warn("Failed dispatching Kafka AccountOpenedEvent: {}", ex.getMessage());
+                }
+
                 notificationAdapter.sendAccountOpenedNotification(recipientPhone, memberName, approved.getAccountNo(), prodName, saccoName);
             } else {
                 log.warn("Skipping account opening SMS dispatch for user {}: Recipient phone number not found.", approved.getUserId());

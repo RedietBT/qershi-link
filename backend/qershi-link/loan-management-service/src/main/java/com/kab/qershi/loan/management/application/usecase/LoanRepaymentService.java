@@ -38,6 +38,7 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
     private final AccountClientPort accountClientPort;
     private final PenaltyRuleRepositoryPort penaltyRuleRepository;
     private final LoanGuarantorRepositoryPort guarantorRepository;
+    private final com.kab.qershi.loan.management.domain.port.out.LoanEventPublisherPort eventPublisher;
 
     public LoanRepaymentService(LoanAccountRepositoryPort accountRepository,
                                 RepaymentScheduleRepositoryPort scheduleRepository,
@@ -45,7 +46,8 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
                                 NotificationClientPort notificationClientPort,
                                 AccountClientPort accountClientPort,
                                 PenaltyRuleRepositoryPort penaltyRuleRepository,
-                                LoanGuarantorRepositoryPort guarantorRepository) {
+                                LoanGuarantorRepositoryPort guarantorRepository,
+                                com.kab.qershi.loan.management.domain.port.out.LoanEventPublisherPort eventPublisher) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.repaymentRepository = repaymentRepository;
@@ -54,6 +56,7 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
         this.penaltyRuleRepository = penaltyRuleRepository;
         this.guarantorRepository = guarantorRepository;
         this.waterfallEngine = new PaymentWaterfallEngine();
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -166,8 +169,29 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
             accountRepository.save(account);
         }
 
-        // Trigger SMS Confirmation Notification — send to the actual member's phone
+        // Trigger Async Kafka Event & SMS Confirmation Notification — send to the actual member's phone
         if (command.memberPhone() != null && !command.memberPhone().isBlank()) {
+            try {
+                String tenantSchema = com.kab.qershi.loan.management.infrastructure.config.TenantContext.getTenantSchema();
+                BigDecimal remainingTotal = schedules.stream()
+                        .filter(s -> s.getStatus() != ScheduleStatus.PAID)
+                        .map(RepaymentSchedule::getPrincipalDue)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                eventPublisher.publishRepaymentReceived(new com.kab.qershi.common.event.RepaymentReceivedEvent(
+                        tenantSchema,
+                        account.getAccountNo(),
+                        account.getAccountNo(),
+                        command.memberPhone(),
+                        account.getUserId() != null ? account.getUserId().toString() : "Member",
+                        command.amount(),
+                        remainingTotal,
+                        java.time.Instant.now()
+                ));
+            } catch (Exception ex) {
+                log.warn("Failed dispatching Kafka RepaymentReceivedEvent: {}", ex.getMessage());
+            }
+
             notificationClientPort.sendNotification(
                     command.memberPhone(),
                     "LOAN_REPAYMENT_CONFIRMATION",

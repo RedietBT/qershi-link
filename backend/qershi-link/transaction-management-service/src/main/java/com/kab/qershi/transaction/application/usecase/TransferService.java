@@ -65,15 +65,18 @@ public class TransferService implements TransferUseCase {
     private final JournalRepositoryPort journalRepositoryPort;
     private final AccountClientPort accountClientPort;
     private final SpringDataTransactionAuditLogRepository auditLogRepository;
+    private final com.kab.qershi.transaction.domain.ports.outbound.TransactionEventPublisherPort eventPublisher;
 
     public TransferService(TransactionRepositoryPort transactionRepositoryPort,
                            JournalRepositoryPort journalRepositoryPort,
                            AccountClientPort accountClientPort,
-                           SpringDataTransactionAuditLogRepository auditLogRepository) {
+                           SpringDataTransactionAuditLogRepository auditLogRepository,
+                           com.kab.qershi.transaction.domain.ports.outbound.TransactionEventPublisherPort eventPublisher) {
         this.transactionRepositoryPort = transactionRepositoryPort;
         this.journalRepositoryPort = journalRepositoryPort;
         this.accountClientPort = accountClientPort;
         this.auditLogRepository = auditLogRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -194,6 +197,27 @@ public class TransferService implements TransferUseCase {
 
         journalEntry.setLines(List.of(debitSenderLine, creditReceiverLine));
         journalRepositoryPort.save(journalEntry);
+
+        try {
+            String tenantSchema = com.kab.qershi.transaction.infrastructure.config.TenantContext.getTenantSchema();
+            AccountClientPort.AccountInfo receiverInfo = accountClientPort.getAccountInfo(receiverAccountNo);
+
+            eventPublisher.publishTransactionCompleted(new com.kab.qershi.common.event.TransactionCompletedEvent(
+                    tenantSchema,
+                    txRef,
+                    senderAccountNo,
+                    senderInfo != null ? senderInfo.phoneNumber() : null,
+                    senderInfo != null ? senderInfo.fullName() : "Member",
+                    "TRANSFER",
+                    amount,
+                    senderInfo != null && senderInfo.availableBalance() != null ? senderInfo.availableBalance() : BigDecimal.ZERO,
+                    receiverInfo != null ? receiverInfo.fullName() : receiverAccountNo,
+                    receiverAccountNo,
+                    Instant.now()
+            ));
+        } catch (Exception ex) {
+            log.warn("Failed dispatching transfer completed Kafka event: {}", ex.getMessage());
+        }
 
         log.info("Member Transfer COMPLETED successfully: txRef={}, sender={}, receiver={}, amount={}",
                 txRef, senderAccountNo, receiverAccountNo, amount);

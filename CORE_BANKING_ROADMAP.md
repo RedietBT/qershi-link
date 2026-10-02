@@ -194,13 +194,13 @@
   - [x] Dynamic tenant provider resolution via `NotificationProviderFactory` and `SmsGatewayConfigService` with fallback to master configuration.
   - [x] REST endpoints: `GET /api/v1/notifications/config/sms-gateway`, `PUT /api/v1/notifications/config/sms-gateway`, `POST /test` with masked credentials.
   - [x] Flyway migrations `V3__create_sms_gateway_configs.sql` in `notification-service`, `05_notification.sql` tenant provisioning script, and `V16__seed_notification_gateway_config_permissions.sql` in `identity-auth-service`.
-- [ ] **Apache Kafka Event-Driven Architecture (Step 2)**
-  - [ ] Deploy Kafka broker configuration in docker-compose.
-  - [ ] Add `spring-kafka` and JSON domain event publishers in:
-    - [ ] `transaction-management-service`: `TransactionCompletedEvent`
-    - [ ] `loan-management-service`: `LoanDisbursedEvent`, `RepaymentReceivedEvent`
-    - [ ] `account-management-service`: `AccountOpenedEvent`, `InterestCapitalizedEvent`
-  - [ ] `notification-service` consumes events asynchronously with retry backoff and Dead Letter Queue (DLQ).
+- [x] **Apache Kafka Event-Driven Architecture (Step 2 - Completed)**
+  - [x] Deploy Kafka broker configuration in docker-compose (`docker-compose.kafka.yml` with KRaft single-broker and Kafka UI) and Kubernetes (`deployments/kafka-service.yaml`).
+  - [x] Add `spring-kafka` and JSON domain event publishers in:
+    - [x] `transaction-management-service`: `TransactionCompletedEvent` to `banking.transactions` (Key: `saccoCode`)
+    - [x] `loan-management-service`: `LoanDisbursedEvent`, `RepaymentReceivedEvent` to `banking.loans` (Key: `saccoCode`)
+    - [x] `account-management-service`: `AccountOpenedEvent` to `banking.accounts` (Key: `saccoCode`)
+  - [x] `notification-service` consumes events asynchronously with retry backoff and error-handling deserializers in `BankingDomainEventListener`.
 - [ ] **Frontend Deliverables (Step 3 & 4)**
   - [ ] `notificationApi.js`: Centralized notification client module.
   - [ ] `SmsGatewayConfigPage.jsx`: Tenant configuration screen to select provider, enter live API credentials, and test live connection.

@@ -67,19 +67,22 @@ public class CashTransactionService implements CashTransactionUseCase {
     private final com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter;
     private final SpringDataTransactionAuditLogRepository auditLogRepository;
     private final TellerTillService tellerTillService;
+    private final com.kab.qershi.transaction.domain.ports.outbound.TransactionEventPublisherPort eventPublisher;
 
     public CashTransactionService(TransactionRepositoryPort transactionRepositoryPort,
                                   JournalRepositoryPort journalRepositoryPort,
                                   AccountClientPort accountClientPort,
                                   com.kab.qershi.transaction.infrastructure.adapters.NotificationGrpcClientAdapter notificationAdapter,
                                   SpringDataTransactionAuditLogRepository auditLogRepository,
-                                  TellerTillService tellerTillService) {
+                                  TellerTillService tellerTillService,
+                                  com.kab.qershi.transaction.domain.ports.outbound.TransactionEventPublisherPort eventPublisher) {
         this.transactionRepositoryPort = transactionRepositoryPort;
         this.journalRepositoryPort = journalRepositoryPort;
         this.accountClientPort = accountClientPort;
         this.notificationAdapter = notificationAdapter;
         this.auditLogRepository = auditLogRepository;
         this.tellerTillService = tellerTillService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -186,9 +189,26 @@ public class CashTransactionService implements CashTransactionUseCase {
 
         try {
             BigDecimal newBal = accountInfo.availableBalance() != null ? accountInfo.availableBalance().add(amount) : amount;
+            String tenantSchema = com.kab.qershi.transaction.infrastructure.config.TenantContext.getTenantSchema();
+
+            // Publish async Kafka domain event (partitioned by saccoCode)
+            eventPublisher.publishTransactionCompleted(new com.kab.qershi.common.event.TransactionCompletedEvent(
+                    tenantSchema,
+                    txRef,
+                    accountNo,
+                    accountInfo.phoneNumber(),
+                    accountInfo.fullName(),
+                    "DEPOSIT",
+                    amount,
+                    newBal,
+                    null,
+                    null,
+                    Instant.now()
+            ));
+
             notificationAdapter.sendCashDepositNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
         } catch (Exception ex) {
-            log.warn("Failed dispatching cash deposit SMS: {}", ex.getMessage());
+            log.warn("Failed dispatching cash deposit notification: {}", ex.getMessage());
         }
 
         log.info("Cash Deposit COMPLETED successfully: txRef={}, accountNo={}, amount={}", txRef, accountNo, amount);
@@ -299,9 +319,26 @@ public class CashTransactionService implements CashTransactionUseCase {
 
         try {
             BigDecimal newBal = accountInfo.availableBalance() != null ? accountInfo.availableBalance().subtract(amount) : BigDecimal.ZERO;
+            String tenantSchema = com.kab.qershi.transaction.infrastructure.config.TenantContext.getTenantSchema();
+
+            // Publish async Kafka domain event (partitioned by saccoCode)
+            eventPublisher.publishTransactionCompleted(new com.kab.qershi.common.event.TransactionCompletedEvent(
+                    tenantSchema,
+                    txRef,
+                    accountNo,
+                    accountInfo.phoneNumber(),
+                    accountInfo.fullName(),
+                    "WITHDRAWAL",
+                    amount,
+                    newBal,
+                    null,
+                    null,
+                    Instant.now()
+            ));
+
             notificationAdapter.sendCashWithdrawalNotification(accountInfo.phoneNumber(), accountInfo.fullName(), accountNo, amount, newBal);
         } catch (Exception ex) {
-            log.warn("Failed dispatching cash withdrawal SMS: {}", ex.getMessage());
+            log.warn("Failed dispatching cash withdrawal notification: {}", ex.getMessage());
         }
 
         log.info("Cash Withdrawal COMPLETED successfully: txRef={}, accountNo={}, amount={}", txRef, accountNo, amount);
