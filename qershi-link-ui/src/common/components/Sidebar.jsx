@@ -34,6 +34,9 @@ import {
   PieChart,
   Repeat,
   BadgeDollarSign,
+  MessageSquare,
+  Radio,
+  FileText,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { PermissionGuard } from './PermissionGuard';
@@ -546,6 +549,54 @@ export const Sidebar = () => {
               isCollapsed={isCollapsed}
             />
           </PermissionGuard>
+        </PermissionGuard>
+
+        {/* ── 8. NOTIFICATIONS & SMS GATEWAY ── */}
+        <PermissionGuard
+          permissions={[
+            PERMISSIONS.NOTIFICATION_CONFIG_MANAGE,
+            PERMISSIONS.NOTIFICATION_TEMPLATE_MANAGE,
+            PERMISSIONS.NOTIFICATION_LOG_VIEW,
+            PERMISSIONS.NOTIFICATION_SEND,
+          ]}
+          roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN, ROLES.AUDITOR]}
+        >
+          <SectionDivider title="Messaging & Alerts" isCollapsed={isCollapsed} />
+          <NavGroup label="SMS Gateway" icon={MessageSquare} isCollapsed={isCollapsed}>
+            <PermissionGuard
+              roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN]}
+              permissions={[PERMISSIONS.NOTIFICATION_CONFIG_MANAGE]}
+            >
+              <SubNavItem
+                path="/notifications/gateway"
+                label="Gateway Config"
+                icon={Radio}
+                isCollapsed={isCollapsed}
+              />
+            </PermissionGuard>
+            <PermissionGuard
+              roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN]}
+              permissions={[PERMISSIONS.NOTIFICATION_TEMPLATE_MANAGE]}
+            >
+              <SubNavItem
+                path="/notifications/templates"
+                label="Template Editor"
+                icon={FileText}
+                isCollapsed={isCollapsed}
+              />
+            </PermissionGuard>
+            <PermissionGuard
+              roles={[ROLES.SUPER_ADMIN, ROLES.SACCO_ADMIN, ROLES.ADMIN, ROLES.AUDITOR]}
+              permissions={[PERMISSIONS.NOTIFICATION_LOG_VIEW]}
+            >
+              <SubNavItem
+                path="/notifications/logs"
+                label="Delivery Logs"
+                icon={History}
+                isCollapsed={isCollapsed}
+              />
+            </PermissionGuard>
+          </NavGroup>
         </PermissionGuard>
       </div>
 

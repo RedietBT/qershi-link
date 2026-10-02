@@ -67,7 +67,7 @@ public class SmsGatewayConfigController {
     }
 
     @PostMapping("/test")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_CONFIG_MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAnyAuthority('NOTIFICATION_CONFIG_MANAGE', 'NOTIFICATION_SEND')")
     @Operation(summary = "Test SMS Gateway Connection", description = "Sends a live test SMS to verify provider connectivity and credentials.")
     public ResponseEntity<NotificationResponse> testConnection(@Valid @RequestBody TestSmsGatewayRequest dto) {
         NotificationLog testLog = configUseCase.testSmsGateway(dto.getRecipientPhone(), dto.getCustomMessage());

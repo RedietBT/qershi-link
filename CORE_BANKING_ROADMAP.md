@@ -201,11 +201,12 @@
     - [x] `loan-management-service`: `LoanDisbursedEvent`, `RepaymentReceivedEvent` to `banking.loans` (Key: `saccoCode`)
     - [x] `account-management-service`: `AccountOpenedEvent` to `banking.accounts` (Key: `saccoCode`)
   - [x] `notification-service` consumes events asynchronously with retry backoff and error-handling deserializers in `BankingDomainEventListener`.
-- [ ] **Frontend Deliverables (Step 3 & 4)**
-  - [ ] `notificationApi.js`: Centralized notification client module.
-  - [ ] `SmsGatewayConfigPage.jsx`: Tenant configuration screen to select provider, enter live API credentials, and test live connection.
-  - [ ] `SmsTemplateEditorPage.jsx`: Customize SMS notification text for deposits, withdrawals, and loans with live placeholder preview.
-  - [ ] `NotificationLogsPage.jsx`: Searchable real-time delivery audit trail.
+- [x] **Frontend Deliverables (Step 3 - Completed)**
+  - [x] `notificationApi.js`: Centralized notification client module.
+  - [x] `SmsGatewayConfigPage.jsx`: Tenant configuration screen to select provider (`AFROMESSAGE`, `ETHIO_TELECOM`, `INFOBIP`, `CUSTOM_WEBHOOK`, `SIMULATED`), enter live API credentials, and test live connection with AES-256 masking.
+  - [x] `SmsTemplateEditorPage.jsx`: Customize SMS notification text for deposits, withdrawals, and loans with placeholder chips and live phone preview.
+  - [x] `NotificationLogsPage.jsx`: Searchable real-time delivery audit trail with phone and status filters.
+  - [x] Granular permission guards (`NOTIFICATION_CONFIG_MANAGE`, `NOTIFICATION_TEMPLATE_MANAGE`, `NOTIFICATION_SEND`, `NOTIFICATION_LOG_VIEW`) securing all action buttons and routes.
 
 ---
 

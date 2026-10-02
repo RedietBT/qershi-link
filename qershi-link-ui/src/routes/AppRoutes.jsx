@@ -15,6 +15,7 @@ import { loanRoutes } from './modules/loanRoutes';
 import { operationRoutes } from './modules/operationRoutes';
 import { accountingRoutes } from './modules/accountingRoutes';
 import { pricingRoutes } from './modules/pricingRoutes';
+import { notificationRoutes } from './modules/notificationRoutes';
 
 /**
  * Master Application Routing Engine
@@ -43,6 +44,7 @@ export const AppRoutes = () => {
         {accountingRoutes}
         {operationRoutes}
         {pricingRoutes}
+        {notificationRoutes}
       </Route>
 
       {/* Fallbacks */}

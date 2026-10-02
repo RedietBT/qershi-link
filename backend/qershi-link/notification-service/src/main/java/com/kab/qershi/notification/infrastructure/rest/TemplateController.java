@@ -52,7 +52,7 @@ public class TemplateController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_TEMPLATE_MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN', 'AUDITOR') or hasAnyAuthority('NOTIFICATION_TEMPLATE_MANAGE', 'NOTIFICATION_SEND', 'NOTIFICATION_LOG_VIEW')")
     @Operation(summary = "List All Templates", description = "Lists all notification templates for the active tenant schema.")
     public ResponseEntity<List<TemplateResponse>> listTemplates() {
         List<NotificationTemplate> templates = templateManagementUseCase.getAllTemplates();
@@ -63,7 +63,7 @@ public class TemplateController {
     }
 
     @GetMapping("/{code}")
-    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN') or hasAuthority('NOTIFICATION_TEMPLATE_MANAGE')")
+    @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN', 'SUPER_ADMIN', 'AUDITOR') or hasAnyAuthority('NOTIFICATION_TEMPLATE_MANAGE', 'NOTIFICATION_SEND', 'NOTIFICATION_LOG_VIEW')")
     @Operation(summary = "Get Template by Code", description = "Retrieves a specific notification template by code (e.g. CASH_DEPOSIT_ALERT).")
     public ResponseEntity<TemplateResponse> getTemplateByCode(@PathVariable String code) {
         NotificationTemplate template = templateManagementUseCase.getTemplateByCode(code);
