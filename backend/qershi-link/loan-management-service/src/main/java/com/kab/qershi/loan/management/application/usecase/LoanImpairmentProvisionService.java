@@ -1,12 +1,9 @@
 package com.kab.qershi.loan.management.application.usecase;
 
-import com.kab.qershi.loan.management.domain.model.LoanStatus;
-import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountEntity;
-import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanImpairmentProvisionLineEntity;
-import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanImpairmentProvisionRunEntity;
-import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountRepository;
-import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanImpairmentProvisionLineRepository;
-import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanImpairmentProvisionRunRepository;
+import com.kab.qershi.loan.management.domain.model.*;
+import com.kab.qershi.loan.management.domain.port.in.LoanImpairmentProvisionUseCase;
+import com.kab.qershi.loan.management.domain.port.out.LoanAccountRepositoryPort;
+import com.kab.qershi.loan.management.domain.port.out.LoanImpairmentProvisionRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -42,11 +39,13 @@ import java.util.UUID;
  *   Loss                   360+          100.0% (full write-off reserve)
  * </pre>
  *
+ * Follows strict Hexagonal Architecture DDD principles.
+ *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
 @Service
-public class LoanImpairmentProvisionService {
+public class LoanImpairmentProvisionService implements LoanImpairmentProvisionUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(LoanImpairmentProvisionService.class);
 
@@ -67,33 +66,17 @@ public class LoanImpairmentProvisionService {
     private static final String GL_DEBIT  = "5030";   // Loan Impairment Loss Expense
     private static final String GL_CREDIT = "1039";   // Allowance for Credit Losses
 
-    private final SpringDataLoanAccountRepository loanAccountRepository;
-    private final SpringDataLoanImpairmentProvisionRunRepository provisionRunRepository;
-    private final SpringDataLoanImpairmentProvisionLineRepository provisionLineRepository;
+    private final LoanAccountRepositoryPort loanAccountRepository;
+    private final LoanImpairmentProvisionRepositoryPort provisionRepository;
 
     public LoanImpairmentProvisionService(
-            SpringDataLoanAccountRepository loanAccountRepository,
-            SpringDataLoanImpairmentProvisionRunRepository provisionRunRepository,
-            SpringDataLoanImpairmentProvisionLineRepository provisionLineRepository) {
+            LoanAccountRepositoryPort loanAccountRepository,
+            LoanImpairmentProvisionRepositoryPort provisionRepository) {
         this.loanAccountRepository = loanAccountRepository;
-        this.provisionRunRepository = provisionRunRepository;
-        this.provisionLineRepository = provisionLineRepository;
+        this.provisionRepository = provisionRepository;
     }
 
-    // ── Result record returned to the EOD pipeline ───────────────────────────
-
-    public record Ifrs9ProvisionResult(
-            UUID runId,
-            LocalDate businessDate,
-            int totalLoansEvaluated,
-            BigDecimal totalPortfolioBalance,
-            BigDecimal totalProvisionRequired,
-            String glPostingRef,
-            String status
-    ) {}
-
     // ── Stage classification record ───────────────────────────────────────────
-
     private record StageClassification(
             String stage,
             String label,
@@ -112,6 +95,7 @@ public class LoanImpairmentProvisionService {
      * @param triggeredBy    e.g. "SYSTEM_EOD", "MANUAL_ADMIN"
      * @param triggeredByUserId optional user UUID for audit trail
      */
+    @Override
     @Transactional
     public Ifrs9ProvisionResult runMonthEndProvisioning(
             LocalDate businessDate, String triggeredBy, UUID triggeredByUserId) {
@@ -119,9 +103,9 @@ public class LoanImpairmentProvisionService {
         log.info("[IFRS9] Starting month-end loan impairment provisioning for business date: {}", businessDate);
 
         // Idempotency guard — skip if already completed for this date
-        Optional<LoanImpairmentProvisionRunEntity> existingRun = provisionRunRepository.findByBusinessDate(businessDate);
+        Optional<LoanImpairmentProvisionRun> existingRun = provisionRepository.findRunByBusinessDate(businessDate);
         if (existingRun.isPresent() && "COMPLETED".equals(existingRun.get().getStatus())) {
-            LoanImpairmentProvisionRunEntity run = existingRun.get();
+            LoanImpairmentProvisionRun run = existingRun.get();
             log.info("[IFRS9] Provision run already completed for {}. Returning existing result.", businessDate);
             return new Ifrs9ProvisionResult(
                     run.getRunId(), run.getBusinessDate(),
@@ -130,7 +114,7 @@ public class LoanImpairmentProvisionService {
         }
 
         // Create / reset run header
-        LoanImpairmentProvisionRunEntity run = existingRun.orElseGet(LoanImpairmentProvisionRunEntity::new);
+        LoanImpairmentProvisionRun run = existingRun.orElseGet(LoanImpairmentProvisionRun::new);
         run.setBusinessDate(businessDate);
         run.setRunType("MONTH_END");
         run.setStatus("IN_PROGRESS");
@@ -138,12 +122,12 @@ public class LoanImpairmentProvisionService {
         run.setTriggeredByUserId(triggeredByUserId);
         run.setGlDebitAccount(GL_DEBIT);
         run.setGlCreditAccount(GL_CREDIT);
-        run = provisionRunRepository.save(run);
+        run = provisionRepository.saveRun(run);
 
         UUID runId = run.getRunId();
 
         try {
-            List<LoanAccountEntity> activeLoans = loanAccountRepository.findByStatusIn(
+            List<LoanAccount> activeLoans = loanAccountRepository.findByStatusIn(
                     List.of(LoanStatus.ACTIVE, LoanStatus.DISBURSED));
 
             // Accumulator buckets
@@ -159,9 +143,9 @@ public class LoanImpairmentProvisionService {
             BigDecimal doubtfulProvision = BigDecimal.ZERO;
             BigDecimal lossProvision     = BigDecimal.ZERO;
 
-            List<LoanImpairmentProvisionLineEntity> lines = new ArrayList<>();
+            List<LoanImpairmentProvisionLine> lines = new ArrayList<>();
 
-            for (LoanAccountEntity loan : activeLoans) {
+            for (LoanAccount loan : activeLoans) {
                 BigDecimal principal = loan.getPrincipalAmount() != null
                         ? loan.getPrincipalAmount() : BigDecimal.ZERO;
 
@@ -199,7 +183,7 @@ public class LoanImpairmentProvisionService {
                 }
 
                 // Create detail line
-                LoanImpairmentProvisionLineEntity line = new LoanImpairmentProvisionLineEntity();
+                LoanImpairmentProvisionLine line = new LoanImpairmentProvisionLine();
                 line.setRunId(runId);
                 line.setAccountId(loan.getAccountId());
                 line.setAccountNo(loan.getAccountNo());
@@ -211,6 +195,7 @@ public class LoanImpairmentProvisionService {
                 line.setOutstandingPrincipal(principal);
                 line.setProvisionRatePct(stage.ratePercent());
                 line.setProvisionAmount(provision);
+                line.setCreatedAt(OffsetDateTime.now());
                 lines.add(line);
             }
 
@@ -219,12 +204,12 @@ public class LoanImpairmentProvisionService {
                     .add(doubtfulProvision).add(lossProvision);
 
             // Persist all detail lines in batch
-            provisionLineRepository.saveAll(lines);
+            provisionRepository.saveAllLines(lines);
 
             // Build GL posting reference — unique per business date + run
             String glRef = String.format("JE-IFRS9-%s-%s",
                     businessDate.toString().replace("-", ""),
-                    runId.toString().substring(0, 8).toUpperCase());
+                    runId != null ? runId.toString().substring(0, 8).toUpperCase() : UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
             // Update run header with final numbers
             run.setStatus("COMPLETED");
@@ -244,7 +229,7 @@ public class LoanImpairmentProvisionService {
             run.setGlPostingRef(glRef);
             run.setGlPostedAt(OffsetDateTime.now());
             run.setCompletedAt(OffsetDateTime.now());
-            provisionRunRepository.save(run);
+            provisionRepository.saveRun(run);
 
             log.info("[IFRS9] Provisioning complete. Loans: {}, Portfolio: {} ETB, Total Provision: {} ETB, GL Ref: {}",
                     activeLoans.size(), totalPortfolio, totalProvision, glRef);
@@ -260,45 +245,29 @@ public class LoanImpairmentProvisionService {
             run.setStatus("FAILED");
             run.setErrorMessage(ex.getMessage());
             run.setCompletedAt(OffsetDateTime.now());
-            provisionRunRepository.save(run);
+            provisionRepository.saveRun(run);
             throw new RuntimeException("IFRS9 provisioning run failed: " + ex.getMessage(), ex);
         }
     }
 
-    /**
-     * Returns the latest completed provision run (for dashboard display).
-     */
-    public Optional<LoanImpairmentProvisionRunEntity> getLatestCompletedRun() {
-        return provisionRunRepository.findLatestCompleted();
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<LoanImpairmentProvisionRun> getLatestCompletedRun() {
+        return provisionRepository.findLatestCompletedRun();
     }
 
-    /**
-     * Returns provision history for the last 12 completed runs.
-     */
-    public List<LoanImpairmentProvisionRunEntity> getProvisionHistory() {
-        return provisionRunRepository.findTop12ByStatusOrderByBusinessDateDesc("COMPLETED");
+    @Override
+    @Transactional(readOnly = true)
+    public List<LoanImpairmentProvisionRun> getProvisionHistory() {
+        return provisionRepository.findTop12CompletedRuns();
     }
 
-    /**
-     * Returns per-loan detail lines for a given provision run.
-     */
-    public List<LoanImpairmentProvisionLineEntity> getRunLines(UUID runId) {
-        return provisionLineRepository.findByRunId(runId);
+    @Override
+    @Transactional(readOnly = true)
+    public List<LoanImpairmentProvisionLine> getRunLines(UUID runId) {
+        return provisionRepository.findLinesByRunId(runId);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
-
-    /**
-     * Maps days-past-due to the NBE / IFRS 9 risk stage classification.
-     *
-     * <pre>
-     *   Pass            0–29   days  → 1%
-     *   Special Mention 30–89  days  → 5%
-     *   Substandard     90–179 days  → 20%
-     *   Doubtful        180–359 days → 50%
-     *   Loss            360+   days  → 100%
-     * </pre>
-     */
     private StageClassification classifyStage(int dpd) {
         if (dpd < 30) {
             return new StageClassification(STAGE_PASS, "Pass (0–29 DPD)", 0, 29, RATE_PASS);

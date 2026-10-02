@@ -1,5 +1,6 @@
 package com.kab.qershi.loan.management.infrastructure.rest.dto;
 
+import com.kab.qershi.loan.management.domain.model.LoanAuditLog;
 import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAuditLogEntity;
 
 import java.time.OffsetDateTime;
@@ -22,6 +23,23 @@ public record LoanAuditLogResponse(
         String newValue,
         OffsetDateTime createdAt
 ) {
+    public static LoanAuditLogResponse fromDomain(LoanAuditLog domain) {
+        if (domain == null) {
+            return null;
+        }
+        return new LoanAuditLogResponse(
+                domain.getLogId(),
+                domain.getAccountNo(),
+                domain.getUserId(),
+                domain.getPerformedByUserId(),
+                domain.getAction(),
+                domain.getFieldName(),
+                domain.getOldValue(),
+                domain.getNewValue(),
+                domain.getCreatedAt()
+        );
+    }
+
     public static LoanAuditLogResponse fromEntity(LoanAuditLogEntity entity) {
         if (entity == null) {
             return null;

@@ -1,6 +1,7 @@
 package com.kab.qershi.loan.management.infrastructure.persistence.adapter;
 
 import com.kab.qershi.loan.management.domain.model.LoanAccount;
+import com.kab.qershi.loan.management.domain.model.LoanStatus;
 import com.kab.qershi.loan.management.domain.port.out.LoanAccountRepositoryPort;
 import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountEntity;
 import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountRepository;
@@ -34,8 +35,22 @@ public class LoanAccountRepositoryAdapter implements LoanAccountRepositoryPort {
     }
 
     @Override
+    public List<LoanAccount> saveAll(List<LoanAccount> accounts) {
+        List<LoanAccountEntity> entities = accounts.stream()
+                .map(this::toEntity)
+                .collect(Collectors.toList());
+        List<LoanAccountEntity> saved = repository.saveAll(entities);
+        return saved.stream().map(this::toDomain).collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<LoanAccount> findById(UUID id) {
         return repository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<LoanAccount> findByAccountNo(String accountNo) {
+        return repository.findByAccountNo(accountNo).map(this::toDomain);
     }
 
     @Override
@@ -46,6 +61,27 @@ public class LoanAccountRepositoryAdapter implements LoanAccountRepositoryPort {
     @Override
     public List<LoanAccount> findByUserId(UUID userId) {
         return repository.findByUserId(userId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<LoanAccount> findByStatus(LoanStatus status) {
+        return repository.findByStatus(status).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<LoanAccount> findByStatusIn(List<LoanStatus> statuses) {
+        return repository.findByStatusIn(statuses).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<LoanAccount> findAll() {
+        return repository.findAll().stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }
@@ -65,6 +101,11 @@ public class LoanAccountRepositoryAdapter implements LoanAccountRepositoryPort {
         entity.setInterestType(domain.getInterestType());
         entity.setDisbursementDate(domain.getDisbursementDate());
         entity.setStatus(domain.getStatus());
+        entity.setDaysPastDue(domain.getDaysPastDue() != null ? domain.getDaysPastDue() : 0);
+        entity.setParBucket(domain.getParBucket() != null ? domain.getParBucket() : "CURRENT");
+        entity.setProvisionRatePct(domain.getProvisionRatePct());
+        entity.setProvisionAmount(domain.getProvisionAmount());
+        entity.setLastParEvaluationDate(domain.getLastParEvaluationDate());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
@@ -85,6 +126,11 @@ public class LoanAccountRepositoryAdapter implements LoanAccountRepositoryPort {
                 entity.getInterestType(),
                 entity.getDisbursementDate(),
                 entity.getStatus(),
+                entity.getDaysPastDue(),
+                entity.getParBucket(),
+                entity.getProvisionRatePct(),
+                entity.getProvisionAmount(),
+                entity.getLastParEvaluationDate(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

@@ -18,6 +18,8 @@ import java.util.UUID;
 @Repository
 public interface SpringDataLoanAccountRepository extends JpaRepository<LoanAccountEntity, UUID> {
 
+    Optional<LoanAccountEntity> findByAccountNo(String accountNo);
+
     Optional<LoanAccountEntity> findByApplicationId(UUID applicationId);
 
     List<LoanAccountEntity> findByUserId(UUID userId);

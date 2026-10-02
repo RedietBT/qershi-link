@@ -1,5 +1,6 @@
 package com.kab.qershi.loan.management.infrastructure.rest.dto;
 
+import com.kab.qershi.loan.management.domain.model.LoanImpairmentProvisionRun;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -87,4 +88,33 @@ public record Ifrs9ProvisionRunResponse(
 
         @Schema(description = "When the run completed")
         OffsetDateTime completedAt
-) {}
+) {
+    public static Ifrs9ProvisionRunResponse fromDomain(LoanImpairmentProvisionRun domain) {
+        if (domain == null) return null;
+        return new Ifrs9ProvisionRunResponse(
+                domain.getRunId(),
+                domain.getBusinessDate(),
+                domain.getRunType(),
+                domain.getStatus(),
+                domain.getTotalLoansEvaluated() != null ? domain.getTotalLoansEvaluated() : 0,
+                domain.getTotalPortfolioBalance(),
+                domain.getPassBalance(),
+                domain.getSpecialMentionBalance(),
+                domain.getSubstandardBalance(),
+                domain.getDoubtfulBalance(),
+                domain.getLossBalance(),
+                domain.getPassProvision(),
+                domain.getSpecialMentionProvision(),
+                domain.getSubstandardProvision(),
+                domain.getDoubtfulProvision(),
+                domain.getLossProvision(),
+                domain.getTotalProvisionRequired(),
+                domain.getGlDebitAccount(),
+                domain.getGlCreditAccount(),
+                domain.getGlPostingRef(),
+                domain.getGlPostedAt(),
+                domain.getTriggeredBy(),
+                domain.getCompletedAt()
+        );
+    }
+}

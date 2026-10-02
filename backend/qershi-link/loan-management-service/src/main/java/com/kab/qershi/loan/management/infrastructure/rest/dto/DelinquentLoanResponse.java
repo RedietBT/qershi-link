@@ -1,5 +1,6 @@
 package com.kab.qershi.loan.management.infrastructure.rest.dto;
 
+import com.kab.qershi.loan.management.domain.model.DelinquentLoanInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -52,4 +53,23 @@ public record DelinquentLoanResponse(
 
         @Schema(description = "Business date when evaluated")
         LocalDate businessDate
-) {}
+) {
+    public static DelinquentLoanResponse fromDomain(DelinquentLoanInfo domain) {
+        if (domain == null) return null;
+        return new DelinquentLoanResponse(
+                domain.snapshotId(),
+                domain.accountId(),
+                domain.accountNo(),
+                domain.userId(),
+                domain.principalAmount(),
+                domain.daysPastDue(),
+                domain.overduePrincipal(),
+                domain.overdueInterest(),
+                domain.totalOverdue(),
+                domain.parBucket(),
+                domain.provisionRatePct(),
+                domain.provisionAmount(),
+                domain.businessDate()
+        );
+    }
+}

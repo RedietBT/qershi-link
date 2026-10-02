@@ -1,8 +1,10 @@
 package com.kab.qershi.loan.management.infrastructure.rest;
 
 import com.kab.qershi.loan.management.domain.model.LoanAccount;
+import com.kab.qershi.loan.management.domain.model.LoanAccountGuarantor;
 import com.kab.qershi.loan.management.domain.model.RepaymentSchedule;
 import com.kab.qershi.loan.management.domain.port.in.LoanScheduleUseCase;
+import com.kab.qershi.loan.management.infrastructure.rest.dto.LoanAccountGuarantorResponse;
 import com.kab.qershi.loan.management.infrastructure.rest.dto.LoanAccountResponse;
 import com.kab.qershi.loan.management.infrastructure.rest.dto.RepaymentScheduleResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 /**
  * REST Controller for inspecting Loan Accounts & Amortization Repayment Schedules.
+ * Follows strict Hexagonal Architecture DDD principles.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -27,12 +30,9 @@ import java.util.stream.Collectors;
 public class LoanAccountController {
 
     private final LoanScheduleUseCase scheduleUseCase;
-    private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository;
 
-    public LoanAccountController(LoanScheduleUseCase scheduleUseCase,
-                                 com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository) {
+    public LoanAccountController(LoanScheduleUseCase scheduleUseCase) {
         this.scheduleUseCase = scheduleUseCase;
-        this.guarantorRepository = guarantorRepository;
     }
 
     @GetMapping("/{id}")
@@ -68,7 +68,11 @@ public class LoanAccountController {
     @GetMapping("/{id}/guarantors")
     @PreAuthorize("hasAnyRole('SACCO_ADMIN', 'ADMIN') or hasAnyAuthority('ROLE_SACCO_ADMIN', 'ROLE_ADMIN', 'LOAN_ACCOUNT:VIEW', 'LOAN_ACCOUNT_VIEW')")
     @Operation(summary = "Get Loan Account Peer Guarantors", description = "Retrieves peer guarantors and their active savings lien status for a loan account")
-    public ResponseEntity<List<com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountGuarantorEntity>> getAccountGuarantors(@PathVariable("id") UUID id) {
-        return ResponseEntity.ok(guarantorRepository.findByAccountId(id));
+    public ResponseEntity<List<LoanAccountGuarantorResponse>> getAccountGuarantors(@PathVariable("id") UUID id) {
+        List<LoanAccountGuarantor> guarantors = scheduleUseCase.getAccountGuarantors(id);
+        List<LoanAccountGuarantorResponse> response = guarantors.stream()
+                .map(LoanAccountGuarantorResponse::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 }

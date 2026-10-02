@@ -1,6 +1,7 @@
 package com.kab.qershi.loan.management.infrastructure.persistence.adapter;
 
 import com.kab.qershi.loan.management.domain.model.RepaymentSchedule;
+import com.kab.qershi.loan.management.domain.model.ScheduleStatus;
 import com.kab.qershi.loan.management.domain.port.out.RepaymentScheduleRepositoryPort;
 import com.kab.qershi.loan.management.infrastructure.persistence.entity.RepaymentScheduleEntity;
 import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataRepaymentScheduleRepository;
@@ -37,6 +38,13 @@ public class RepaymentScheduleRepositoryAdapter implements RepaymentScheduleRepo
     @Override
     public List<RepaymentSchedule> findByAccountIdOrderByInstallmentNoAsc(UUID accountId) {
         return repository.findByAccountIdOrderByInstallmentNoAsc(accountId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RepaymentSchedule> findByAccountIdAndStatusNot(UUID accountId, ScheduleStatus status) {
+        return repository.findByAccountIdAndStatusNot(accountId, status).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }

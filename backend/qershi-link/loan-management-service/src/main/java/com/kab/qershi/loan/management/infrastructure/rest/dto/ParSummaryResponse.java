@@ -1,5 +1,6 @@
 package com.kab.qershi.loan.management.infrastructure.rest.dto;
 
+import com.kab.qershi.loan.management.domain.model.ParSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -53,4 +54,24 @@ public record ParSummaryResponse(
 
         @Schema(description = "Total required regulatory loan loss provision reserve (ETB)")
         BigDecimal totalProvisionReserve
-) {}
+) {
+    public static ParSummaryResponse fromDomain(ParSummary domain) {
+        if (domain == null) return null;
+        return new ParSummaryResponse(
+                domain.totalLoans(),
+                domain.totalPrincipal(),
+                domain.currentCount(),
+                domain.currentAmount(),
+                domain.par30Count(),
+                domain.par30Amount(),
+                domain.par60Count(),
+                domain.par60Amount(),
+                domain.par90Count(),
+                domain.par90Amount(),
+                domain.lossCount(),
+                domain.lossAmount(),
+                domain.nplRatio(),
+                domain.totalProvisions()
+        );
+    }
+}

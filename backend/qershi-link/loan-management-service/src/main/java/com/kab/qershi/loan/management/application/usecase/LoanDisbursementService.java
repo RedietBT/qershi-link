@@ -2,14 +2,12 @@ package com.kab.qershi.loan.management.application.usecase;
 
 import com.kab.qershi.loan.management.domain.engine.AmortizationEngine;
 import com.kab.qershi.loan.management.domain.model.LoanAccount;
+import com.kab.qershi.loan.management.domain.model.LoanAccountGuarantor;
+import com.kab.qershi.loan.management.domain.model.LoanAuditLog;
 import com.kab.qershi.loan.management.domain.model.LoanStatus;
 import com.kab.qershi.loan.management.domain.model.RepaymentSchedule;
 import com.kab.qershi.loan.management.domain.port.in.LoanDisbursementUseCase;
-import com.kab.qershi.loan.management.domain.port.out.LoanAccountRepositoryPort;
-import com.kab.qershi.loan.management.domain.port.out.RepaymentScheduleRepositoryPort;
-import com.kab.qershi.loan.management.infrastructure.adapters.NotificationGrpcClientAdapter;
-import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAuditLogEntity;
-import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAuditLogRepository;
+import com.kab.qershi.loan.management.domain.port.out.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -26,6 +24,7 @@ import java.util.UUID;
 
 /**
  * Business logic service managing Loan Disbursement & Account Activation.
+ * Follows strict Hexagonal Architecture DDD principles.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -38,24 +37,24 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
     private final LoanAccountRepositoryPort accountRepository;
     private final RepaymentScheduleRepositoryPort scheduleRepository;
     private final AmortizationEngine amortizationEngine;
-    private final NotificationGrpcClientAdapter notificationAdapter;
-    private final SpringDataLoanAuditLogRepository auditLogRepository;
-    private final com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort;
-    private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository;
-    private final com.kab.qershi.loan.management.domain.port.out.PricingClientPort pricingClientPort;
+    private final NotificationClientPort notificationClientPort;
+    private final LoanAuditLogRepositoryPort auditLogRepository;
+    private final AccountClientPort accountClientPort;
+    private final LoanGuarantorRepositoryPort guarantorRepository;
+    private final PricingClientPort pricingClientPort;
 
     public LoanDisbursementService(LoanAccountRepositoryPort accountRepository,
                                    RepaymentScheduleRepositoryPort scheduleRepository,
                                    AmortizationEngine amortizationEngine,
-                                   NotificationGrpcClientAdapter notificationAdapter,
-                                   SpringDataLoanAuditLogRepository auditLogRepository,
-                                   com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort,
-                                   com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository,
-                                   com.kab.qershi.loan.management.domain.port.out.PricingClientPort pricingClientPort) {
+                                   NotificationClientPort notificationClientPort,
+                                   LoanAuditLogRepositoryPort auditLogRepository,
+                                   AccountClientPort accountClientPort,
+                                   LoanGuarantorRepositoryPort guarantorRepository,
+                                   PricingClientPort pricingClientPort) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.amortizationEngine = amortizationEngine;
-        this.notificationAdapter = notificationAdapter;
+        this.notificationClientPort = notificationClientPort;
         this.auditLogRepository = auditLogRepository;
         this.accountClientPort = accountClientPort;
         this.guarantorRepository = guarantorRepository;
@@ -76,17 +75,17 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
             return existing.get();
         }
 
-        // 2. Generate unique loan account number: LN-YYYYMMDD-XXXXXXXX
-        String datePrefix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String accountNo = "LN-" + datePrefix + "-" + uniqueSuffix;
+        // 2. Generate Unique Loan Account Number: LN-{YYYYMM}-{UUID.substr}
+        String timestampPart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
+        String randomPart = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String generatedAccountNo = "LN-" + timestampPart + "-" + randomPart;
 
         OffsetDateTime now = OffsetDateTime.now();
 
-        // 3. Create Loan Account aggregate
+        // 3. Create Loan Account in PENDING_DISBURSEMENT state for Maker-Checker Dual Authorization
         LoanAccount account = new LoanAccount(
                 null,
-                accountNo,
+                generatedAccountNo,
                 command.applicationId(),
                 command.userId(),
                 command.productId(),
@@ -96,17 +95,34 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
                 command.repaymentFrequency(),
                 command.interestType(),
                 now,
-                LoanStatus.DISBURSED,
+                LoanStatus.PENDING_DISBURSEMENT,
                 now,
                 now
         );
 
         LoanAccount savedAccount = accountRepository.save(account);
 
-        // 4. Calculate Loan Processing & Appraisal Fee via pricing-fee-service (Option A: Deduction at source)
+        // 4. Audit Log entry for Maker step
+        try {
+            auditLogRepository.save(new LoanAuditLog(
+                    null,
+                    savedAccount.getAccountNo(),
+                    savedAccount.getUserId(),
+                    command.userId(),
+                    "LOAN_DISBURSEMENT_INITIATED",
+                    "status",
+                    null,
+                    LoanStatus.PENDING_DISBURSEMENT.name(),
+                    now
+            ));
+        } catch (Exception ex) {
+            log.warn("Failed writing loan initiation audit log: {}", ex.getMessage());
+        }
+
+        // 4.0. Query Dynamic Tariff & Fee Configuration via pricing-fee-service
         BigDecimal grossAmount = command.amount();
         BigDecimal processingFee = BigDecimal.ZERO;
-        String feeGlCode = "4021";
+        String feeGlCode = "4021"; // Default Loan Processing Fee Income
         String tariffCode = "NONE";
 
         if (pricingClientPort != null) {
@@ -132,7 +148,7 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
         }
 
         try {
-            auditLogRepository.save(new LoanAuditLogEntity(
+            auditLogRepository.save(new LoanAuditLog(
                     null,
                     savedAccount.getAccountNo(),
                     savedAccount.getUserId(),
@@ -179,19 +195,21 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
             for (GuarantorDisbursementInput g : command.guarantors()) {
                 log.info("Placing lien hold of {} ETB on guarantor savings account {} for loan {}",
                         g.guaranteedAmount(), g.savingsAccountNo(), savedAccount.getAccountNo());
+
                 UUID lienId = null;
                 String status = "PENDING";
                 try {
-                    com.kab.qershi.loan.management.domain.port.out.AccountClientPort.LienResult lienResult =
-                            accountClientPort.placeLien(
-                                    g.savingsAccountNo(),
-                                    g.guaranteedAmount(),
-                                    "Peer Guarantor Pledge for Loan " + savedAccount.getAccountNo(),
-                                    savedAccount.getAccountNo(),
-                                    command.userId() != null ? command.userId().toString() : ""
-                            );
-                    if (lienResult.isSuccess() && lienResult.lienId() != null && !lienResult.lienId().isBlank()) {
-                        lienId = UUID.fromString(lienResult.lienId());
+                    var lienResult = accountClientPort.placeLien(
+                            g.savingsAccountNo(),
+                            g.guaranteedAmount(),
+                            "PEER_GUARANTEE_HOLD",
+                            "Collateral lien hold for Loan " + savedAccount.getAccountNo(),
+                            savedAccount.getUserId() != null ? savedAccount.getUserId().toString() : "SYSTEM"
+                    );
+                    if (lienResult.isSuccess() && lienResult.lienId() != null) {
+                        try {
+                            lienId = UUID.fromString(lienResult.lienId());
+                        } catch (Exception ignored) {}
                         status = "HELD";
                         log.info("Successfully placed lien {} on guarantor account {}", lienId, g.savingsAccountNo());
                     } else {
@@ -203,7 +221,7 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
                     status = "FAILED";
                 }
 
-                guarantorRepository.save(new com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountGuarantorEntity(
+                guarantorRepository.save(new LoanAccountGuarantor(
                         null,
                         savedAccount.getAccountId(),
                         command.applicationId(),
@@ -222,7 +240,7 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
 
         // 5. Trigger SMS Notification via gRPC — send to the actual member's phone
         if (command.memberPhone() != null && !command.memberPhone().isBlank()) {
-            notificationAdapter.sendNotification(
+            notificationClientPort.sendNotification(
                     command.memberPhone(),
                     "LOAN_DISBURSED",
                     Map.of(
@@ -265,7 +283,7 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
         LoanAccount savedAccount = accountRepository.save(account);
 
         try {
-            auditLogRepository.save(new LoanAuditLogEntity(
+            auditLogRepository.save(new LoanAuditLog(
                     null,
                     savedAccount.getAccountNo(),
                     savedAccount.getUserId(),
@@ -284,13 +302,13 @@ public class LoanDisbursementService implements LoanDisbursementUseCase {
         List<RepaymentSchedule> existingSchedules = scheduleRepository.findByAccountIdOrderByInstallmentNoAsc(savedAccount.getAccountId());
         if (existingSchedules.isEmpty()) {
             List<RepaymentSchedule> schedules = amortizationEngine.generateSchedule(
-                    savedAccount.getAccountId(),
-                    savedAccount.getPrincipalAmount(),
-                    savedAccount.getInterestRatePct(),
-                    savedAccount.getTermMonths(),
-                    savedAccount.getRepaymentFrequency(),
-                    savedAccount.getInterestType(),
-                    LocalDate.now()
+                savedAccount.getAccountId(),
+                savedAccount.getPrincipalAmount(),
+                savedAccount.getInterestRatePct(),
+                savedAccount.getTermMonths(),
+                savedAccount.getRepaymentFrequency(),
+                savedAccount.getInterestType(),
+                LocalDate.now()
             );
 
             scheduleRepository.saveAll(schedules);

@@ -1,6 +1,7 @@
 package com.kab.qershi.loan.management.domain.model;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -24,6 +25,11 @@ public class LoanAccount {
     private String interestType;
     private OffsetDateTime disbursementDate;
     private LoanStatus status;
+    private Integer daysPastDue = 0;
+    private String parBucket = "CURRENT";
+    private BigDecimal provisionRatePct = new BigDecimal("1.00");
+    private BigDecimal provisionAmount = BigDecimal.ZERO;
+    private LocalDate lastParEvaluationDate;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -46,6 +52,34 @@ public class LoanAccount {
         this.interestType = interestType;
         this.disbursementDate = disbursementDate;
         this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public LoanAccount(UUID accountId, String accountNo, UUID applicationId, UUID userId, UUID productId,
+                       BigDecimal principalAmount, BigDecimal interestRatePct, Integer termMonths,
+                       String repaymentFrequency, String interestType,
+                       OffsetDateTime disbursementDate, LoanStatus status,
+                       Integer daysPastDue, String parBucket, BigDecimal provisionRatePct,
+                       BigDecimal provisionAmount, LocalDate lastParEvaluationDate,
+                       OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.accountId = accountId;
+        this.accountNo = accountNo;
+        this.applicationId = applicationId;
+        this.userId = userId;
+        this.productId = productId;
+        this.principalAmount = principalAmount;
+        this.interestRatePct = interestRatePct;
+        this.termMonths = termMonths;
+        this.repaymentFrequency = repaymentFrequency;
+        this.interestType = interestType;
+        this.disbursementDate = disbursementDate;
+        this.status = status;
+        this.daysPastDue = daysPastDue != null ? daysPastDue : 0;
+        this.parBucket = parBucket != null ? parBucket : "CURRENT";
+        this.provisionRatePct = provisionRatePct != null ? provisionRatePct : new BigDecimal("1.00");
+        this.provisionAmount = provisionAmount != null ? provisionAmount : BigDecimal.ZERO;
+        this.lastParEvaluationDate = lastParEvaluationDate;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -144,6 +178,46 @@ public class LoanAccount {
 
     public void setStatus(LoanStatus status) {
         this.status = status;
+    }
+
+    public Integer getDaysPastDue() {
+        return daysPastDue;
+    }
+
+    public void setDaysPastDue(Integer daysPastDue) {
+        this.daysPastDue = daysPastDue;
+    }
+
+    public String getParBucket() {
+        return parBucket;
+    }
+
+    public void setParBucket(String parBucket) {
+        this.parBucket = parBucket;
+    }
+
+    public BigDecimal getProvisionRatePct() {
+        return provisionRatePct;
+    }
+
+    public void setProvisionRatePct(BigDecimal provisionRatePct) {
+        this.provisionRatePct = provisionRatePct;
+    }
+
+    public BigDecimal getProvisionAmount() {
+        return provisionAmount;
+    }
+
+    public void setProvisionAmount(BigDecimal provisionAmount) {
+        this.provisionAmount = provisionAmount;
+    }
+
+    public LocalDate getLastParEvaluationDate() {
+        return lastParEvaluationDate;
+    }
+
+    public void setLastParEvaluationDate(LocalDate lastParEvaluationDate) {
+        this.lastParEvaluationDate = lastParEvaluationDate;
     }
 
     public OffsetDateTime getCreatedAt() {

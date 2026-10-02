@@ -1,6 +1,7 @@
 package com.kab.qershi.loan.management.domain.port.in;
 
 import com.kab.qershi.loan.management.domain.model.LoanAccount;
+import com.kab.qershi.loan.management.domain.model.LoanAccountGuarantor;
 import com.kab.qershi.loan.management.domain.model.RepaymentSchedule;
 
 import java.util.List;
@@ -19,4 +20,6 @@ public interface LoanScheduleUseCase {
     List<RepaymentSchedule> getAccountSchedule(UUID accountId);
 
     List<LoanAccount> getUserAccounts(UUID userId);
+
+    List<LoanAccountGuarantor> getAccountGuarantors(UUID accountId);
 }

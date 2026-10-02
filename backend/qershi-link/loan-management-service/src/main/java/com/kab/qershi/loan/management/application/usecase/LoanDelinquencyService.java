@@ -1,13 +1,10 @@
 package com.kab.qershi.loan.management.application.usecase;
 
-import com.kab.qershi.loan.management.domain.model.LoanStatus;
-import com.kab.qershi.loan.management.domain.model.ScheduleStatus;
-import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountEntity;
-import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanDelinquencySnapshotEntity;
-import com.kab.qershi.loan.management.infrastructure.persistence.entity.RepaymentScheduleEntity;
-import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountRepository;
-import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanDelinquencySnapshotRepository;
-import com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataRepaymentScheduleRepository;
+import com.kab.qershi.loan.management.domain.model.*;
+import com.kab.qershi.loan.management.domain.port.in.LoanDelinquencyUseCase;
+import com.kab.qershi.loan.management.domain.port.out.LoanAccountRepositoryPort;
+import com.kab.qershi.loan.management.domain.port.out.LoanDelinquencyRepositoryPort;
+import com.kab.qershi.loan.management.domain.port.out.RepaymentScheduleRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,50 +13,45 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Portfolio at Risk (PAR) Aging and Regulatory Delinquency Provisioning Engine.
  * Evaluates DPD (Days Past Due) across repayment schedules and categorizes loans into standard buckets.
+ * Follows strict Hexagonal Architecture DDD principles.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
 @Service
-public class LoanDelinquencyService {
+public class LoanDelinquencyService implements LoanDelinquencyUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(LoanDelinquencyService.class);
 
-    private final SpringDataLoanAccountRepository loanAccountRepository;
-    private final SpringDataRepaymentScheduleRepository scheduleRepository;
-    private final SpringDataLoanDelinquencySnapshotRepository snapshotRepository;
+    private final LoanAccountRepositoryPort loanAccountRepository;
+    private final RepaymentScheduleRepositoryPort scheduleRepository;
+    private final LoanDelinquencyRepositoryPort snapshotRepository;
 
-    public LoanDelinquencyService(SpringDataLoanAccountRepository loanAccountRepository,
-                                  SpringDataRepaymentScheduleRepository scheduleRepository,
-                                  SpringDataLoanDelinquencySnapshotRepository snapshotRepository) {
+    public LoanDelinquencyService(LoanAccountRepositoryPort loanAccountRepository,
+                                  RepaymentScheduleRepositoryPort scheduleRepository,
+                                  LoanDelinquencyRepositoryPort snapshotRepository) {
         this.loanAccountRepository = loanAccountRepository;
         this.scheduleRepository = scheduleRepository;
         this.snapshotRepository = snapshotRepository;
     }
 
-    public record ParAgingResult(
-            int totalLoansEvaluated,
-            int currentCount,
-            int par30Count,
-            int par60Count,
-            int par90Count,
-            int lossCount,
-            BigDecimal totalOverdueAmount,
-            BigDecimal totalProvisionReserve
-    ) {}
-
+    @Override
     @Transactional
     public ParAgingResult evaluateParAging(LocalDate businessDate) {
         log.info("Beginning Loan Portfolio at Risk (PAR) aging evaluation for business date: {}", businessDate);
 
-        List<LoanAccountEntity> activeLoans = loanAccountRepository.findByStatusIn(
+        List<LoanAccount> activeLoans = loanAccountRepository.findByStatusIn(
                 List.of(LoanStatus.ACTIVE, LoanStatus.DISBURSED)
         );
 
@@ -71,10 +63,10 @@ public class LoanDelinquencyService {
         BigDecimal totalOverdue = BigDecimal.ZERO;
         BigDecimal totalProvisions = BigDecimal.ZERO;
 
-        List<LoanDelinquencySnapshotEntity> snapshots = new ArrayList<>();
+        List<LoanDelinquencySnapshot> snapshots = new ArrayList<>();
 
-        for (LoanAccountEntity loan : activeLoans) {
-            List<RepaymentScheduleEntity> unpaidSchedules = scheduleRepository.findByAccountIdAndStatusNot(
+        for (LoanAccount loan : activeLoans) {
+            List<RepaymentSchedule> unpaidSchedules = scheduleRepository.findByAccountIdAndStatusNot(
                     loan.getAccountId(), ScheduleStatus.PAID
             );
 
@@ -82,7 +74,7 @@ public class LoanDelinquencyService {
             BigDecimal overduePrincipal = BigDecimal.ZERO;
             BigDecimal overdueInterest = BigDecimal.ZERO;
 
-            for (RepaymentScheduleEntity schedule : unpaidSchedules) {
+            for (RepaymentSchedule schedule : unpaidSchedules) {
                 if (schedule.getDueDate().isBefore(businessDate)) {
                     BigDecimal totalDue = schedule.getTotalDue() != null ? schedule.getTotalDue() : BigDecimal.ZERO;
                     BigDecimal amountPaid = schedule.getAmountPaid() != null ? schedule.getAmountPaid() : BigDecimal.ZERO;
@@ -139,24 +131,27 @@ public class LoanDelinquencyService {
             totalOverdue = totalOverdue.add(loanTotalOverdue);
             totalProvisions = totalProvisions.add(provisionAmount);
 
-            // Update loan account entity
+            // Update loan account domain aggregate
             loan.setDaysPastDue(daysPastDue);
             loan.setParBucket(parBucket);
             loan.setProvisionRatePct(provisionRatePct);
             loan.setProvisionAmount(provisionAmount);
             loan.setLastParEvaluationDate(businessDate);
 
-            // Create delinquency snapshot
-            LoanDelinquencySnapshotEntity snapshot = new LoanDelinquencySnapshotEntity();
-            snapshot.setAccountId(loan.getAccountId());
-            snapshot.setBusinessDate(businessDate);
-            snapshot.setDaysPastDue(daysPastDue);
-            snapshot.setOverduePrincipal(overduePrincipal);
-            snapshot.setOverdueInterest(overdueInterest);
-            snapshot.setTotalOverdue(loanTotalOverdue);
-            snapshot.setParBucket(parBucket);
-            snapshot.setProvisionRatePct(provisionRatePct);
-            snapshot.setProvisionAmount(provisionAmount);
+            // Create delinquency snapshot domain aggregate
+            LoanDelinquencySnapshot snapshot = new LoanDelinquencySnapshot(
+                    null,
+                    loan.getAccountId(),
+                    businessDate,
+                    daysPastDue,
+                    overduePrincipal,
+                    overdueInterest,
+                    loanTotalOverdue,
+                    parBucket,
+                    provisionRatePct,
+                    provisionAmount,
+                    OffsetDateTime.now()
+            );
             snapshots.add(snapshot);
         }
 
@@ -176,5 +171,115 @@ public class LoanDelinquencyService {
                 totalOverdue,
                 totalProvisions
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ParSummary getParSummary() {
+        List<LoanAccount> loans = loanAccountRepository.findByStatusIn(
+                List.of(LoanStatus.ACTIVE, LoanStatus.DISBURSED)
+        );
+
+        BigDecimal totalPrincipal = BigDecimal.ZERO;
+        int currentCount = 0;
+        BigDecimal currentAmount = BigDecimal.ZERO;
+        int par30Count = 0;
+        BigDecimal par30Amount = BigDecimal.ZERO;
+        int par60Count = 0;
+        BigDecimal par60Amount = BigDecimal.ZERO;
+        int par90Count = 0;
+        BigDecimal par90Amount = BigDecimal.ZERO;
+        int lossCount = 0;
+        BigDecimal lossAmount = BigDecimal.ZERO;
+        BigDecimal totalProvisions = BigDecimal.ZERO;
+
+        for (LoanAccount loan : loans) {
+            BigDecimal principal = loan.getPrincipalAmount() != null ? loan.getPrincipalAmount() : BigDecimal.ZERO;
+            totalPrincipal = totalPrincipal.add(principal);
+
+            BigDecimal provision = loan.getProvisionAmount() != null ? loan.getProvisionAmount() : BigDecimal.ZERO;
+            totalProvisions = totalProvisions.add(provision);
+
+            String bucket = loan.getParBucket() != null ? loan.getParBucket() : "CURRENT";
+            switch (bucket) {
+                case "WATCHLIST_PAR_30" -> {
+                    par30Count++;
+                    par30Amount = par30Amount.add(principal);
+                }
+                case "SUBSTANDARD_PAR_60" -> {
+                    par60Count++;
+                    par60Amount = par60Amount.add(principal);
+                }
+                case "DOUBTFUL_PAR_90" -> {
+                    par90Count++;
+                    par90Amount = par90Amount.add(principal);
+                }
+                case "LOSS_PAR_90_PLUS" -> {
+                    lossCount++;
+                    lossAmount = lossAmount.add(principal);
+                }
+                default -> {
+                    currentCount++;
+                    currentAmount = currentAmount.add(principal);
+                }
+            }
+        }
+
+        BigDecimal nplRatio = BigDecimal.ZERO;
+        if (totalPrincipal.compareTo(BigDecimal.ZERO) > 0) {
+            nplRatio = lossAmount.multiply(new BigDecimal("100")).divide(totalPrincipal, 2, RoundingMode.HALF_UP);
+        }
+
+        return new ParSummary(
+                loans.size(),
+                totalPrincipal,
+                currentCount,
+                currentAmount,
+                par30Count,
+                par30Amount,
+                par60Count,
+                par60Amount,
+                par90Count,
+                par90Amount,
+                lossCount,
+                lossAmount,
+                nplRatio,
+                totalProvisions
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DelinquentLoanInfo> getDelinquentLoans(String bucket) {
+        List<LoanDelinquencySnapshot> snapshots = (bucket != null && !bucket.isBlank())
+                ? snapshotRepository.findLatestSnapshots().stream()
+                    .filter(s -> bucket.equalsIgnoreCase(s.getParBucket()))
+                    .toList()
+                : snapshotRepository.findLatestSnapshots();
+
+        Map<UUID, LoanAccount> loanMap = loanAccountRepository.findAll().stream()
+                .collect(Collectors.toMap(LoanAccount::getAccountId, l -> l, (l1, l2) -> l1));
+
+        List<DelinquentLoanInfo> result = new ArrayList<>();
+        for (LoanDelinquencySnapshot s : snapshots) {
+            LoanAccount loan = loanMap.get(s.getAccountId());
+            result.add(new DelinquentLoanInfo(
+                    s.getSnapshotId(),
+                    s.getAccountId(),
+                    loan != null ? loan.getAccountNo() : "ACC-" + s.getAccountId().toString().substring(0, 8),
+                    loan != null ? loan.getUserId() : null,
+                    loan != null ? loan.getPrincipalAmount() : BigDecimal.ZERO,
+                    s.getDaysPastDue(),
+                    s.getOverduePrincipal(),
+                    s.getOverdueInterest(),
+                    s.getTotalOverdue(),
+                    s.getParBucket(),
+                    s.getProvisionRatePct(),
+                    s.getProvisionAmount(),
+                    s.getBusinessDate()
+            ));
+        }
+
+        return result;
     }
 }

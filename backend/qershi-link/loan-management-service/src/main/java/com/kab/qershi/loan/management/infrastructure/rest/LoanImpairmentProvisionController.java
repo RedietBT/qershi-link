@@ -1,7 +1,8 @@
 package com.kab.qershi.loan.management.infrastructure.rest;
 
-import com.kab.qershi.loan.management.application.usecase.LoanImpairmentProvisionService;
-import com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanImpairmentProvisionRunEntity;
+import com.kab.qershi.loan.management.domain.model.Ifrs9ProvisionResult;
+import com.kab.qershi.loan.management.domain.model.LoanImpairmentProvisionRun;
+import com.kab.qershi.loan.management.domain.port.in.LoanImpairmentProvisionUseCase;
 import com.kab.qershi.loan.management.infrastructure.rest.dto.Ifrs9ProvisionRunResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +21,7 @@ import java.util.UUID;
  *
  * <p>Exposes endpoints for triggering the month-end impairment calculation,
  * fetching the latest GL posting summary, and querying provision history.</p>
+ * Follows strict Hexagonal Architecture DDD principles.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -29,10 +31,10 @@ import java.util.UUID;
 @Tag(name = "IFRS 9 / NBE Loan Loss Provisioning", description = "Month-end regulatory impairment calculation and GL posting endpoints")
 public class LoanImpairmentProvisionController {
 
-    private final LoanImpairmentProvisionService provisionService;
+    private final LoanImpairmentProvisionUseCase provisionUseCase;
 
-    public LoanImpairmentProvisionController(LoanImpairmentProvisionService provisionService) {
-        this.provisionService = provisionService;
+    public LoanImpairmentProvisionController(LoanImpairmentProvisionUseCase provisionUseCase) {
+        this.provisionUseCase = provisionUseCase;
     }
 
     // ── 1. Trigger Month-End Provisioning Run ────────────────────────────────
@@ -49,8 +51,8 @@ public class LoanImpairmentProvisionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate businessDate) {
 
         LocalDate date = (businessDate != null) ? businessDate : LocalDate.now();
-        LoanImpairmentProvisionService.Ifrs9ProvisionResult result =
-                provisionService.runMonthEndProvisioning(date, "MANUAL_ADMIN", null);
+        Ifrs9ProvisionResult result =
+                provisionUseCase.runMonthEndProvisioning(date, "MANUAL_ADMIN", null);
 
         return ResponseEntity.ok(Map.of(
                 "runId",                  result.runId(),
@@ -77,8 +79,8 @@ public class LoanImpairmentProvisionController {
             description = "Returns the most recent completed month-end impairment provision run with full GL posting details."
     )
     public ResponseEntity<Ifrs9ProvisionRunResponse> getLatestProvisionRun() {
-        return provisionService.getLatestCompletedRun()
-                .map(run -> ResponseEntity.ok(toResponse(run)))
+        return provisionUseCase.getLatestCompletedRun()
+                .map(run -> ResponseEntity.ok(Ifrs9ProvisionRunResponse.fromDomain(run)))
                 .orElse(ResponseEntity.noContent().build());
     }
 
@@ -91,8 +93,8 @@ public class LoanImpairmentProvisionController {
             description = "Returns the last 12 completed month-end impairment provision runs for trend reporting."
     )
     public ResponseEntity<List<Ifrs9ProvisionRunResponse>> getProvisionHistory() {
-        List<Ifrs9ProvisionRunResponse> history = provisionService.getProvisionHistory()
-                .stream().map(this::toResponse).toList();
+        List<Ifrs9ProvisionRunResponse> history = provisionUseCase.getProvisionHistory()
+                .stream().map(Ifrs9ProvisionRunResponse::fromDomain).toList();
         return ResponseEntity.ok(history);
     }
 
@@ -105,7 +107,7 @@ public class LoanImpairmentProvisionController {
             description = "Returns the per-loan ECL provision detail lines for a given provision run (for regulatory reporting)."
     )
     public ResponseEntity<List<Map<String, Object>>> getRunLines(@PathVariable UUID runId) {
-        List<Map<String, Object>> lines = provisionService.getRunLines(runId).stream()
+        List<Map<String, Object>> lines = provisionUseCase.getRunLines(runId).stream()
                 .map(line -> Map.<String, Object>of(
                         "lineId",               line.getLineId(),
                         "accountId",            line.getAccountId(),
@@ -120,35 +122,5 @@ public class LoanImpairmentProvisionController {
                 ))
                 .toList();
         return ResponseEntity.ok(lines);
-    }
-
-    // ── Private mapper ───────────────────────────────────────────────────────
-
-    private Ifrs9ProvisionRunResponse toResponse(LoanImpairmentProvisionRunEntity run) {
-        return new Ifrs9ProvisionRunResponse(
-                run.getRunId(),
-                run.getBusinessDate(),
-                run.getRunType(),
-                run.getStatus(),
-                run.getTotalLoansEvaluated(),
-                run.getTotalPortfolioBalance(),
-                run.getPassBalance(),
-                run.getSpecialMentionBalance(),
-                run.getSubstandardBalance(),
-                run.getDoubtfulBalance(),
-                run.getLossBalance(),
-                run.getPassProvision(),
-                run.getSpecialMentionProvision(),
-                run.getSubstandardProvision(),
-                run.getDoubtfulProvision(),
-                run.getLossProvision(),
-                run.getTotalProvisionRequired(),
-                run.getGlDebitAccount(),
-                run.getGlCreditAccount(),
-                run.getGlPostingRef(),
-                run.getGlPostedAt(),
-                run.getTriggeredBy(),
-                run.getCompletedAt()
-        );
     }
 }

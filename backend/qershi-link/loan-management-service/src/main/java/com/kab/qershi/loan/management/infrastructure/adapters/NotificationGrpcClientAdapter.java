@@ -1,5 +1,6 @@
 package com.kab.qershi.loan.management.infrastructure.adapters;
 
+import com.kab.qershi.loan.management.domain.port.out.NotificationClientPort;
 import com.kab.qershi.loan.management.infrastructure.config.TenantContext;
 import com.kab.qershi.notification.infrastructure.grpc.NotificationGrpcServiceGrpc;
 import com.kab.qershi.notification.infrastructure.grpc.SendSmsProtoRequest;
@@ -19,13 +20,14 @@ import java.util.Map;
  * @version 1.0.0
  */
 @Component
-public class NotificationGrpcClientAdapter {
+public class NotificationGrpcClientAdapter implements NotificationClientPort {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationGrpcClientAdapter.class);
 
     @GrpcClient("notification-service")
     private NotificationGrpcServiceGrpc.NotificationGrpcServiceBlockingStub notificationStub;
 
+    @Override
     public void sendNotification(String recipientPhone, String templateCode, Map<String, String> parameters) {
         if (recipientPhone == null || recipientPhone.isBlank()) {
             log.warn("Cannot dispatch loan management SMS: Recipient phone is null or blank.");

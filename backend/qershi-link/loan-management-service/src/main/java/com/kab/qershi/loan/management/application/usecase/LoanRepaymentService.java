@@ -3,10 +3,7 @@ package com.kab.qershi.loan.management.application.usecase;
 import com.kab.qershi.loan.management.domain.engine.PaymentWaterfallEngine;
 import com.kab.qershi.loan.management.domain.model.*;
 import com.kab.qershi.loan.management.domain.port.in.LoanRepaymentUseCase;
-import com.kab.qershi.loan.management.domain.port.out.LoanAccountRepositoryPort;
-import com.kab.qershi.loan.management.domain.port.out.LoanRepaymentRepositoryPort;
-import com.kab.qershi.loan.management.domain.port.out.RepaymentScheduleRepositoryPort;
-import com.kab.qershi.loan.management.infrastructure.adapters.NotificationGrpcClientAdapter;
+import com.kab.qershi.loan.management.domain.port.out.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,6 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Business logic service managing Loan Repayment processing via Payment Waterfall rules.
+ * Follows strict Hexagonal Architecture DDD principles.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
@@ -35,23 +33,23 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
     private final LoanAccountRepositoryPort accountRepository;
     private final RepaymentScheduleRepositoryPort scheduleRepository;
     private final LoanRepaymentRepositoryPort repaymentRepository;
-    private final NotificationGrpcClientAdapter notificationAdapter;
+    private final NotificationClientPort notificationClientPort;
     private final PaymentWaterfallEngine waterfallEngine;
-    private final com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort;
-    private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataPenaltyRuleRepository penaltyRuleRepository;
-    private final com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository;
+    private final AccountClientPort accountClientPort;
+    private final PenaltyRuleRepositoryPort penaltyRuleRepository;
+    private final LoanGuarantorRepositoryPort guarantorRepository;
 
     public LoanRepaymentService(LoanAccountRepositoryPort accountRepository,
                                 RepaymentScheduleRepositoryPort scheduleRepository,
                                 LoanRepaymentRepositoryPort repaymentRepository,
-                                NotificationGrpcClientAdapter notificationAdapter,
-                                com.kab.qershi.loan.management.domain.port.out.AccountClientPort accountClientPort,
-                                com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataPenaltyRuleRepository penaltyRuleRepository,
-                                com.kab.qershi.loan.management.infrastructure.persistence.repository.SpringDataLoanAccountGuarantorRepository guarantorRepository) {
+                                NotificationClientPort notificationClientPort,
+                                AccountClientPort accountClientPort,
+                                PenaltyRuleRepositoryPort penaltyRuleRepository,
+                                LoanGuarantorRepositoryPort guarantorRepository) {
         this.accountRepository = accountRepository;
         this.scheduleRepository = scheduleRepository;
         this.repaymentRepository = repaymentRepository;
-        this.notificationAdapter = notificationAdapter;
+        this.notificationClientPort = notificationClientPort;
         this.accountClientPort = accountClientPort;
         this.penaltyRuleRepository = penaltyRuleRepository;
         this.guarantorRepository = guarantorRepository;
@@ -68,44 +66,54 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Loan account not found with ID: " + command.accountId()));
 
         if (account.getStatus() == LoanStatus.CLOSED) {
-            throw new IllegalStateException("Loan account " + account.getAccountNo() + " is already fully paid and CLOSED.");
+            throw new IllegalStateException("Cannot process repayment on closed loan account: " + account.getAccountNo());
         }
 
-        // 1. Debit member savings account if source account is specified
-        if (command.sourceAccountNo() != null && !command.sourceAccountNo().isBlank()) {
-            log.info("Debiting savings account {} for loan repayment amount {} via gRPC", command.sourceAccountNo(), command.amount());
-            com.kab.qershi.loan.management.domain.port.out.AccountClientPort.ValidationResult debitValidation =
-                    accountClientPort.validateDebit(command.sourceAccountNo(), command.amount());
-            if (!debitValidation.isValid()) {
-                throw new IllegalArgumentException("Loan repayment rejected: " + debitValidation.message());
-            }
-
-            boolean debitOk = accountClientPort.postTransaction(command.sourceAccountNo(), command.amount(), "DEBIT");
-            if (!debitOk) {
-                throw new RuntimeException("Failed to debit savings account " + command.sourceAccountNo() + " for loan repayment.");
-            }
-        }
-
+        // Fetch unpaid amortization schedules
         List<RepaymentSchedule> schedules = scheduleRepository.findByAccountIdOrderByInstallmentNoAsc(command.accountId());
+        if (schedules.isEmpty()) {
+            throw new IllegalStateException("No repayment schedules found for loan account: " + account.getAccountNo());
+        }
 
-        // 2. Compute dynamic overdue penalty based on active penalty policies
-        BigDecimal penaltyOwed = calculateOverduePenalty(schedules);
+        // 1. Calculate accrued overdue penalties if any installments are overdue
+        BigDecimal calculatedPenalty = calculateOverduePenalty(schedules);
 
-        // 3. Allocate payment across Penalties, Interest, and Principal
+        // 1.5. If payment channel is SAVINGS_INTERNAL, auto-debit the member's savings account via gRPC
+        if ("SAVINGS_INTERNAL".equalsIgnoreCase(command.paymentChannel()) && command.sourceAccountNo() != null) {
+            log.info("Auto-debiting {} ETB from member savings account {} for loan repayment {}",
+                    command.amount(), command.sourceAccountNo(), account.getAccountNo());
+            boolean debitSuccess = accountClientPort.postTransaction(
+                    command.sourceAccountNo(),
+                    command.amount(),
+                    "DEBIT"
+            );
+            if (!debitSuccess) {
+                log.error("Failed to auto-debit savings account {} for loan repayment", command.sourceAccountNo());
+                throw new IllegalStateException("Auto-debit from savings account failed. Repayment cannot proceed.");
+            }
+        }
+
+        // 2. Allocate payment using Payment Waterfall Engine
         PaymentWaterfallEngine.AllocationResult allocation = waterfallEngine.allocatePayment(
-                command.amount(), penaltyOwed, schedules
+                command.amount(),
+                calculatedPenalty,
+                schedules
         );
 
-        // Update schedule records
+        log.info("Payment waterfall allocated: Principal={}, Interest={}, Penalty={}, Excess={}",
+                allocation.getPrincipalAllocated(), allocation.getInterestAllocated(), allocation.getPenaltyAllocated(), allocation.getUnallocatedAmount());
+
+        // 3. Persist updated schedule installments
         scheduleRepository.saveAll(schedules);
 
-        // Generate unique transaction reference
-        String datePrefix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String uniqueSuffix = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String txRef = "TXN-PMT-" + datePrefix + "-" + uniqueSuffix;
+        // 4. Generate unique transaction reference: LRP-{YYYYMMDD}-{UUID.substr}
+        String txDatePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String txRandomPart = String.format("%06d", ThreadLocalRandom.current().nextInt(1_000_000));
+        String txRef = "LRP-" + txDatePart + "-" + txRandomPart;
 
         OffsetDateTime now = OffsetDateTime.now();
 
+        // 5. Create & persist Loan Repayment record
         LoanRepayment repayment = new LoanRepayment(
                 null,
                 account.getAccountId(),
@@ -132,7 +140,7 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
 
             // Release all active peer guarantor lien holds
             try {
-                List<com.kab.qershi.loan.management.infrastructure.persistence.entity.LoanAccountGuarantorEntity> heldGuarantors =
+                List<LoanAccountGuarantor> heldGuarantors =
                         guarantorRepository.findByAccountIdAndStatus(account.getAccountId(), "HELD");
                 for (var g : heldGuarantors) {
                     if (g.getLienId() != null) {
@@ -160,7 +168,7 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
 
         // Trigger SMS Confirmation Notification — send to the actual member's phone
         if (command.memberPhone() != null && !command.memberPhone().isBlank()) {
-            notificationAdapter.sendNotification(
+            notificationClientPort.sendNotification(
                     command.memberPhone(),
                     "LOAN_REPAYMENT_CONFIRMATION",
                     Map.of(
@@ -180,7 +188,7 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
         BigDecimal penaltyRate = new BigDecimal("2.00");
         int gracePeriodDays = 5;
         try {
-            List<com.kab.qershi.loan.management.infrastructure.persistence.entity.PenaltyRuleEntity> rules = penaltyRuleRepository.findByActiveTrue();
+            List<PenaltyRule> rules = penaltyRuleRepository.findByActiveTrue();
             if (!rules.isEmpty()) {
                 penaltyRate = rules.get(0).getPenaltyRatePct();
                 gracePeriodDays = rules.get(0).getGracePeriodDays();
@@ -193,14 +201,10 @@ public class LoanRepaymentService implements LoanRepaymentUseCase {
         BigDecimal totalPenalty = BigDecimal.ZERO;
         for (RepaymentSchedule s : schedules) {
             if (s.getStatus() != ScheduleStatus.PAID && s.getDueDate() != null) {
-                LocalDate graceEnd = s.getDueDate().plusDays(gracePeriodDays);
-                if (today.isAfter(graceEnd)) {
-                    BigDecimal overdueDue = s.getTotalDue().subtract(s.getAmountPaid()).max(BigDecimal.ZERO);
-                    if (overdueDue.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal penalty = overdueDue.multiply(penaltyRate)
-                                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
-                        totalPenalty = totalPenalty.add(penalty);
-                    }
+                if (today.isAfter(s.getDueDate().plusDays(gracePeriodDays))) {
+                    BigDecimal remainingPrincipal = s.getPrincipalDue() != null ? s.getPrincipalDue() : BigDecimal.ZERO;
+                    BigDecimal penalty = remainingPrincipal.multiply(penaltyRate).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+                    totalPenalty = totalPenalty.add(penalty);
                 }
             }
         }
