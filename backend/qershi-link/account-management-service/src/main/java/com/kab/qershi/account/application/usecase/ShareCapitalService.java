@@ -380,4 +380,16 @@ public class ShareCapitalService implements ShareCapitalUseCase {
     public List<ShareTransfer> getPendingTransfers() {
         return shareTransferRepository.findByStatus("PENDING_APPROVAL");
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ShareAccountSummary getShareAccountByPhone(String phoneNumber) {
+        List<com.kab.qershi.account.domain.model.Account> accounts = accountRepository.findByPhoneNumber(phoneNumber);
+        if (accounts.isEmpty()) {
+            throw new IllegalArgumentException("No member account found for phone number: " + phoneNumber);
+        }
+        // Resolve memberId from the savings account's userId
+        UUID memberId = accounts.get(0).getUserId();
+        return getMemberShareAccountSummary(memberId);
+    }
 }

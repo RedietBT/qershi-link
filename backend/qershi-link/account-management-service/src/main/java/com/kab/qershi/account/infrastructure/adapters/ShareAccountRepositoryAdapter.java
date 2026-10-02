@@ -56,6 +56,11 @@ public class ShareAccountRepositoryAdapter implements ShareAccountRepositoryPort
     }
 
     @Override
+    public List<ShareAccount> findAllActive() {
+        return findByStatus("ACTIVE");
+    }
+
+    @Override
     public boolean existsByMemberId(UUID memberId) {
         return repository.existsByMemberId(memberId);
     }

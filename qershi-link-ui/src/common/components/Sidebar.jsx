@@ -31,6 +31,9 @@ import {
   ArrowRight,
   Receipt,
   CalendarClock,
+  PieChart,
+  Repeat,
+  BadgeDollarSign,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { PermissionGuard } from './PermissionGuard';
@@ -380,6 +383,30 @@ export const Sidebar = () => {
                 path="/accounts/term-deposits"
                 label="Term Deposits (FD)"
                 icon={CalendarClock}
+                isCollapsed={isCollapsed}
+              />
+            </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.ACCOUNT_VIEW]}>
+              <SubNavItem
+                path="/accounts/share-capital"
+                label="Share Capital"
+                icon={PieChart}
+                isCollapsed={isCollapsed}
+              />
+            </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.ACCOUNT_VIEW]}>
+              <SubNavItem
+                path="/accounts/dividends"
+                label="AGM Dividends"
+                icon={BadgeDollarSign}
+                isCollapsed={isCollapsed}
+              />
+            </PermissionGuard>
+            <PermissionGuard permissions={[PERMISSIONS.ACCOUNT_VIEW]}>
+              <SubNavItem
+                path="/accounts/standing-orders"
+                label="Standing Orders"
+                icon={Repeat}
                 isCollapsed={isCollapsed}
               />
             </PermissionGuard>

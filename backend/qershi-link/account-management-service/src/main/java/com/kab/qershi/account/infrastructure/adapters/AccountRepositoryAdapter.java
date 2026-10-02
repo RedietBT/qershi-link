@@ -52,6 +52,12 @@ public class AccountRepositoryAdapter implements AccountRepositoryPort {
     }
 
     @Override
+    public List<Account> findByMemberId(UUID memberId) {
+        // memberId maps to userId in the account entity (members own accounts by userId)
+        return findByUserId(memberId);
+    }
+
+    @Override
     public List<Account> findByPhoneNumber(String phoneNumber) {
         return accountRepository.findByPhoneNumber(phoneNumber).stream()
                 .map(this::toDomain)

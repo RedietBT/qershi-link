@@ -170,20 +170,20 @@
 ---
 
 ### 📈 Day 5: Share Capital, Dividends & Standing Orders
-- [ ] **Share Capital Management**
-  - [ ] Enforce minimum mandatory shares policy during member onboarding (e.g. 5 shares @ 1,000 ETB).
-  - [ ] Track share certificate serial numbers and transferability between members.
-- [ ] **Annual AGM Dividend Distribution Engine**
-  - [ ] Dividend calculation routine: takes Net Profit for the year and approved Dividend % (e.g. 12%).
-  - [ ] Prorates dividend based on each member's weighted average share balance.
-  - [ ] Batch execution posting dividends directly into member savings accounts.
-- [ ] **Standing Orders (Automated Recurring Sweeps)**
-  - [ ] Create `standing_orders` table (`source_account`, `target_account`, `amount`, `frequency`, `next_run_date`, `status`).
-  - [ ] Scheduled runner executing daily sweeps for monthly member contributions and loan repayments.
-- [ ] **Frontend Deliverables**
-  - [ ] `ShareCapitalPage.jsx`: Share holdings, purchase shares modal, transfer shares.
-  - [ ] `DividendDistributionModal.jsx`: Simulation calculator & batch distribution trigger.
-  - [ ] `StandingOrdersPage.jsx`: Create and monitor automated recurring sweeps.
+- [x] **Share Capital Management**
+  - [x] Enforce minimum mandatory shares policy during member onboarding (e.g. 5 shares @ 1,000 ETB).
+  - [x] Track share certificate serial numbers and transferability between members.
+- [x] **Annual AGM Dividend Distribution Engine**
+  - [x] Dividend calculation routine: takes Net Profit for the year and approved Dividend % (e.g. 12%).
+  - [x] Prorates dividend based on each member's weighted average share balance.
+  - [x] Batch execution posting dividends directly into member savings accounts.
+- [x] **Standing Orders (Automated Recurring Sweeps)**
+  - [x] Create `standing_orders` table (`source_account`, `target_account`, `amount`, `frequency`, `next_run_date`, `status`).
+  - [x] Scheduled runner executing daily sweeps for monthly member contributions and loan repayments.
+- [x] **Frontend Deliverables**
+  - [x] `ShareCapitalPage.jsx`: Share holdings, purchase shares modal, transfer shares.
+  - [x] `DividendDistributionPage.jsx`: Simulation calculator & batch distribution trigger.
+  - [x] `StandingOrdersPage.jsx`: Create and monitor automated recurring sweeps.
 
 ---
 

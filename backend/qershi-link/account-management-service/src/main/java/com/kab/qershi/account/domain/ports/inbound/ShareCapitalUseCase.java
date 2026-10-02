@@ -68,4 +68,7 @@ public interface ShareCapitalUseCase {
     List<ShareTransfer> getMemberTransfers(UUID memberId);
 
     List<ShareTransfer> getPendingTransfers();
+
+    /** Lookup member share account summary by phone number */
+    ShareAccountSummary getShareAccountByPhone(String phoneNumber);
 }

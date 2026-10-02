@@ -9,6 +9,9 @@ import { DepositProductsPage } from '../../features/accounts/pages/DepositProduc
 import { PendingAuthorizationsPage } from '../../features/accounts/pages/PendingAuthorizationsPage';
 import { BranchManagementPage } from '../../features/accounts/pages/BranchManagementPage';
 import { TermDepositPage } from '../../features/accounts/pages/TermDepositPage';
+import { ShareCapitalPage } from '../../features/accounts/pages/ShareCapitalPage';
+import { DividendDistributionPage } from '../../features/accounts/pages/DividendDistributionPage';
+import { StandingOrdersPage } from '../../features/accounts/pages/StandingOrdersPage';
 
 /**
  * Account Management & Branch Hierarchy Routes
@@ -94,6 +97,48 @@ export const accountRoutes = [
       >
         <Layout>
           <TermDepositPage />
+        </Layout>
+      </PermissionRoute>
+    }
+  />,
+  <Route
+    key="/accounts/share-capital"
+    path="/accounts/share-capital"
+    element={
+      <PermissionRoute
+        roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER', 'AUDITOR']}
+        permissions={[PERMISSIONS.ACCOUNT_VIEW]}
+      >
+        <Layout>
+          <ShareCapitalPage />
+        </Layout>
+      </PermissionRoute>
+    }
+  />,
+  <Route
+    key="/accounts/dividends"
+    path="/accounts/dividends"
+    element={
+      <PermissionRoute
+        roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'AUDITOR']}
+        permissions={[PERMISSIONS.ACCOUNT_VIEW]}
+      >
+        <Layout>
+          <DividendDistributionPage />
+        </Layout>
+      </PermissionRoute>
+    }
+  />,
+  <Route
+    key="/accounts/standing-orders"
+    path="/accounts/standing-orders"
+    element={
+      <PermissionRoute
+        roles={['SUPER_ADMIN', 'ADMIN', 'SACCO_ADMIN', 'TELLER', 'AUDITOR']}
+        permissions={[PERMISSIONS.ACCOUNT_VIEW]}
+      >
+        <Layout>
+          <StandingOrdersPage />
         </Layout>
       </PermissionRoute>
     }

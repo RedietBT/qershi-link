@@ -18,9 +18,14 @@ public interface AccountRepositoryPort {
 
     Optional<Account> findByAccountId(UUID accountId);
 
+    /** Alias for findByAccountId — convenience for dividend posting loops */
+    default Optional<Account> findById(UUID accountId) { return findByAccountId(accountId); }
+
     Optional<Account> findByAccountNo(String accountNo);
 
     List<Account> findByUserId(UUID userId);
+
+    List<Account> findByMemberId(UUID memberId);
 
     List<Account> findByPhoneNumber(String phoneNumber);
 

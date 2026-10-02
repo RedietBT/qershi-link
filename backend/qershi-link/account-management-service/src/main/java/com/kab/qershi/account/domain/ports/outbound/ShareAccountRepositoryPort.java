@@ -24,5 +24,7 @@ public interface ShareAccountRepositoryPort {
 
     List<ShareAccount> findByStatus(String status);
 
+    List<ShareAccount> findAllActive();
+
     boolean existsByMemberId(UUID memberId);
 }
