@@ -1,12 +1,12 @@
 package com.kab.qershi.auth.application.usecase;
 
+import com.kab.qershi.auth.domain.ports.inbound.SuperAdminUseCase;
 import com.kab.qershi.auth.domain.ports.outbound.MessagingPort;
+import com.kab.qershi.auth.domain.ports.outbound.PasswordEncoderPort;
 import com.kab.qershi.auth.domain.ports.outbound.UserRepositoryPort;
-import com.kab.qershi.auth.infrastructure.rest.dto.SuperAdminRegistrationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,38 +15,41 @@ import java.util.UUID;
 
 /**
  * Service for registering platform-level Super Admin accounts into master schema.
+ * Pure application service with zero infrastructure imports.
  *
  * @author KAB Digital Solution PLC
- * @version 1.0.0
+ * @version 2.0.0
  */
 @Service
-public class SuperAdminService {
+public class SuperAdminService implements SuperAdminUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(SuperAdminService.class);
     private final UserRepositoryPort userRepositoryPort;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoderPort passwordEncoderPort;
     private final MessagingPort messagingPort;
-
-    public SuperAdminService(UserRepositoryPort userRepositoryPort, PasswordEncoder passwordEncoder,
-                             @Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
-        this.userRepositoryPort = userRepositoryPort;
-        this.passwordEncoder = passwordEncoder;
-        this.messagingPort = messagingPort;
-    }
 
     private static final String PLATFORM_SACCO_ID = "00000000-0000-0000-0000-000000000000";
     private static final String SUPER_ADMIN_ROLE_ID = "b0e1f3a2-4c5d-6e7f-8a9b-0c1d2e3f4a5b";
 
+    public SuperAdminService(UserRepositoryPort userRepositoryPort,
+                             PasswordEncoderPort passwordEncoderPort,
+                             @Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
+        this.userRepositoryPort = userRepositoryPort;
+        this.passwordEncoderPort = passwordEncoderPort;
+        this.messagingPort = messagingPort;
+    }
+
+    @Override
     @Transactional
-    public void registerSuperAdmin(SuperAdminRegistrationRequest request) {
+    public void registerSuperAdmin(String msisdn) {
         String userId = UUID.randomUUID().toString();
         // Generate a secure temporary PIN
         String rawPin = String.format("%06d", new SecureRandom().nextInt(900000) + 100000);
-        String hashedPin = passwordEncoder.encode(rawPin);
+        String hashedPin = passwordEncoderPort.encode(rawPin);
 
         userRepositoryPort.saveSuperAdmin(
                 userId,
-                request.msisdn(),
+                msisdn,
                 hashedPin,
                 "SUPER_ADMIN",
                 PLATFORM_SACCO_ID
@@ -54,7 +57,7 @@ public class SuperAdminService {
 
         userRepositoryPort.assignRole(userId, SUPER_ADMIN_ROLE_ID, PLATFORM_SACCO_ID);
 
-        log.info("Registered Super Admin for MSISDN {}", request.msisdn());
-        messagingPort.sendSms(request.msisdn(), "Welcome to System Platform! Your Super Admin PIN is: " + rawPin);
+        log.info("Registered Super Admin for MSISDN {}", msisdn);
+        messagingPort.sendSms(msisdn, "Welcome to System Platform! Your Super Admin PIN is: " + rawPin);
     }
 }

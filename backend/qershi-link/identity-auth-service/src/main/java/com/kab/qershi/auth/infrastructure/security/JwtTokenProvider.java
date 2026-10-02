@@ -1,5 +1,6 @@
 package com.kab.qershi.auth.infrastructure.security;
 
+import com.kab.qershi.auth.domain.ports.outbound.TokenProviderPort;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
-public class JwtTokenProvider {
+public class JwtTokenProvider implements TokenProviderPort {
 
     @Value("${jwt.secret}")
     private String secretKey; // This pulls from application.properties

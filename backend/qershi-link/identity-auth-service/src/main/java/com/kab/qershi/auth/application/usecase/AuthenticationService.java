@@ -2,14 +2,15 @@ package com.kab.qershi.auth.application.usecase;
 
 import com.kab.qershi.auth.domain.model.*;
 import com.kab.qershi.auth.domain.ports.inbound.AuthenticationUseCase;
+import com.kab.qershi.auth.domain.ports.inbound.SystemAuditUseCase;
 import com.kab.qershi.auth.domain.ports.outbound.MessagingPort;
+import com.kab.qershi.auth.domain.ports.outbound.PasswordEncoderPort;
 import com.kab.qershi.auth.domain.ports.outbound.SaccoRepositoryPort;
+import com.kab.qershi.auth.domain.ports.outbound.TokenProviderPort;
 import com.kab.qershi.auth.domain.ports.outbound.UserRepositoryPort;
-import com.kab.qershi.auth.infrastructure.security.JwtTokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -25,41 +26,43 @@ public class AuthenticationService implements AuthenticationUseCase {
     private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
     private final UserRepositoryPort userRepositoryPort;
     private final SaccoRepositoryPort saccoRepositoryPort;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final PasswordEncoder passwordEncoder;
+    private final TokenProviderPort tokenProviderPort;
+    private final PasswordEncoderPort passwordEncoderPort;
     private final MessagingPort messagingPort;
-    private final SystemAuditService systemAuditService;
+    private final SystemAuditUseCase systemAuditUseCase;
 
-    public AuthenticationService(UserRepositoryPort userRepositoryPort, SaccoRepositoryPort saccoRepositoryPort,
-                                  JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder,
+    public AuthenticationService(UserRepositoryPort userRepositoryPort,
+                                  SaccoRepositoryPort saccoRepositoryPort,
+                                  TokenProviderPort tokenProviderPort,
+                                  PasswordEncoderPort passwordEncoderPort,
                                   @Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort,
-                                  SystemAuditService systemAuditService) {
+                                  SystemAuditUseCase systemAuditUseCase) {
         this.userRepositoryPort = userRepositoryPort;
         this.saccoRepositoryPort = saccoRepositoryPort;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.passwordEncoder = passwordEncoder;
+        this.tokenProviderPort = tokenProviderPort;
+        this.passwordEncoderPort = passwordEncoderPort;
         this.messagingPort = messagingPort;
-        this.systemAuditService = systemAuditService;
+        this.systemAuditUseCase = systemAuditUseCase;
     }
 
     @Override
     public LoginResult login(LoginCommand command) {
         User user = userRepositoryPort.findByMsisdn(command.msisdn())
                 .orElseThrow(() -> {
-                    systemAuditService.recordAuditLog(null, null, "LOGIN_FAILED", "USER", "FAILURE", null, "Invalid MSISDN handle: " + command.msisdn());
+                    systemAuditUseCase.recordAuditLog(null, null, "LOGIN_FAILED", "USER", "FAILURE", null, "Invalid MSISDN handle: " + command.msisdn());
                     return new IllegalArgumentException("Invalid credentials.");
                 });
 
         if (user.getStatus() == UserStatus.BLOCKED) {
             log.warn("Blocked user attempt: {}", command.msisdn());
-            systemAuditService.recordAuditLog(user.getUserId(), user.getSaccoId(), "LOGIN_ATTEMPT_BLOCKED", "USER", "BLOCKED", null, "Account locked due to excessive failed attempts");
+            systemAuditUseCase.recordAuditLog(user.getUserId(), user.getSaccoId(), "LOGIN_ATTEMPT_BLOCKED", "USER", "BLOCKED", null, "Account locked due to excessive failed attempts");
             throw new SecurityException("Account is locked due to multiple failed attempts.");
         }
 
         if (user.getStatus() == UserStatus.PASSWORD_CHANGE_REQUIRED) {
             Sacco parentSacco = saccoRepositoryPort.findById(user.getSaccoId()).orElse(null);
             String schemaName = parentSacco != null ? parentSacco.getSchemaName() : null;
-            systemAuditService.recordAuditLog(user.getUserId(), user.getSaccoId(), "LOGIN_FIRST_TIME", "USER", "PENDING_PASSWORD", null, "First time login requiring PIN rotation");
+            systemAuditUseCase.recordAuditLog(user.getUserId(), user.getSaccoId(), "LOGIN_FIRST_TIME", "USER", "PENDING_PASSWORD", null, "First time login requiring PIN rotation");
             return new LoginResult(null, null, 0L, new UserContext(
                     user.getUserId(),
                     user.getSaccoId(),
@@ -69,11 +72,11 @@ public class AuthenticationService implements AuthenticationUseCase {
             ));
         }
 
-        if (!passwordEncoder.matches(command.pin(), user.getCredentialHash())) {
+        if (!passwordEncoderPort.matches(command.pin(), user.getCredentialHash())) {
             user.recordFailedLogin();
             userRepositoryPort.save(user);
             log.warn("Failed login attempt for user: {}. Attempts: {}", command.msisdn(), user.getFailedLoginAttempts());
-            systemAuditService.recordAuditLog(user.getUserId(), user.getSaccoId(), "LOGIN_FAILED", "USER", "FAILURE", null, "Bad PIN attempt. Total failed attempts: " + user.getFailedLoginAttempts());
+            systemAuditUseCase.recordAuditLog(user.getUserId(), user.getSaccoId(), "LOGIN_FAILED", "USER", "FAILURE", null, "Bad PIN attempt. Total failed attempts: " + user.getFailedLoginAttempts());
             messagingPort.sendSms(user.getMsisdn(), "Security Alert: A failed login attempt was detected.");
             throw new IllegalArgumentException("Invalid credentials. " + (3 - user.getFailedLoginAttempts()) + " attempts remaining.");
         }
@@ -82,7 +85,7 @@ public class AuthenticationService implements AuthenticationUseCase {
         user.successfulLogin();
         userRepositoryPort.save(user);
         log.info("User login successful: {}", command.msisdn());
-        systemAuditService.recordAuditLog(user.getUserId(), user.getSaccoId(), "LOGIN_SUCCESS", "USER", "SUCCESS", null, "User authenticated successfully");
+        systemAuditUseCase.recordAuditLog(user.getUserId(), user.getSaccoId(), "LOGIN_SUCCESS", "USER", "SUCCESS", null, "User authenticated successfully");
         return generateLoginResult(user);
     }
 
@@ -109,7 +112,7 @@ public class AuthenticationService implements AuthenticationUseCase {
         jwtAuthorities.add("ROLE_" + user.getGlobalRole().name()); // e.g. "ROLE_SUPER_ADMIN"
         jwtAuthorities.addAll(permissions);
 
-        String token = jwtTokenProvider.createToken(
+        String token = tokenProviderPort.createToken(
                 user.getMsisdn(),
                 user.getUserId() != null ? user.getUserId().toString() : null,
                 user.getSaccoId() != null ? user.getSaccoId().toString() : null,

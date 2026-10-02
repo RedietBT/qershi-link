@@ -22,6 +22,20 @@ public record UserResponse(
         UserStatus status,
         Instant lastLoginAt
 ) {
+    public static UserResponse fromDomain(com.kab.qershi.auth.domain.model.User user) {
+        if (user == null) {
+            return null;
+        }
+        return new UserResponse(
+                user.getUserId(),
+                user.getMsisdn(),
+                user.getSaccoId(),
+                user.getGlobalRole(),
+                user.getStatus(),
+                user.getLastLoginAt()
+        );
+    }
+
     public static UserResponse fromEntity(UserEntity entity) {
         if (entity == null) {
             return null;

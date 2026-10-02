@@ -9,12 +9,14 @@ public interface UserRepositoryPort {
     User save(User user);
     Optional<User> findById(UUID userId);
     Optional<User> findByMsisdn(String msisdn);
+    List<User> findAll();
+    List<User> findBySaccoId(UUID saccoId);
+    boolean existsById(UUID userId);
+    void deleteById(UUID userId);
 
-    // Updated to include saccoId
     void saveSuperAdmin(String userId, String msisdn, String hashedPin, String role, String saccoId);
-
-    // Updated to include saccoId
     void assignRole(String userId, String roleId, String saccoId);
+    void insertUserRole(UUID userId, UUID roleId, UUID saccoId);
 
     // Resolves the full list of permission authority strings for a user in a specific SACCO context
     List<String> findPermissions(UUID userId, UUID saccoId);

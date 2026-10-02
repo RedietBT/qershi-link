@@ -1,12 +1,7 @@
 package com.kab.qershi.auth.infrastructure.rest;
 
-import com.kab.qershi.auth.domain.model.UserStatus;
-import com.kab.qershi.auth.domain.ports.outbound.MessagingPort;
-import com.kab.qershi.auth.infrastructure.grpc.ProfileServiceClient;
-import com.kab.qershi.auth.infrastructure.persistence.SaccoEntity;
-import com.kab.qershi.auth.infrastructure.persistence.SpringDataSaccoRepository;
-import com.kab.qershi.auth.infrastructure.persistence.SpringDataUserRepository;
-import com.kab.qershi.auth.infrastructure.persistence.UserEntity;
+import com.kab.qershi.auth.domain.model.User;
+import com.kab.qershi.auth.domain.ports.inbound.UserManagementUseCase;
 import com.kab.qershi.auth.infrastructure.rest.dto.CreateUserRequest;
 import com.kab.qershi.auth.infrastructure.rest.dto.UpdateUserRequest;
 import com.kab.qershi.auth.infrastructure.rest.dto.UserResponse;
@@ -15,52 +10,31 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.SecureRandom;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
  * REST controller managing systemic administrative operations on user security profiles.
- * Manages purely security metrics (MSISDN, Status) without demographic pollution.
- * Enforces JWT tenant-scoped access for SACCO_ADMIN users while preserving global SUPER_ADMIN visibility.
+ * Injects inbound port UserManagementUseCase.
  *
  * @author KAB Digital Solution PLC
- * @version 1.9.0
+ * @version 2.0.0
  */
 @RestController
 @RequestMapping("/api/v1/users")
 @Tag(name = "User Account Management", description = "Endpoints for administrative panels to track and perform CRUD options on identity records")
 public class UserController {
 
-    private static final Logger log = LoggerFactory.getLogger(UserController.class);
-    private final SpringDataUserRepository userRepository;
-    private final SpringDataSaccoRepository saccoRepository;
-    private final ProfileServiceClient profileServiceClient;
-    private final PasswordEncoder passwordEncoder;
-    private final MessagingPort messagingPort;
+    private final UserManagementUseCase userManagementUseCase;
 
-    public UserController(SpringDataUserRepository userRepository,
-                          SpringDataSaccoRepository saccoRepository,
-                          ProfileServiceClient profileServiceClient,
-                          PasswordEncoder passwordEncoder,
-                          @Qualifier("notificationGrpcClientAdapter") MessagingPort messagingPort) {
-        this.userRepository = userRepository;
-        this.saccoRepository = saccoRepository;
-        this.profileServiceClient = profileServiceClient;
-        this.passwordEncoder = passwordEncoder;
-        this.messagingPort = messagingPort;
+    public UserController(UserManagementUseCase userManagementUseCase) {
+        this.userManagementUseCase = userManagementUseCase;
     }
 
     @GetMapping
@@ -70,28 +44,12 @@ public class UserController {
             @RequestParam(required = false) UUID saccoId,
             Authentication authentication) {
 
-        List<UserEntity> users;
-        if (SecurityUtils.isSuperAdmin(authentication)) {
-            if (saccoId != null) {
-                log.info("SUPER_ADMIN retrieving user accounts for SACCO: {}", saccoId);
-                users = userRepository.findBySaccoId(saccoId);
-            } else {
-                log.info("SUPER_ADMIN retrieving all user accounts across platform");
-                users = userRepository.findAll();
-            }
-        } else {
-            // SACCO_ADMIN or tenant user: MUST use saccoId extracted from their JWT token
-            UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
-            if (tenantSaccoId == null) {
-                log.warn("Forbidden attempt to fetch users: SACCO_ADMIN token missing saccoId claim");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-            log.info("Tenant admin retrieving user accounts scoped to SACCO: {}", tenantSaccoId);
-            users = userRepository.findBySaccoId(tenantSaccoId);
-        }
+        boolean isSuperAdmin = SecurityUtils.isSuperAdmin(authentication);
+        UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
 
+        List<User> users = userManagementUseCase.getAllUsers(saccoId, isSuperAdmin, tenantSaccoId);
         List<UserResponse> response = users.stream()
-                .map(UserResponse::fromEntity)
+                .map(UserResponse::fromDomain)
                 .toList();
 
         return ResponseEntity.ok(response);
@@ -104,7 +62,7 @@ public class UserController {
             @Valid @RequestBody CreateUserRequest request,
             @RequestParam(required = false) UUID saccoId,
             Authentication authentication) {
-        
+
         UUID targetSaccoId;
         if (!SecurityUtils.isSuperAdmin(authentication)) {
             targetSaccoId = SecurityUtils.extractSaccoId(authentication);
@@ -118,66 +76,19 @@ public class UserController {
             }
         }
 
-        log.info("Registering new user for SACCO: {} with phone: {}", targetSaccoId, request.msisdn());
-
-        if (userRepository.findByMsisdn(request.msisdn()).isPresent()) {
-            throw new IllegalArgumentException("User with phone number " + request.msisdn() + " is already registered.");
-        }
-
-        // System automatically generates a secure 6-digit initial PIN for SMS delivery
-        String rawPin = String.format("%06d", new SecureRandom().nextInt(900000) + 100000);
-
-        UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(UUID.randomUUID());
-        userEntity.setMsisdn(request.msisdn());
-        userEntity.setSaccoId(targetSaccoId);
-        userEntity.setGlobalRole(request.globalRole());
-        userEntity.setStatus(UserStatus.PASSWORD_CHANGE_REQUIRED);
-        userEntity.setCredentialHash(passwordEncoder.encode(rawPin));
-        userEntity.setFailedLoginAttempts(0);
-
-        userRepository.save(userEntity);
-
-        // Automatically assign default role permissions in master_schema.user_roles
-        UUID defaultRoleId = UUID.fromString("018f3b23-1a2b-7c3d-be4f-5a6b7c8d9e0f"); // ADMIN role
-        userRepository.insertUserRole(userEntity.getUserId(), defaultRoleId, targetSaccoId);
-
-        // Fetch SACCO name to welcome user under their SACCO identity
-        String saccoName = saccoRepository.findById(targetSaccoId)
-                .map(SaccoEntity::getSaccoName)
-                .orElse("your SACCO");
-
-        // Dispatch SMS notification with initial PIN (welcome with SACCO name)
-        String smsMessage = "Welcome to " + saccoName + "! Your user account has been created. Your initial PIN is: " + rawPin;
-        try {
-            messagingPort.sendSms(request.msisdn(), smsMessage);
-            log.info("Initial PIN SMS notification dispatched to {}", request.msisdn());
-        } catch (Exception e) {
-            log.error("Failed to send SMS to {}: {}", request.msisdn(), e.getMessage());
-        }
-
-        return ResponseEntity.ok("User registered successfully. Initial PIN sent via SMS to " + request.msisdn() + ".");
+        String result = userManagementUseCase.createUser(request.msisdn(), request.globalRole(), targetSaccoId);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN')")
     @Operation(summary = "Get user account details by ID", description = "SUPER_ADMIN can access any user. SACCO_ADMIN is restricted to users within their SACCO.")
     public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id, Authentication authentication) {
-        Optional<UserEntity> userOpt = userRepository.findById(id);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        UserEntity user = userOpt.get();
+        boolean isSuperAdmin = SecurityUtils.isSuperAdmin(authentication);
+        UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
 
-        if (!SecurityUtils.isSuperAdmin(authentication)) {
-            UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
-            if (tenantSaccoId == null || !tenantSaccoId.equals(user.getSaccoId())) {
-                log.warn("Forbidden attempt to access user {} outside tenant SACCO context {}", id, tenantSaccoId);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-        }
-
-        return ResponseEntity.ok(UserResponse.fromEntity(user));
+        User user = userManagementUseCase.getUserById(id, isSuperAdmin, tenantSaccoId);
+        return ResponseEntity.ok(UserResponse.fromDomain(user));
     }
 
     @PutMapping("/{id}")
@@ -188,25 +99,11 @@ public class UserController {
             @Valid @RequestBody UpdateUserRequest request,
             Authentication authentication) {
 
-        Optional<UserEntity> userOpt = userRepository.findById(id);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        UserEntity userEntity = userOpt.get();
+        boolean isSuperAdmin = SecurityUtils.isSuperAdmin(authentication);
+        UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
 
-        if (!SecurityUtils.isSuperAdmin(authentication)) {
-            UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
-            if (tenantSaccoId == null || !tenantSaccoId.equals(userEntity.getSaccoId())) {
-                log.warn("Forbidden attempt to update user {} outside tenant SACCO context", id);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-        }
-
-        userEntity.setMsisdn(request.msisdn());
-        userEntity.setStatus(request.status());
-
-        UserEntity savedEntity = userRepository.save(userEntity);
-        return ResponseEntity.ok(UserResponse.fromEntity(savedEntity));
+        User updated = userManagementUseCase.updateUser(id, request.msisdn(), request.status(), isSuperAdmin, tenantSaccoId);
+        return ResponseEntity.ok(UserResponse.fromDomain(updated));
     }
 
     @DeleteMapping("/{id}")
@@ -214,19 +111,11 @@ public class UserController {
     @Operation(summary = "Purge user identity and issue cascading deletions", description = "Strictly gated to global platform SUPER_ADMIN actors.")
     @ApiResponse(responseCode = "204", description = "User records and corresponding profiles successfully evicted across services.")
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
-        if (!userRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-
-        log.warn("Purging user identity: {}", id);
-        userRepository.deleteById(id);
-        profileServiceClient.triggerProfileCascadeDeletion(id);
-
+        userManagementUseCase.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{userId}/roles/{roleId}")
-    @Transactional
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SACCO_ADMIN') or hasAnyAuthority('ROLE_UPDATE', 'ROLE_MANAGE')")
     @Operation(
             summary = "Assign role to user",
@@ -240,28 +129,18 @@ public class UserController {
             Authentication authentication) {
 
         UUID targetSaccoId = saccoId;
-
-        // If saccoId is omitted, extract from JWT claims or fallback to user's assigned SACCO
         if (targetSaccoId == null) {
             targetSaccoId = SecurityUtils.extractSaccoId(authentication);
         }
 
-        if (targetSaccoId == null) {
-            targetSaccoId = userRepository.findById(userId)
-                    .map(UserEntity::getSaccoId)
-                    .orElse(null);
-        }
-
         if (!SecurityUtils.isSuperAdmin(authentication)) {
             UUID tenantSaccoId = SecurityUtils.extractSaccoId(authentication);
-            if (tenantSaccoId != null && !tenantSaccoId.equals(targetSaccoId)) {
-                log.warn("SACCO admin attempted to assign role in different SACCO: {}", targetSaccoId);
+            if (tenantSaccoId != null && targetSaccoId != null && !tenantSaccoId.equals(targetSaccoId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
         }
 
-        log.info("Assigning role {} to user {} in SACCO {}", roleId, userId, targetSaccoId);
-        userRepository.insertUserRole(userId, roleId, targetSaccoId);
+        userManagementUseCase.assignRole(userId, roleId, targetSaccoId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -42,6 +42,13 @@ public class SaccoRepositoryAdapter implements SaccoRepositoryPort {
                 .map(this::mapToDomain);
     }
 
+    @Override
+    public java.util.List<Sacco> findAll() {
+        return repository.findAll().stream()
+                .map(this::mapToDomain)
+                .toList();
+    }
+
 
     @Override
     public boolean existsBySaccoName(String saccoName) {

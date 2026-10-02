@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -28,23 +29,27 @@ public class RoleRepositoryAdapter implements RoleRepositoryPort {
     @Override
     public Optional<Role> findById(UUID roleId) {
         if (roleId == null) return Optional.empty();
-        return roleRepository.findById(roleId).map(entity -> {
-            Role role = new Role(entity.getRoleId(), entity.getRoleName(), entity.isSystemDefined());
-            if (entity.getPermissions() != null) {
-                entity.getPermissions().forEach(p -> role.grantPermission(new Permission(
-                        p.getPermissionId(), p.getResource(), p.getAction(), p.getDescription(), p.isActive()
-                )));
-            }
-            return role;
-        });
+        return roleRepository.findById(roleId).map(this::toDomain);
     }
 
     @Override
     public Optional<Permission> findPermissionById(UUID permissionId) {
         if (permissionId == null) return Optional.empty();
-        return permissionRepository.findById(permissionId).map(p ->
-                new Permission(p.getPermissionId(), p.getResource(), p.getAction(), p.getDescription(), p.isActive())
-        );
+        return permissionRepository.findById(permissionId).map(this::toDomain);
+    }
+
+    @Override
+    public List<Role> findAll() {
+        return roleRepository.findAll().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Permission> findAllPermissions() {
+        return permissionRepository.findAll().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -72,5 +77,28 @@ public class RoleRepositoryAdapter implements RoleRepositoryPort {
         entity.setPermissions(permissionEntities);
 
         roleRepository.save(entity);
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID roleId) {
+        roleRepository.deleteById(roleId);
+    }
+
+    @Override
+    public long countUsersAssignedToRole(UUID roleId) {
+        return roleRepository.countUsersAssignedToRole(roleId);
+    }
+
+    private Role toDomain(RoleEntity entity) {
+        Role role = new Role(entity.getRoleId(), entity.getRoleName(), entity.isSystemDefined());
+        if (entity.getPermissions() != null) {
+            entity.getPermissions().forEach(p -> role.grantPermission(toDomain(p)));
+        }
+        return role;
+    }
+
+    private Permission toDomain(PermissionEntity p) {
+        return new Permission(p.getPermissionId(), p.getResource(), p.getAction(), p.getDescription(), p.isActive());
     }
 }

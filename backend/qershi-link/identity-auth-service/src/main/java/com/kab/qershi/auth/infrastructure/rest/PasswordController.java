@@ -1,6 +1,6 @@
 package com.kab.qershi.auth.infrastructure.rest;
 
-import com.kab.qershi.auth.application.usecase.PasswordService;
+import com.kab.qershi.auth.domain.ports.inbound.PasswordManagementUseCase;
 import com.kab.qershi.auth.infrastructure.rest.dto.ChangePasswordRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,21 +15,20 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST controller for user authentication PIN management and password rotation.
- * Supports both unauthenticated first-time password rotation using MSISDN + initial PIN,
- * and authenticated user PIN rotation via Bearer JWT.
+ * Injects inbound port PasswordManagementUseCase.
  *
  * @author KAB Digital Solution PLC
- * @version 1.2.0
+ * @version 2.0.0
  */
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Authentication Engine", description = "Endpoints for managing identity security and PIN rotation")
 public class PasswordController {
 
-    private final PasswordService passwordService;
+    private final PasswordManagementUseCase passwordManagementUseCase;
 
-    public PasswordController(PasswordService passwordService) {
-        this.passwordService = passwordService;
+    public PasswordController(PasswordManagementUseCase passwordManagementUseCase) {
+        this.passwordManagementUseCase = passwordManagementUseCase;
     }
 
     @PostMapping("/change-password")
@@ -55,7 +54,7 @@ public class PasswordController {
             throw new IllegalArgumentException("Phone number (msisdn) is required in the request body or via Bearer Authorization header.");
         }
 
-        passwordService.changePassword(msisdn, request.oldPin(), request.newPin());
+        passwordManagementUseCase.changePassword(msisdn, request.oldPin(), request.newPin());
 
         return ResponseEntity.ok("PIN updated successfully.");
     }

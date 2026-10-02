@@ -2,29 +2,38 @@ package com.kab.qershi.auth.application.usecase;
 
 import com.kab.qershi.auth.domain.model.User;
 import com.kab.qershi.auth.domain.model.UserStatus;
+import com.kab.qershi.auth.domain.ports.inbound.PasswordManagementUseCase;
+import com.kab.qershi.auth.domain.ports.inbound.SystemAuditUseCase;
+import com.kab.qershi.auth.domain.ports.outbound.PasswordEncoderPort;
 import com.kab.qershi.auth.domain.ports.outbound.UserRepositoryPort;
-import com.kab.qershi.auth.infrastructure.security.PinValidator;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.kab.qershi.auth.domain.service.PinValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Application service for user password and PIN management.
+ *
+ * @author KAB Digital Solution PLC
+ * @version 2.0.0
+ */
 @Service
-public class PasswordService {
+public class PasswordService implements PasswordManagementUseCase {
+
     private final UserRepositoryPort userRepositoryPort;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoderPort passwordEncoderPort;
     private final PinValidator pinValidator;
-    private final SystemAuditService systemAuditService;
+    private final SystemAuditUseCase systemAuditUseCase;
 
     public PasswordService(UserRepositoryPort userRepositoryPort,
-                           PasswordEncoder passwordEncoder,
-                           PinValidator pinValidator,
-                           SystemAuditService systemAuditService) {
+                           PasswordEncoderPort passwordEncoderPort,
+                           SystemAuditUseCase systemAuditUseCase) {
         this.userRepositoryPort = userRepositoryPort;
-        this.passwordEncoder = passwordEncoder;
-        this.pinValidator = pinValidator;
-        this.systemAuditService = systemAuditService;
+        this.passwordEncoderPort = passwordEncoderPort;
+        this.pinValidator = new PinValidator();
+        this.systemAuditUseCase = systemAuditUseCase;
     }
 
+    @Override
     @Transactional
     public void changePassword(String msisdn, String oldPin, String newPin) {
         // Enforce Core Banking PIN complexity rules before updating credential
@@ -33,15 +42,15 @@ public class PasswordService {
         User user = userRepositoryPort.findByMsisdn(msisdn)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        if (!passwordEncoder.matches(oldPin, user.getCredentialHash())) {
-            systemAuditService.recordAuditLog(user.getUserId(), user.getSaccoId(), "PIN_ROTATION_FAILED", "USER", "FAILURE", null, "Current PIN validation failed");
+        if (!passwordEncoderPort.matches(oldPin, user.getCredentialHash())) {
+            systemAuditUseCase.recordAuditLog(user.getUserId(), user.getSaccoId(), "PIN_ROTATION_FAILED", "USER", "FAILURE", null, "Current PIN validation failed");
             throw new IllegalArgumentException("Current PIN is incorrect.");
         }
 
-        user.setCredentialHash(passwordEncoder.encode(newPin));
+        user.setCredentialHash(passwordEncoderPort.encode(newPin));
         user.setStatus(UserStatus.ACTIVE);
         userRepositoryPort.save(user);
 
-        systemAuditService.recordAuditLog(user.getUserId(), user.getSaccoId(), "PIN_ROTATED", "USER", "SUCCESS", null, "User PIN successfully rotated");
+        systemAuditUseCase.recordAuditLog(user.getUserId(), user.getSaccoId(), "PIN_ROTATED", "USER", "SUCCESS", null, "User PIN successfully rotated");
     }
 }

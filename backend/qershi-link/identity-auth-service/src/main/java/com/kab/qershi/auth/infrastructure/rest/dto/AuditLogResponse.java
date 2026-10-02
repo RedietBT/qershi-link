@@ -24,6 +24,24 @@ public record AuditLogResponse(
         String details,
         OffsetDateTime timestamp
 ) {
+    public static AuditLogResponse fromDomain(com.kab.qershi.auth.domain.model.AuditLog domain) {
+        if (domain == null) {
+            return null;
+        }
+        return new AuditLogResponse(
+                domain.getLogId(),
+                domain.getUserId(),
+                domain.getUserMsisdn(),
+                domain.getSaccoId(),
+                domain.getAction(),
+                domain.getResourceAffected(),
+                domain.getStatus(),
+                domain.getIpAddress(),
+                domain.getDetails(),
+                domain.getTimestamp()
+        );
+    }
+
     public static AuditLogResponse fromEntity(AuditLogEntity entity, String phoneNumber) {
         if (entity == null) {
             return null;

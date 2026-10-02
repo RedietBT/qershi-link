@@ -55,6 +55,37 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     }
 
     @Override
+    public List<User> findAll() {
+        return repository.findAll().stream()
+                .map(this::mapToDomain)
+                .toList();
+    }
+
+    @Override
+    public List<User> findBySaccoId(UUID saccoId) {
+        return repository.findBySaccoId(saccoId).stream()
+                .map(this::mapToDomain)
+                .toList();
+    }
+
+    @Override
+    public boolean existsById(UUID userId) {
+        return repository.existsById(userId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteById(UUID userId) {
+        repository.deleteById(userId);
+    }
+
+    @Override
+    @Transactional
+    public void insertUserRole(UUID userId, UUID roleId, UUID saccoId) {
+        repository.insertUserRole(userId, roleId, saccoId);
+    }
+
+    @Override
     @Transactional
     public void assignRole(String userId, String roleId, String saccoId) {
         repository.insertUserRole(UUID.fromString(userId), UUID.fromString(roleId), UUID.fromString(saccoId));

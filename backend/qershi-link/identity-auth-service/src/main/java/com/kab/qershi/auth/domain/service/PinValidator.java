@@ -1,24 +1,22 @@
-package com.kab.qershi.auth.infrastructure.security;
-
-import org.springframework.stereotype.Component;
+package com.kab.qershi.auth.domain.service;
 
 import java.util.List;
 
 /**
- * Validates PIN complexity and security rules according to Core Banking Standards.
+ * Domain Service for validating PIN complexity according to Core Banking Standards.
  * Rejects trivial, sequential, repeating, or phone-number-derived PINs.
+ * Pure business logic with zero framework or infrastructure dependencies.
  *
  * @author KAB Digital Solution PLC
  * @version 1.0.0
  */
-@Component
 public class PinValidator {
 
     private static final List<String> TRIVIAL_PINS = List.of(
             "000000", "111111", "222222", "333333", "444444",
             "555555", "666666", "777777", "888888", "999999",
             "123456", "654321", "012345", "543210", "123123",
-            "112233", "121212", "654321"
+            "112233", "121212"
     );
 
     /**
